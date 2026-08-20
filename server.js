@@ -12,7 +12,57 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
   .catch(err => console.error('MongoDB Bağlantı Hatası:', err));
 app.use(express.static('public'));
+// MongoDB Kullanıcı Şeması (Modeli)
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  balance: { type: Number, default: 1000 },
+  level: { type: Number, default: 1 },
+  xp: { type: Number, default: 0 },
+  isVip: { type: Boolean, default: false }
+});
 
+const User = mongoose.model('User', userSchema);
+
+// Socket.io Bağlantısı İçinde Oturum Yönetimi
+io.on('connection', (socket) => {
+  socket.on('userLogin', async (data) => {
+    try {
+      const username = (data && data.username && data.username.trim())
+        ? data.username.trim()
+        : `Ziyaretçi_${Math.floor(1000 + Math.random() * 9000)}`;
+
+      // Oyuncuyu veritabanında ara, yoksa yeni oluştur
+      let user = await User.findOne({ username });
+      if (!user) {
+        user = await User.create({ username });
+        console.log(`Yeni oyuncu oluşturuldu: ${username}`);
+      } else {
+        console.log(`Oyuncu giriş yaptı: ${username}`);
+      }
+
+      // Aktif oyuncular listesine kaydet
+      onlineUsers[socket.id] = {
+        id: socket.id,
+        dbId: user._id,
+        username: user.username,
+        balance: user.balance,
+        level: user.level,
+        xp: user.xp,
+        isVip: user.isVip
+      };
+
+      // İstemciye güncel oyuncu verilerini gönder
+      socket.emit('userData', onlineUsers[socket.id]);
+    } catch (err) {
+      console.error('Kullanıcı giriş hatası:', err);
+    }
+  });
+
+  // Oyuncu ayrıldığında veya veri güncellemesi gerektiğinde:
+  socket.on('disconnect', () => {
+    delete onlineUsers[socket.id];
+  });
+});
 const onlineUsers = {};
 const activeDuels = {};
 
