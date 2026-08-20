@@ -326,6 +326,29 @@
         function mine() { socket.emit('mineGold'); }
         function roll() { socket.emit('rollDice'); }
         function openGift() { socket.emit('openGift'); }
+   
+
+
+// Sunucudan oyuncu verisi geldiğinde çalışacak dinleyici:
+socket.on('userData', (user) => {
+  console.log('Giriş başarılı:', user);
+
+  // Giriş panelini gizle, oyun ekranını göster
+  const loginPanel = document.getElementById('login-panel') || document.getElementById('loginScreen');
+  const gamePanel = document.getElementById('game-panel') || document.getElementById('gameScreen');
+
+  if (loginPanel) loginPanel.style.display = 'none';
+  if (gamePanel) gamePanel.style.display = 'block';
+
+  // Bilgileri ekrana yazdır
+  const nameElem = document.getElementById('usernameDisplay');
+  const balanceElem = document.getElementById('balanceDisplay');
+  
+  if (nameElem) nameElem.innerText = user.username;
+  if (balanceElem) balanceElem.innerText = user.balance;
+});
+        
+    
     </script>
 </body>
 </html>
