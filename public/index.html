@@ -8,40 +8,44 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #0f172a; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; }
 
-        #loginModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        .login-box { background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; text-align: center; width: 90%; max-width: 350px; }
-        .login-box h2 { color: #38bdf8; margin-bottom: 15px; }
-        .login-box input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: center; margin-bottom: 10px; font-size: 15px; }
-        .login-box button { width: 100%; padding: 12px; margin: 4px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-main { background: #0284c7; color: #fff; }
-        .btn-guest { background: #475569; color: #fff; }
-
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        .box { background: #1e293b; padding: 25px; border-radius: 16px; border: 1px solid #334155; text-align: center; width: 90%; max-width: 360px; }
+        .box h2 { color: #38bdf8; margin-bottom: 15px; }
+        .box input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: center; margin-bottom: 10px; font-size: 15px; }
+        
         #mainApp { display: none; width: 100%; max-width: 1000px; height: 90vh; grid-template-columns: 240px 1fr 280px; gap: 15px; padding: 15px; }
         .panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; }
         .panel-title { font-size: 14px; font-weight: bold; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
 
         .user-list { list-style: none; overflow-y: auto; }
         .user-item { padding: 8px; background: #0f172a; border-radius: 6px; margin-bottom: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .user-item.vip { color: #f59e0b; font-weight: bold; border: 1px solid #f59e0b33; }
         .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
 
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
         .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px; text-align: center; }
         .card h4 { font-size: 14px; margin-bottom: 4px; }
         .card p { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
-        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.1s; }
+        
+        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.1s; color: #fff; }
         .btn-action:active { transform: scale(0.96); }
-        .buy-btn { background: #059669; color: #fff; }
+        .btn-main { background: #0284c7; }
+        .btn-guest { background: #475569; }
+        .buy-btn { background: #059669; }
         .mine-btn { background: #eab308; color: #000; }
-        .dice-btn { background: #8b5cf6; color: #fff; }
+        .dice-btn { background: #8b5cf6; }
+        .profile-btn { background: #6366f1; padding: 4px 10px; font-size: 12px; width: auto; }
 
         .log-box { background: #0f172a; border: 1px dashed #334155; border-radius: 8px; padding: 8px; font-size: 12px; color: #38bdf8; min-height: 38px; display: flex; align-items: center; justify-content: center; text-align: center; }
 
         .chat-box { flex: 1; overflow-y: auto; background: #0f172a; border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 12px; }
         .chat-msg { margin-bottom: 6px; line-height: 1.3; }
         .chat-msg .sys { color: #f59e0b; font-style: italic; }
+        .chat-msg.vip-user { color: #f59e0b; }
         .chat-input { display: flex; gap: 5px; }
         .chat-input input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; }
-        .chat-input button { padding: 8px 12px; background: #0284c7; color: #fff; border: none; border-radius: 6px; }
+
+        .profile-stat { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; background: #0f172a; padding: 8px; border-radius: 6px; }
 
         @media (max-width: 768px) {
             #mainApp { grid-template-columns: 1fr; height: 100vh; overflow-y: auto; }
@@ -50,15 +54,32 @@
 </head>
 <body>
 
-    <div id="loginModal">
-        <div class="login-box">
+    <!-- Giriş Ekranı -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="box">
             <h2>Giriş Yap</h2>
             <input type="text" id="usernameInput" placeholder="Kullanıcı Adı" maxlength="12">
-            <button class="btn-main" onclick="login(false)">Oyuna Katıl</button>
-            <button class="btn-guest" onclick="login(true)">Ziyaretçi Girişi</button>
+            <button class="btn-action btn-main" style="margin-bottom:6px;" onclick="login(false)">Oyuna Katıl</button>
+            <button class="btn-action btn-guest" onclick="login(true)">Ziyaretçi Girişi</button>
         </div>
     </div>
 
+    <!-- Profil Açılır Penceresi -->
+    <div id="profileModal" class="modal-overlay" style="display:none;">
+        <div class="box">
+            <h2>👤 Oyuncu Profili</h2>
+            <div style="margin: 15px 0; text-align: left;">
+                <div class="profile-stat"><span>Kullanıcı Adı:</span><b id="pName">-</b></div>
+                <div class="profile-stat"><span>Seviye:</span><b id="pLevel" style="color:#38bdf8;">1</b></div>
+                <div class="profile-stat"><span>XP İlerlemesi:</span><b id="pXp" style="color:#a855f7;">0/100</b></div>
+                <div class="profile-stat"><span>Bakiye:</span><b id="pBalance" style="color:#10b981;">1,000 ₺</b></div>
+                <div class="profile-stat"><span>Aktif Rozetler:</span><b id="pBadges">Yok</b></div>
+            </div>
+            <button class="btn-action btn-main" onclick="toggleProfile()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- Ana Uygulama -->
     <div id="mainApp">
         <div class="panel">
             <div class="panel-title">Online Oyuncular (<span id="userCount">0</span>)</div>
@@ -66,36 +87,37 @@
         </div>
 
         <div class="panel">
-            <div class="panel-title" style="display: flex; justify-content: space-between;">
+            <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span id="myUsername">-</span>
-                <span style="color:#10b981;" id="myBalance">1,000 ₺</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="color:#10b981;" id="myBalance">1,000 ₺</span>
+                    <button class="btn-action profile-btn" onclick="toggleProfile()">Profilim</button>
+                </div>
             </div>
 
-            <!-- Mağaza -->
             <div class="cards-grid">
                 <div class="card">
                     <h4>⚡ Hız Takviyesi</h4>
-                    <p>Profil rozeti</p>
+                    <p>+2x XP Çarpanı</p>
                     <button class="btn-action buy-btn" onclick="buy('Hız Takviyesi', 250)">250 ₺</button>
                 </div>
                 <div class="card">
                     <h4>👑 VIP Üyelik</h4>
-                    <p>Özel unvan</p>
+                    <p>Sarı isim & Rozet</p>
                     <button class="btn-action buy-btn" style="background:#d97706;" onclick="buy('VIP Üyelik', 500)">500 ₺</button>
                 </div>
             </div>
 
-            <!-- Mini Oyunlar (Bakiye Kazanma) -->
-            <div class="panel-title" style="margin-top: 5px;">🎮 Bakiye Kazan</div>
+            <div class="panel-title">🎮 Bakiye & XP Kazan</div>
             <div class="cards-grid">
                 <div class="card">
                     <h4>⛏️ Maden Kaz</h4>
-                    <p>+10-30 ₺ Kazan</p>
+                    <p>+10-30 ₺ / +XP</p>
                     <button class="btn-action mine-btn" onclick="mine()">Kazma Vur!</button>
                 </div>
                 <div class="card">
                     <h4>🎲 Zar At</h4>
-                    <p>Bahis: 100 ₺ (2 Katı)</p>
+                    <p>Bahis: 100 ₺ (2x)</p>
                     <button class="btn-action dice-btn" onclick="roll()">Zar Salla</button>
                 </div>
             </div>
@@ -108,7 +130,7 @@
             <div class="chat-box" id="chatBox"></div>
             <div class="chat-input">
                 <input type="text" id="chatInput" placeholder="Mesaj yazın..." onkeydown="if(event.key==='Enter') sendChat()">
-                <button onclick="sendChat()">></button>
+                <button class="btn-action btn-main" style="width: auto; padding: 8px 12px;" onclick="sendChat()">></button>
             </div>
         </div>
     </div>
@@ -116,6 +138,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        let myData = {};
 
         function login(isGuest) {
             const val = document.getElementById('usernameInput').value;
@@ -124,26 +147,46 @@
         }
 
         socket.on('loginSuccess', (data) => {
+            myData = data;
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
-            document.getElementById('myUsername').innerText = data.username;
-            document.getElementById('myBalance').innerText = data.balance.toLocaleString() + ' ₺';
+            updateProfileUI(data);
         });
+
+        socket.on('updateProfile', (data) => {
+            myData = { ...myData, ...data };
+            updateProfileUI(myData);
+        });
+
+        function updateProfileUI(data) {
+            document.getElementById('myUsername').innerText = (data.isVip ? '👑 ' : '') + data.username;
+            document.getElementById('myBalance').innerText = data.balance.toLocaleString() + ' ₺';
+            
+            document.getElementById('pName').innerText = data.username;
+            document.getElementById('pLevel').innerText = data.level;
+            document.getElementById('pXp').innerText = `${data.xp}/${data.level * 100}`;
+            document.getElementById('pBalance').innerText = data.balance.toLocaleString() + ' ₺';
+            
+            let badges = [];
+            if (data.isVip) badges.push('👑 VIP');
+            if (data.hasSpeed) badges.push('⚡ Hız Takviyesi');
+            document.getElementById('pBadges').innerText = badges.length ? badges.join(', ') : 'Yok';
+        }
 
         socket.on('updateUserList', (users) => {
             document.getElementById('userCount').innerText = users.length;
             const list = document.getElementById('userList');
             list.innerHTML = users.map(u => `
-                <li class="user-item">
+                <li class="user-item ${u.isVip ? 'vip' : ''}">
                     <div class="online-dot"></div>
-                    <span>${u.username}</span>
+                    <span>${u.isVip ? '👑 ' : ''}${u.username} ${u.hasSpeed ? '⚡' : ''} (Lvl ${u.level || 1})</span>
                 </li>
             `).join('');
         });
 
         socket.on('chatMessage', (data) => {
             const box = document.getElementById('chatBox');
-            box.innerHTML += `<div class="chat-msg"><b>${data.user}:</b> ${data.text}</div>`;
+            box.innerHTML += `<div class="chat-msg ${data.isVip ? 'vip-user' : ''}"><b>${data.isVip ? '👑 ' : ''}${data.user}:</b> ${data.text}</div>`;
             box.scrollTop = box.scrollHeight;
         });
 
@@ -161,6 +204,11 @@
             document.getElementById('gameLog').innerText = msg;
         });
 
+        function toggleProfile() {
+            const modal = document.getElementById('profileModal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
         function sendChat() {
             const input = document.getElementById('chatInput');
             if (input.value.trim()) {
@@ -169,17 +217,9 @@
             }
         }
 
-        function buy(name, price) {
-            socket.emit('buyItem', { name, price });
-        }
-
-        function mine() {
-            socket.emit('mineGold');
-        }
-
-        function roll() {
-            socket.emit('rollDice');
-        }
+        function buy(name, price) { socket.emit('buyItem', { name, price }); }
+        function mine() { socket.emit('mineGold'); }
+        function roll() { socket.emit('rollDice'); }
     </script>
 </body>
 </html>
