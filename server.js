@@ -19,7 +19,11 @@ io.on('connection', (socket) => {
         onlineUsers[socket.id] = {
             id: socket.id,
             username: username,
-            balance: 1000
+            balance: 1000,
+            level: 1,
+            xp: 0,
+            isVip: false,
+            hasSpeed: false
         };
 
         socket.emit('loginSuccess', onlineUsers[socket.id]);
@@ -30,7 +34,7 @@ io.on('connection', (socket) => {
     socket.on('sendMessage', (msg) => {
         const user = onlineUsers[socket.id];
         if (user && msg && msg.trim() !== '') {
-            io.emit('chatMessage', { user: user.username, text: msg });
+            io.emit('chatMessage', { user: user.username, text: msg, isVip: user.isVip });
         }
     });
 
@@ -38,25 +42,44 @@ io.on('connection', (socket) => {
         const user = onlineUsers[socket.id];
         if (user && user.balance >= item.price) {
             user.balance -= item.price;
+            
+            if (item.name === 'VIP Üyelik') {
+                user.isVip = true;
+            } else if (item.name === 'Hız Takviyesi') {
+                user.hasSpeed = true;
+            }
+
             socket.emit('updateBalance', user.balance);
+            socket.emit('updateProfile', user);
+            io.emit('updateUserList', Object.values(onlineUsers));
             io.emit('systemMessage', `🎉 ${user.username}, [${item.name}] satın aldı!`);
         }
     });
 
-    // --- MİNİ OYUN MEKANİKLERİ ---
-    
-    // 1. Maden Kazma (Clicker)
+    // Maden Kazma (Clicker + XP Mantığı)
     socket.on('mineGold', () => {
         const user = onlineUsers[socket.id];
         if (user) {
-            const reward = Math.floor(Math.random() * 20) + 10; // 10-30 ₺ arası rastgele bakiye
+            const reward = Math.floor(Math.random() * 20) + 10;
             user.balance += reward;
+            
+            const xpGain = user.hasSpeed ? 20 : 10; // Hız takviyesi olan daha çok XP kazanır
+            user.xp += xpGain;
+            
+            const nextLevelXp = user.level * 100;
+            if (user.xp >= nextLevelXp) {
+                user.level++;
+                user.xp -= nextLevelXp;
+                io.emit('systemMessage', `🌟 ${user.username} Seviye ${user.level} oldu!`);
+            }
+
             socket.emit('updateBalance', user.balance);
-            socket.emit('gameLog', `⛏️ Madenden ${reward} ₺ çıkardın!`);
+            socket.emit('updateProfile', user);
+            socket.emit('gameLog', `⛏️ Madenden ${reward} ₺ ve +${xpGain} XP kazandın!`);
         }
     });
 
-    // 2. Zar Atma (Şans Oyunu - 100 ₺ Bahis)
+    // Zar Atma (Şans Oyunu + XP Mantığı)
     socket.on('rollDice', () => {
         const user = onlineUsers[socket.id];
         const bet = 100;
@@ -64,16 +87,25 @@ io.on('connection', (socket) => {
             user.balance -= bet;
             const dice = Math.floor(Math.random() * 6) + 1;
             
-            if (dice >= 4) { // 4, 5, 6 gelirse kazanır (2 katı)
+            user.xp += 15;
+            const nextLevelXp = user.level * 100;
+            if (user.xp >= nextLevelXp) {
+                user.level++;
+                user.xp -= nextLevelXp;
+                io.emit('systemMessage', `🌟 ${user.username} Seviye ${user.level} oldu!`);
+            }
+
+            if (dice >= 4) {
                 const win = bet * 2;
                 user.balance += win;
                 socket.emit('updateBalance', user.balance);
-                socket.emit('gameLog', `🎲 Zar: ${dice}! Kazandın: +${win} ₺`);
+                socket.emit('gameLog', `🎲 Zar: ${dice}! Kazandın: +${win} ₺ (+15 XP)`);
                 io.emit('systemMessage', `🎲 ${user.username} zardan ${win} ₺ kazandı!`);
-            } else { // 1, 2, 3 gelirse kaybeder
+            } else {
                 socket.emit('updateBalance', user.balance);
-                socket.emit('gameLog', `🎲 Zar: ${dice}! Kaybettin: -${bet} ₺`);
+                socket.emit('gameLog', `🎲 Zar: ${dice}! Kaybettin: -${bet} ₺ (+15 XP)`);
             }
+            socket.emit('updateProfile', user);
         } else if (user) {
             socket.emit('gameLog', `⚠️ Zar atmak için en az ${bet} ₺ gerekli!`);
         }
