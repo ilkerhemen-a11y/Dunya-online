@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Oyuncu Arayüzü</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0f172a; color: #f8fafc; height: 100vh; display: flex; justify-content: center; align-items: center; }
+
+        #loginModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        .login-box { background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; text-align: center; width: 90%; max-width: 350px; }
+        .login-box h2 { color: #38bdf8; margin-bottom: 15px; }
+        .login-box input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: center; margin-bottom: 10px; font-size: 15px; }
+        .login-box button { width: 100%; padding: 12px; margin: 4px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-main { background: #0284c7; color: #fff; }
+        .btn-guest { background: #475569; color: #fff; }
+
+        #mainApp { display: none; width: 100%; max-width: 1000px; height: 90vh; grid-template-columns: 240px 1fr 280px; gap: 15px; padding: 15px; }
+        .panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; }
+        .panel-title { font-size: 14px; font-weight: bold; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+
+        .user-list { list-style: none; overflow-y: auto; }
+        .user-item { padding: 8px; background: #0f172a; border-radius: 6px; margin-bottom: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 15px; text-align: center; }
+        .card h4 { font-size: 15px; margin-bottom: 6px; }
+        .card p { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
+        .buy-btn { width: 100%; padding: 8px; background: #059669; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        .chat-box { flex: 1; overflow-y: auto; background: #0f172a; border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 12px; }
+        .chat-msg { margin-bottom: 6px; line-height: 1.3; }
+        .chat-msg .sys { color: #f59e0b; font-style: italic; }
+        .chat-input { display: flex; gap: 5px; }
+        .chat-input input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; }
+        .chat-input button { padding: 8px 12px; background: #0284c7; color: #fff; border: none; border-radius: 6px; }
+
+        @media (max-width: 768px) {
+            #mainApp { grid-template-columns: 1fr; height: 100vh; overflow-y: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginModal">
+        <div class="login-box">
+            <h2>Giriş Yap</h2>
+            <input type="text" id="usernameInput" placeholder="Kullanıcı Adı" maxlength="12">
+            <button class="btn-main" onclick="login(false)">Oyuna Katıl</button>
+            <button class="btn-guest" onclick="login(true)">Ziyaretçi Girişi</button>
+        </div>
+    </div>
+
+    <div id="mainApp">
+        <div class="panel">
+            <div class="panel-title">Online Oyuncular (<span id="userCount">0</span>)</div>
+            <ul class="user-list" id="userList"></ul>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title" style="display: flex; justify-content: space-between;">
+                <span id="myUsername">-</span>
+                <span style="color:#10b981;" id="myBalance">1,000 ₺</span>
+            </div>
+            <div class="cards-grid">
+                <div class="card">
+                    <h4>⚡ Hız Takviyesi</h4>
+                    <p>Özel profil rozeti verir.</p>
+                    <button class="buy-btn" onclick="buy('Hız Takviyesi', 250)">250 ₺</button>
+                </div>
+                <div class="card">
+                    <h4>👑 VIP Üyelik</h4>
+                    <p>İsmini listede sarı yapar.</p>
+                    <button class="buy-btn" style="background:#d97706;" onclick="buy('VIP Üyelik', 500)">500 ₺</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Canlı Sohbet</div>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Mesaj yazın..." onkeydown="if(event.key==='Enter') sendChat()">
+                <button onclick="sendChat()">></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        function login(isGuest) {
+            const val = document.getElementById('usernameInput').value;
+            const name = isGuest || !val.trim() ? '' : val;
+            socket.emit('userLogin', { username: name });
+        }
+
+        socket.on('loginSuccess', (data) => {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'grid';
+            document.getElementById('myUsername').innerText = data.username;
+            document.getElementById('myBalance').innerText = data.balance.toLocaleString() + ' ₺';
+        });
+
+        socket.on('updateUserList', (users) => {
+            document.getElementById('userCount').innerText = users.length;
+            const list = document.getElementById('userList');
+            list.innerHTML = users.map(u => `
+                <li class="user-item">
+                    <div class="online-dot"></div>
+                    <span>${u.username}</span>
+                </li>
+            `).join('');
+        });
+
+        socket.on('chatMessage', (data) => {
+            const box = document.getElementById('chatBox');
+            box.innerHTML += `<div class="chat-msg"><b>${data.user}:</b> ${data.text}</div>`;
+            box.scrollTop = box.scrollHeight;
+        });
+
+        socket.on('systemMessage', (msg) => {
+            const box = document.getElementById('chatBox');
+            box.innerHTML += `<div class="chat-msg"><span class="sys">${msg}</span></div>`;
+            box.scrollTop = box.scrollHeight;
+        });
+
+        socket.on('updateBalance', (newBalance) => {
+            document.getElementById('myBalance').innerText = newBalance.toLocaleString() + ' ₺';
+        });
+
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            if (input.value.trim()) {
+                socket.emit('sendMessage', input.value);
+                input.value = '';
+            }
+        }
+
+        function buy(name, price) {
+            socket.emit('buyItem', { name, price });
+        }
+    </script>
+</body>
+</html>
