@@ -18,14 +18,15 @@
         .panel-title { font-size: 14px; font-weight: bold; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
 
         .user-list { list-style: none; overflow-y: auto; }
-        .user-item { padding: 8px; background: #0f172a; border-radius: 6px; margin-bottom: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .user-item { padding: 8px; background: #0f172a; border-radius: 6px; margin-bottom: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+        .user-item:hover { background: #334155; }
         .user-item.vip { color: #f59e0b; font-weight: bold; border: 1px solid #f59e0b33; }
         .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
 
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px; text-align: center; }
-        .card h4 { font-size: 14px; margin-bottom: 4px; }
-        .card p { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; text-align: center; }
+        .card h4 { font-size: 13px; margin-bottom: 4px; }
+        .card p { font-size: 10px; color: #94a3b8; margin-bottom: 8px; }
         
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.1s; color: #fff; }
         .btn-action:active { transform: scale(0.96); }
@@ -34,6 +35,7 @@
         .buy-btn { background: #059669; }
         .mine-btn { background: #eab308; color: #000; }
         .dice-btn { background: #8b5cf6; }
+        .gift-btn { background: #ec4899; }
         .profile-btn { background: #6366f1; padding: 4px 10px; font-size: 12px; width: auto; }
 
         .log-box { background: #0f172a; border: 1px dashed #334155; border-radius: 8px; padding: 8px; font-size: 12px; color: #38bdf8; min-height: 38px; display: flex; align-items: center; justify-content: center; text-align: center; }
@@ -46,6 +48,9 @@
         .chat-input input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; }
 
         .profile-stat { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; background: #0f172a; padding: 8px; border-radius: 6px; }
+
+        .rps-btns { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .rps-btn { font-size: 24px; padding: 15px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; cursor: pointer; }
 
         @media (max-width: 768px) {
             #mainApp { grid-template-columns: 1fr; height: 100vh; overflow-y: auto; }
@@ -64,7 +69,41 @@
         </div>
     </div>
 
-    <!-- Profil Açılır Penceresi -->
+    <!-- Oyuncu İşlem Modalı (Tıklayınca Açılır) -->
+    <div id="userActionModal" class="modal-overlay" style="display:none;">
+        <div class="box">
+            <h3 id="targetUserName">Oyuncu İşlemleri</h3>
+            <p style="font-size:12px; color:#94a3b8; margin-bottom:15px;">Yapmak istediğin işlemi seç:</p>
+            <button class="btn-action buy-btn" style="margin-bottom:8px;" onclick="promptTransfer()">💸 Para Gönder</button>
+            <button class="btn-action dice-btn" style="margin-bottom:12px;" onclick="promptDuel()">⚔️ Düelloya Çağır (Taş-Kağıt-Makas)</button>
+            <button class="btn-action btn-guest" onclick="closeUserAction()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- Düello Daveti Geldi Modalı -->
+    <div id="duelInviteModal" class="modal-overlay" style="display:none;">
+        <div class="box">
+            <h3>⚔️ Düello Teklifi!</h3>
+            <p id="duelInviteMsg" style="margin: 15px 0; font-size: 14px;"></p>
+            <button class="btn-action buy-btn" style="margin-bottom:8px;" onclick="respondDuel(true)">Kabul Et</button>
+            <button class="btn-action btn-guest" onclick="respondDuel(false)">Reddet</button>
+        </div>
+    </div>
+
+    <!-- Düello Oynama Modalı -->
+    <div id="duelPlayModal" class="modal-overlay" style="display:none;">
+        <div class="box">
+            <h3>⚔️ Düello Alanı</h3>
+            <p id="duelPlayMsg" style="font-size:13px; color:#94a3b8; margin-top:5px;"></p>
+            <div class="rps-btns">
+                <button class="rps-btn" onclick="makeChoice('rock')">✊</button>
+                <button class="rps-btn" onclick="makeChoice('paper')">✋</button>
+                <button class="rps-btn" onclick="makeChoice('scissors')">✌️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profil Modalı -->
     <div id="profileModal" class="modal-overlay" style="display:none;">
         <div class="box">
             <h2>👤 Oyuncu Profili</h2>
@@ -83,6 +122,7 @@
     <div id="mainApp">
         <div class="panel">
             <div class="panel-title">Online Oyuncular (<span id="userCount">0</span>)</div>
+            <p style="font-size:10px; color:#94a3b8; margin-bottom:8px;">💡 Etkileşim için oyuncuya tıkla</p>
             <ul class="user-list" id="userList"></ul>
         </div>
 
@@ -120,6 +160,11 @@
                     <p>Bahis: 100 ₺ (2x)</p>
                     <button class="btn-action dice-btn" onclick="roll()">Zar Salla</button>
                 </div>
+                <div class="card">
+                    <h4>🎁 Şans Kutusu</h4>
+                    <p>3 Dakikada Bir</p>
+                    <button class="btn-action gift-btn" onclick="openGift()">Kutuyu Aç</button>
+                </div>
             </div>
 
             <div class="log-box" id="gameLog">Mini oyun bildirimleri burada görünecek.</div>
@@ -139,6 +184,9 @@
     <script>
         const socket = io();
         let myData = {};
+        let selectedTargetId = null;
+        let selectedTargetName = '';
+        let currentDuelId = null;
 
         function login(isGuest) {
             const val = document.getElementById('usernameInput').value;
@@ -177,7 +225,7 @@
             document.getElementById('userCount').innerText = users.length;
             const list = document.getElementById('userList');
             list.innerHTML = users.map(u => `
-                <li class="user-item ${u.isVip ? 'vip' : ''}">
+                <li class="user-item ${u.isVip ? 'vip' : ''}" onclick="openUserAction('${u.id}', '${u.username}')">
                     <div class="online-dot"></div>
                     <span>${u.isVip ? '👑 ' : ''}${u.username} ${u.hasSpeed ? '⚡' : ''} (Lvl ${u.level || 1})</span>
                 </li>
@@ -204,6 +252,63 @@
             document.getElementById('gameLog').innerText = msg;
         });
 
+        // --- ETKİLEŞİM & MODAL İŞLEMLERİ ---
+        function openUserAction(id, name) {
+            if (id === socket.id) return;
+            selectedTargetId = id;
+            selectedTargetName = name;
+            document.getElementById('targetUserName').innerText = name;
+            document.getElementById('userActionModal').style.display = 'flex';
+        }
+
+        function closeUserAction() {
+            document.getElementById('userActionModal').style.display = 'none';
+        }
+
+        function promptTransfer() {
+            closeUserAction();
+            const amount = prompt(`${selectedTargetName} oyuncusuna kaç ₺ göndermek istiyorsun?`);
+            if (amount) {
+                socket.emit('transferMoney', { targetId: selectedTargetId, amount: amount });
+            }
+        }
+
+        function promptDuel() {
+            closeUserAction();
+            const bet = prompt(`${selectedTargetName} ile düello için bahis miktarı girin (₺):`, '100');
+            if (bet) {
+                socket.emit('sendDuelInvite', { targetId: selectedTargetId, bet: bet });
+            }
+        }
+
+        // --- DÜELLO MANTIĞI ---
+        socket.on('duelInviteReceived', (data) => {
+            currentDuelId = data.duelId;
+            document.getElementById('duelInviteMsg').innerText = `${data.from} seni ${data.bet} ₺ bahisle Taş-Kağıt-Makas düellosuna davet etti!`;
+            document.getElementById('duelInviteModal').style.display = 'flex';
+        });
+
+        function respondDuel(accept) {
+            document.getElementById('duelInviteModal').style.display = 'none';
+            socket.emit('respondDuel', { duelId: currentDuelId, accept: accept });
+        }
+
+        socket.on('startDuelUI', (data) => {
+            currentDuelId = data.duelId;
+            document.getElementById('duelPlayMsg').innerText = `Rakip: ${data.opponent} | Bahis: ${data.bet} ₺`;
+            document.getElementById('duelPlayModal').style.display = 'flex';
+        });
+
+        function makeChoice(choice) {
+            socket.emit('makeDuelChoice', { duelId: currentDuelId, choice: choice });
+            document.getElementById('duelPlayModal').style.display = 'none';
+        }
+
+        socket.on('duelFinished', (data) => {
+            document.getElementById('duelPlayModal').style.display = 'none';
+            alert(data.msg);
+        });
+
         function toggleProfile() {
             const modal = document.getElementById('profileModal');
             modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
@@ -220,6 +325,7 @@
         function buy(name, price) { socket.emit('buyItem', { name, price }); }
         function mine() { socket.emit('mineGold'); }
         function roll() { socket.emit('rollDice'); }
+        function openGift() { socket.emit('openGift'); }
     </script>
 </body>
 </html>
