@@ -179,7 +179,6 @@
             </div>
         </div>
     </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -194,7 +193,8 @@
             socket.emit('userLogin', { username: name });
         }
 
-        socket.on('loginSuccess', (data) => {
+        // Sunucudan gelen 'userData' yanıtını buraya bağladık
+        socket.on('userData', (data) => {
             myData = data;
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
@@ -208,12 +208,12 @@
 
         function updateProfileUI(data) {
             document.getElementById('myUsername').innerText = (data.isVip ? '👑 ' : '') + data.username;
-            document.getElementById('myBalance').innerText = data.balance.toLocaleString() + ' ₺';
+            document.getElementById('myBalance').innerText = (data.balance || 0).toLocaleString() + ' ₺';
             
             document.getElementById('pName').innerText = data.username;
-            document.getElementById('pLevel').innerText = data.level;
-            document.getElementById('pXp').innerText = `${data.xp}/${data.level * 100}`;
-            document.getElementById('pBalance').innerText = data.balance.toLocaleString() + ' ₺';
+            document.getElementById('pLevel').innerText = data.level || 1;
+            document.getElementById('pXp').innerText = `${data.xp || 0}/${(data.level || 1) * 100}`;
+            document.getElementById('pBalance').innerText = (data.balance || 0).toLocaleString() + ' ₺';
             
             let badges = [];
             if (data.isVip) badges.push('👑 VIP');
@@ -326,29 +326,6 @@
         function mine() { socket.emit('mineGold'); }
         function roll() { socket.emit('rollDice'); }
         function openGift() { socket.emit('openGift'); }
-   
-
-
-// Sunucudan oyuncu verisi geldiğinde çalışacak dinleyici:
-socket.on('userData', (user) => {
-  console.log('Giriş başarılı:', user);
-
-  // Giriş panelini gizle, oyun ekranını göster
-  const loginPanel = document.getElementById('login-panel') || document.getElementById('loginScreen');
-  const gamePanel = document.getElementById('game-panel') || document.getElementById('gameScreen');
-
-  if (loginPanel) loginPanel.style.display = 'none';
-  if (gamePanel) gamePanel.style.display = 'block';
-
-  // Bilgileri ekrana yazdır
-  const nameElem = document.getElementById('usernameDisplay');
-  const balanceElem = document.getElementById('balanceDisplay');
-  
-  if (nameElem) nameElem.innerText = user.username;
-  if (balanceElem) balanceElem.innerText = user.balance;
-});
-        
-    
     </script>
 </body>
 </html>
