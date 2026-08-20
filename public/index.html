@@ -24,11 +24,17 @@
         .user-item { padding: 8px; background: #0f172a; border-radius: 6px; margin-bottom: 6px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
         .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
 
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-        .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 15px; text-align: center; }
-        .card h4 { font-size: 15px; margin-bottom: 6px; }
-        .card p { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
-        .buy-btn { width: 100%; padding: 8px; background: #059669; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px; text-align: center; }
+        .card h4 { font-size: 14px; margin-bottom: 4px; }
+        .card p { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
+        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.1s; }
+        .btn-action:active { transform: scale(0.96); }
+        .buy-btn { background: #059669; color: #fff; }
+        .mine-btn { background: #eab308; color: #000; }
+        .dice-btn { background: #8b5cf6; color: #fff; }
+
+        .log-box { background: #0f172a; border: 1px dashed #334155; border-radius: 8px; padding: 8px; font-size: 12px; color: #38bdf8; min-height: 38px; display: flex; align-items: center; justify-content: center; text-align: center; }
 
         .chat-box { flex: 1; overflow-y: auto; background: #0f172a; border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 12px; }
         .chat-msg { margin-bottom: 6px; line-height: 1.3; }
@@ -64,18 +70,37 @@
                 <span id="myUsername">-</span>
                 <span style="color:#10b981;" id="myBalance">1,000 ₺</span>
             </div>
+
+            <!-- Mağaza -->
             <div class="cards-grid">
                 <div class="card">
                     <h4>⚡ Hız Takviyesi</h4>
-                    <p>Özel profil rozeti verir.</p>
-                    <button class="buy-btn" onclick="buy('Hız Takviyesi', 250)">250 ₺</button>
+                    <p>Profil rozeti</p>
+                    <button class="btn-action buy-btn" onclick="buy('Hız Takviyesi', 250)">250 ₺</button>
                 </div>
                 <div class="card">
                     <h4>👑 VIP Üyelik</h4>
-                    <p>İsmini listede sarı yapar.</p>
-                    <button class="buy-btn" style="background:#d97706;" onclick="buy('VIP Üyelik', 500)">500 ₺</button>
+                    <p>Özel unvan</p>
+                    <button class="btn-action buy-btn" style="background:#d97706;" onclick="buy('VIP Üyelik', 500)">500 ₺</button>
                 </div>
             </div>
+
+            <!-- Mini Oyunlar (Bakiye Kazanma) -->
+            <div class="panel-title" style="margin-top: 5px;">🎮 Bakiye Kazan</div>
+            <div class="cards-grid">
+                <div class="card">
+                    <h4>⛏️ Maden Kaz</h4>
+                    <p>+10-30 ₺ Kazan</p>
+                    <button class="btn-action mine-btn" onclick="mine()">Kazma Vur!</button>
+                </div>
+                <div class="card">
+                    <h4>🎲 Zar At</h4>
+                    <p>Bahis: 100 ₺ (2 Katı)</p>
+                    <button class="btn-action dice-btn" onclick="roll()">Zar Salla</button>
+                </div>
+            </div>
+
+            <div class="log-box" id="gameLog">Mini oyun bildirimleri burada görünecek.</div>
         </div>
 
         <div class="panel">
@@ -132,6 +157,10 @@
             document.getElementById('myBalance').innerText = newBalance.toLocaleString() + ' ₺';
         });
 
+        socket.on('gameLog', (msg) => {
+            document.getElementById('gameLog').innerText = msg;
+        });
+
         function sendChat() {
             const input = document.getElementById('chatInput');
             if (input.value.trim()) {
@@ -142,6 +171,14 @@
 
         function buy(name, price) {
             socket.emit('buyItem', { name, price });
+        }
+
+        function mine() {
+            socket.emit('mineGold');
+        }
+
+        function roll() {
+            socket.emit('rollDice');
         }
     </script>
 </body>
