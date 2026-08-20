@@ -8,7 +8,12 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static('public'));
+const mongoose = require('mongoose');
 
+// MongoDB Bağlantısı
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
+  .catch(err => console.error('MongoDB Bağlantı Hatası:', err));
 // --- MONGODB BAĞLANTISI VE MODELİ ---
 const MONGO_URI = process.env.MONGO_URI || "SENIN_MONGODB_URI_KODUN";
 
