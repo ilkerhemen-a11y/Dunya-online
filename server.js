@@ -10,16 +10,12 @@ const io = new Server(server);
 // Static Dosyalar
 app.use(express.static('public'));
 
-// MongoDB Bağlantısı
-const MONGO_URI = process.env.MONGO_URI;
+const mongoose = require('mongoose');
 
-if (!MONGO_URI) {
-  console.error('HATA: MONGO_URI ortam değişkeni tanımlanmamış!');
-} else {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
-    .catch(err => console.error('MongoDB BAGLANTI HATASI DETAYI:', err.message));
-}
+// MongoDB Bağlantısı
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
+  .catch(err => console.error('MongoDB Bağlantı Hatası:', err));
 
 // Mongoose Kullanıcı Şeması
 const userSchema = new mongoose.Schema({
