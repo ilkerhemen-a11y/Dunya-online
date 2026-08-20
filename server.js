@@ -11,9 +11,15 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 // MongoDB Bağlantısı
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
-  .catch(err => console.error('MongoDB Bağlantı Hatası:', err));
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  console.error('HATA: MONGO_URI ortam değişkeni tanımlanmamış!');
+} else {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
+    .catch(err => console.error('MongoDB BAGLANTI HATASI DETAYI:', err.message));
+}
 
 // Mongoose Kullanıcı Şeması
 const userSchema = new mongoose.Schema({
@@ -53,6 +59,12 @@ io.on('connection', (socket) => {
 
   socket.on('userLogin', async (data) => {
     try {
+      // Veritabanı bağlantı durumunu doğrula
+      if (mongoose.connection.readyState !== 1) {
+        console.error('MongoDB bağlantısı henüz kurulmadı!');
+        return;
+      }
+
       const username = (data && data.username && data.username.trim())
         ? data.username.trim()
         : `Ziyaretçi_${Math.floor(1000 + Math.random() * 9000)}`;
@@ -84,14 +96,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', async () => {
-    // Oyuncu ayrıldığında verileri MongoDB'ye yaz
     await saveUserData(socket.id);
     delete onlineUsers[socket.id];
     console.log('Oyuncu ayrıldı:', socket.id);
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`Sunucu ${PORT} portunda dinleniyor...`);
 });
