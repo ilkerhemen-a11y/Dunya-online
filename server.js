@@ -6,6 +6,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB Veritabanına Başarıyla Bağlanıldı!'))
+  .catch(err => console.error('MongoDB Bağlantı Hatası:', err));
 app.use(express.static('public'));
 
 const onlineUsers = {};
