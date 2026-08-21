@@ -13,7 +13,12 @@ const users = {};
 const getDefaultInventory = () => [
     { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
     { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5 },
-    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 }
+    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 },
+    { id: 'item_4', name: 'Deri Başlık', icon: '🪖', type: 'helmet', strBonus: 1, vitBonus: 3 },
+    { id: 'item_5', name: 'Tahta Kalkan', icon: '🪵', type: 'shield', strBonus: 0, vitBonus: 4 },
+    { id: 'item_6', name: 'Bronz Yüzük', icon: '💍', type: 'ring', strBonus: 2, vitBonus: 1 },
+    { id: 'item_7', name: 'Kumaş Eldiven', icon: '🧤', type: 'gloves', strBonus: 1, vitBonus: 1 },
+    { id: 'item_8', name: 'Eski Çizme', icon: '🥾', type: 'boots', strBonus: 0, vitBonus: 2 }
 ];
 
 io.on('connection', (socket) => {
@@ -175,7 +180,7 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // Can İksiri İçme (Yalnızca Canı Yeniler, Sefe Haklarına ve Süreye Dokunmaz)
+    // Can İksiri İçme (Sefer haklarına ve süreye dokunmaz, sadece canı tazeler)
     socket.on('usePotion', () => {
         const user = users[socket.id];
         if (!user) return;
@@ -190,7 +195,7 @@ io.on('connection', (socket) => {
         }
 
         user.balance -= potionCost;
-        user.hp = user.vit * 20; // Yalnızca can tamamen yenilenir
+        user.hp = user.vit * 20;
 
         socket.emit('questResult', {
             success: true,
