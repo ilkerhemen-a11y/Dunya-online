@@ -35,9 +35,9 @@
         .btn-action { background: #0b1329; border: 1px solid #1e293b; color: #f8fafc; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
         .btn-action:hover { border-color: #38bdf8; background: #111c38; }
 
-        /* GÖRSELDEKİ MAFIAX SEKME VE KART YAPISI */
-        .tab-menu { display: grid; grid-template-columns: 1fr 1fr; background: #0b1329; border-radius: 12px; padding: 4px; border: 1px solid #1e293b; margin-bottom: 15px; }
-        .tab-btn { background: transparent; border: none; color: #94a3b8; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        /* MAFIAX SEKME VE KART YAPISI */
+        .tab-menu { display: grid; grid-template-columns: repeat(4, 1fr); background: #0b1329; border-radius: 12px; padding: 4px; border: 1px solid #1e293b; margin-bottom: 15px; gap: 4px; }
+        .tab-btn { background: transparent; border: none; color: #94a3b8; padding: 10px 4px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.2s; text-align: center; }
         .tab-btn.active { background: #e11d48; color: #fff; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); }
 
         .market-card { background: #111c38; border: 1px solid #1e293b; border-radius: 14px; padding: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
@@ -57,17 +57,6 @@
         .btn-upgrade { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .btn-upgrade:hover { border-color: #a3e635; }
 
-        .community-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-top: 15px; }
-        .chat-box-wrapper { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; height: 200px; }
-        .chat-messages { flex: 1; overflow-y: auto; font-size: 12px; color: #cbd5e1; display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-        .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input { flex: 1; background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 12px; }
-        .chat-input-row button { background: #38bdf8; border: none; color: #0b1329; font-weight: bold; padding: 0 16px; border-radius: 8px; cursor: pointer; }
-
-        .online-list-wrapper { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; height: 200px; overflow-y: auto; font-size: 12px; }
-        .online-item { padding: 6px 0; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; color: #94a3b8; }
-        .online-item b { color: #fff; }
-
         .log-box { background: #111c38; border: 1px dashed #1e293b; border-radius: 10px; padding: 12px; font-size: 13px; color: #a3e635; text-align: center; margin-top: 15px; }
 
         @media (max-width: 768px) {
@@ -82,7 +71,7 @@
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Şehrine Katıl.</h2>
-            <p>Görseldeki arayüz yapısıyla imparatorluğunu kur.</p>
+            <p>İmparatorluğunu kurmak için adını gir.</p>
             <input type="text" id="usernameInput" placeholder="Oyuncu Adı" maxlength="15">
             <button class="btn-primary" onclick="login()">ŞEHRE GİRİŞ YAP</button>
         </div>
@@ -96,7 +85,7 @@
                 <span style="font-size: 11px; color: #94a3b8;">MAFIAX STYLE INTERFACE</span>
             </div>
             <h1>Empire Control.</h1>
-            <p>Mülklerini yönet, gelirleri topla, gücünü katla.</p>
+            <p>Mülklerini yönet, suçlar işle, gücünü katla.</p>
 
             <div class="stats-grid">
                 <div class="stat-box cash">
@@ -117,7 +106,7 @@
                 </div>
                 <div class="stat-box">
                     <span>ŞEHİR SIRALAMASI</span>
-                    <h3 id="myRank">#0</h3>
+                    <h3 id="myRank">#2841</h3>
                 </div>
             </div>
 
@@ -125,55 +114,61 @@
             <div class="action-grid">
                 <button class="btn-action" onclick="workShift()">
                     <span>💼 Vardiya Çalış (+2.840 ₺)</span>
-                    <b id="workTimerText" style="color: #a3e635; font-size: 12px;">HAZIR</b>
-                </button>
-                <button class="btn-action" onclick="sleepTime()">
-                    <span>🛌 Dinlen / Uyu (200 ₺)</span>
-                    <span style="color: #38bdf8;">Enerji Yenile</span>
-                </button>
-                <button class="btn-action" onclick="eatMeal()">
-                    <span>🍲 Öğün Tüket (150 ₺)</span>
-                    <span style="color: #38bdf8;">Açlık Gider</span>
-                </button>
-                <button class="btn-action" onclick="haveFun()">
-                    <span>🎉 Sosyal Yaşam (500 ₺)</span>
-                    <span style="color: #38bdf8;">Eğlence Artır</span>
+                    <span style="color: #a3e635; font-size: 12px;">(-35 Enerji)</span>
                 </button>
             </div>
 
             <div class="log-box" id="gameLog">İmparatorluk sistemine hoş geldin!</div>
         </div>
 
-        <!-- GÖRSELDEKİ SEKME YAPISI (Satın Al / Mülklerim) -->
+        <!-- 4'LÜ SEKME MENÜSÜ -->
         <div>
             <div class="tab-menu">
                 <button class="tab-btn active" id="tabBuyBtn" onclick="switchTab('buy')">Satın Al</button>
                 <button class="tab-btn" id="tabOwnedBtn" onclick="switchTab('owned')">Mülklerim (<span id="ownedCount">0</span>)</button>
+                <button class="tab-btn" id="tabCrimeBtn" onclick="switchTab('crimes')">Suç</button>
+                <button class="tab-btn" id="tabInvBtn" onclick="switchTab('inventory')">Envanter</button>
             </div>
 
             <!-- Satın Al Sekmesi -->
-            <div id="shopCatalogList">
-                <!-- JavaScript ile doldurulacak -->
-            </div>
+            <div id="shopCatalogList"></div>
 
             <!-- Mülklerim Sekmesi -->
-            <div id="ownedPropertyList" style="display: none;">
-                <!-- JavaScript ile doldurulacak -->
-            </div>
-        </div>
+            <div id="ownedPropertyList" style="display: none;"></div>
 
-        <!-- Canlı İletişim Alanı -->
-        <div>
-            <div class="section-title">Şehir İletişim (<span id="onlineCount">0</span> Online)</div>
-            <div class="community-grid">
-                <div class="chat-box-wrapper">
-                    <div class="chat-messages" id="chatMessages"></div>
-                    <div class="chat-input-row">
-                        <input type="text" id="chatInput" placeholder="Mesaj yaz..." maxlength="250" onkeydown="if(event.key==='Enter') sendChat()">
-                        <button onclick="sendChat()">Gönder</button>
+            <!-- Suç Sekmesi (Yeni) -->
+            <div id="crimeList" style="display: none;">
+                <div class="market-card">
+                    <div class="market-info">
+                        <h4>Yankesicilik <span>Risk: %10</span></h4>
+                        <p>Ödül: 500 ₺ | Enerji: 10</p>
+                    </div>
+                    <button class="btn-market-buy" onclick="performCrime('pickpocket')">İşle</button>
+                </div>
+                <div class="market-card">
+                    <div class="market-info">
+                        <h4>Dükkan Soygunu <span>Risk: %25</span></h4>
+                        <p>Ödül: 2.500 ₺ | Enerji: 30</p>
+                    </div>
+                    <button class="btn-market-buy" onclick="performCrime('shoplift')">İşle</button>
+                </div>
+                <div class="market-card">
+                    <div class="market-info">
+                        <h4>Banka Soygunu <span>Risk: %60</span></h4>
+                        <p>Ödül: 15.000 ₺ | Enerji: 70</p>
+                    </div>
+                    <button class="btn-market-buy" onclick="performCrime('bank_robbery')">İşle</button>
+                </div>
+            </div>
+
+            <!-- Envanter Sekmesi (Yeni) -->
+            <div id="inventoryList" style="display: none;">
+                <div class="market-card">
+                    <div class="market-info">
+                        <h4>Boş Envanter</h4>
+                        <p>Henüz bir ekipman veya silah edinmedin.</p>
                     </div>
                 </div>
-                <div class="online-list-wrapper" id="onlineListContainer"></div>
             </div>
         </div>
 
@@ -182,7 +177,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let globalCooldownUntil = 0;
         let currentUserData = null;
 
         const catalogData = {
@@ -194,6 +188,7 @@
 
         function login() {
             const username = document.getElementById('usernameInput').value;
+            if(!username.trim()) return alert('Lütfen bir isim girin!');
             socket.emit('userLogin', { username: username });
         }
 
@@ -211,20 +206,20 @@
             document.getElementById('myEnergy').innerText = '%' + (data.energy || 100);
             document.getElementById('myFun').innerText = '%' + (data.fun || 100);
             document.getElementById('myRank').innerText = '#' + (data.cityRank || 2841);
-            globalCooldownUntil = data.workCooldownUntil || 0;
 
             renderLists(data.properties || {});
         }
 
-        let activeTab = 'buy';
         function switchTab(tab) {
-            activeTab = tab;
             document.getElementById('tabBuyBtn').className = tab === 'buy' ? 'tab-btn active' : 'tab-btn';
             document.getElementById('tabOwnedBtn').className = tab === 'owned' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tabCrimeBtn').className = tab === 'crimes' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tabInvBtn').className = tab === 'inventory' ? 'tab-btn active' : 'tab-btn';
             
             document.getElementById('shopCatalogList').style.display = tab === 'buy' ? 'block' : 'none';
             document.getElementById('ownedPropertyList').style.display = tab === 'owned' ? 'block' : 'none';
-            if(currentUserData) renderLists(currentUserData.properties || {});
+            document.getElementById('crimeList').style.display = tab === 'crimes' ? 'block' : 'none';
+            document.getElementById('inventoryList').style.display = tab === 'inventory' ? 'block' : 'none';
         }
 
         function renderLists(properties) {
@@ -243,7 +238,6 @@
                     const propData = properties[id];
                     const upgradeCost = Math.floor(item.cost * 0.5 * propData.level);
                     
-                    // Bekleyen kazanç tahmini
                     const hoursElapsed = (Date.now() - (propData.lastCollected || Date.now())) / (60 * 1000);
                     const currentPending = (propData.pendingBalance || 0) + Math.floor(hoursElapsed * (item.hourly * propData.level));
 
@@ -251,7 +245,7 @@
                         <div class="market-card">
                             <div class="market-info">
                                 <h4>${item.name} <span>Sv ${propData.level}</span></h4>
-                                <p>Saatlik Kazanç: ₺${(item.hourly * propData.level).toLocaleString('tr-TR')}</p>
+                                <p>Saatlik Getiri: ₺${(item.hourly * propData.level).toLocaleString('tr-TR')}</p>
                             </div>
                             <div class="market-actions">
                                 <div class="pending-badge">
@@ -281,55 +275,15 @@
             document.getElementById('ownedCount').innerText = ownedCount;
         }
 
-        setInterval(() => {
-            const timerEl = document.getElementById('workTimerText');
-            if (!timerEl) return;
-            const now = Date.now();
-            if (now < globalCooldownUntil) {
-                const diff = Math.ceil((globalCooldownUntil - now) / 1000);
-                const m = Math.floor(diff / 60);
-                const s = diff % 60;
-                timerEl.innerText = `${m}d ${s}s`;
-                timerEl.style.color = '#f59e0b';
-            } else {
-                timerEl.innerText = 'HAZIR';
-                timerEl.style.color = '#a3e635';
-            }
-        }, 1000);
-
         socket.on('gameLog', (msg) => {
             document.getElementById('gameLog').innerText = msg;
         });
 
-        function sendChat() {
-            const input = document.getElementById('chatInput');
-            if (!input.value.trim()) return;
-            socket.emit('sendChat', input.value);
-            input.value = '';
-        }
-
-        socket.on('chatMessage', (data) => {
-            const chatContainer = document.getElementById('chatMessages');
-            chatContainer.innerHTML += `<div><b style="color: #38bdf8;">${data.sender}:</b> ${data.text}</div>`;
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        });
-
-        socket.on('onlineUsersList', (users) => {
-            document.getElementById('onlineCount').innerText = users.length;
-            const container = document.getElementById('onlineListContainer');
-            container.innerHTML = '';
-            users.forEach(u => {
-                container.innerHTML += `<div class="online-item"><span><b>${u.username}</b></span><span>Mülk: ${u.propertyCount}</span></div>`;
-            });
-        });
-
         function workShift() { socket.emit('workShift'); }
-        function sleepTime() { socket.emit('sleepTime'); }
-        function eatMeal() { socket.emit('eatMeal'); }
-        function haveFun() { socket.emit('haveFun'); }
         function buyProperty(id) { socket.emit('buyProperty', id); }
         function collectProperty(id) { socket.emit('collectProperty', id); }
         function upgradeProperty(id) { socket.emit('upgradeProperty', id); }
+        function performCrime(crimeId) { socket.emit('performCrime', crimeId); }
     </script>
 </body>
 </html>
