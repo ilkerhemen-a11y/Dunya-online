@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // Sefer / Görev Yapma (Can Düşme ve Sefer Mantığı)
+    // Sefer / Görev Yapma
     socket.on('doQuest', (data) => {
         const user = users[socket.id];
         if (!user) return;
@@ -98,18 +98,17 @@ io.on('connection', (socket) => {
         const now = Date.now();
         const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat
 
-        // Zamanlayıcı süresi dolduysa 20 sefer hakkını yenile
+        // Zamanlayıcı süresi dolduysa sefer hakkını yenile ve süreyi sıfırla
         if (user.seferNextRefill && now >= user.seferNextRefill) {
             user.seferLimiti = 20;
             user.seferNextRefill = null;
         }
 
         // Can Kontrolü
-        const maxHp = user.vit * 20;
         if (user.hp <= 0) {
             return socket.emit('questResult', {
                 success: false,
-                message: "Canınız (HP) tükenmiş! Sefer düzenlemek için iksir içmelisiniz.",
+                message: "Canınız (HP) tükenmiş! Sefer düzenlemek için can iksiri içmelisiniz.",
                 userData: user
             });
         }
@@ -131,7 +130,7 @@ io.on('connection', (socket) => {
 
         // Dövüş Hesaplaması (Can Düşüşü)
         const questId = data.questId || 1;
-        const hpLost = Math.floor(Math.random() * (questId * 12)) + 5; // Görev zorluğuna göre HP düşüşü
+        const hpLost = Math.floor(Math.random() * (questId * 12)) + 5;
         user.hp = Math.max(0, user.hp - hpLost);
 
         // Ödül Hesaplama
@@ -176,7 +175,7 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // İksir İçme (Sadece Can ve Sefer Haklarını Yeniler — Süreyi Sıfırlamaz)
+    // Can İksiri İçme (Yalnızca Canı Yeniler, Sefe Haklarına ve Süreye Dokunmaz)
     socket.on('usePotion', () => {
         const user = users[socket.id];
         if (!user) return;
@@ -191,13 +190,11 @@ io.on('connection', (socket) => {
         }
 
         user.balance -= potionCost;
-        user.hp = user.vit * 20;      // Canı Fulleyelim
-        user.seferLimiti = 20;         // Sefer Sayısı Haklarını Yenileyelim
-        // NOT: user.seferNextRefill sıfırlanmıyor! Süre bağımsız olarak işlemeye devam eder.
+        user.hp = user.vit * 20; // Yalnızca can tamamen yenilenir
 
         socket.emit('questResult', {
             success: true,
-            message: "İksir içildi! Canınız ve sefer haklarınız tamamen yenilendi.",
+            message: "Can iksiri içildi! Canınız tamamen tazelendi.",
             goldEarned: 0,
             expEarned: 0,
             hpLost: 0,
