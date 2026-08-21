@@ -322,3 +322,49 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Diyar Online sunucusu ${PORT} portunda aktif! http://localhost:${PORT}`);
 });
+// Oyuncu objesindeki isimler:
+// user.seferLimiti = 20;
+// user.seferNextRefill = null;
+
+socket.on('doQuest', (data) => {
+    const user = users[socket.id];
+    if (!user) return;
+
+    const now = Date.now();
+    const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat
+
+    // 1 Saat dolduğunda hakkı yenile
+    if (user.seferNextRefill && now >= user.seferNextRefill) {
+        user.seferLimiti = 20;
+        user.seferNextRefill = null;
+    }
+
+    if (user.seferLimiti <= 0) {
+        return socket.emit('questResult', {
+            success: false,
+            message: "Sefer limitiniz dolmuştur! Yenilenmesi için 1 saat beklemeniz gerekiyor.",
+            userData: user
+        });
+    }
+
+    // Sefer hakkını düşür
+    user.seferLimiti -= 1;
+
+    if (!user.seferNextRefill) {
+        user.seferNextRefill = now + COOLDOWN_TIME;
+    }
+
+    const goldEarned = data.questId * 40 + Math.floor(Math.random() * 20);
+    const expEarned = data.questId * 20;
+
+    user.balance = (user.balance || 0) + goldEarned;
+    user.exp = (user.exp || 0) + expEarned;
+
+    socket.emit('questResult', {
+        success: true,
+        message: "Sefer başarıyla tamamlandı!",
+        goldEarned: goldEarned,
+        expEarned: expEarned,
+        userData: user
+    });
+});
