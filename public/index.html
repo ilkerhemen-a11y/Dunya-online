@@ -8,8 +8,8 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
         body { 
-            background-color: #121212;
-            background-image: radial-gradient(circle, #2a2218 0%, #0c0906 100%);
+            background-color: #0b0908;
+            background-image: radial-gradient(circle at center, #1c1510 0%, #080605 100%);
             color: #d4c5b9; 
             min-height: 100vh; 
             display: flex; 
@@ -21,99 +21,103 @@
         .game-header {
             width: 100%;
             max-width: 1000px;
-            background: linear-gradient(to bottom, #2b231c, #16120e);
-            border: 2px solid #544131;
-            border-radius: 4px;
+            background: linear-gradient(to bottom, #1d1712, #0e0a08);
+            border: 1px solid #433222;
+            border-radius: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 12px;
+            padding: 8px 15px;
             margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
             font-size: 12px;
         }
 
         .header-section { display: flex; align-items: center; gap: 15px; }
-        .resource-item { display: flex; align-items: center; gap: 5px; font-weight: bold; color: #f3cf7a; }
+        .resource-item { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #f3cf7a; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .bar-container { display: flex; flex-direction: column; gap: 2px; }
-        .stat-bar-mini { width: 100px; height: 12px; background: #111; border: 1px solid #433222; border-radius: 2px; position: relative; overflow: hidden; }
-        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 100%; transition: width 0.3s ease; }
-        .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #ca8a04); width: 0%; transition: width 0.3s ease; }
-        .stat-bar-fill.sefer { background: linear-gradient(to right, #3b82f6, #1d4ed8); width: 100%; transition: width 0.3s ease; }
+        .stat-bar-mini { width: 110px; height: 12px; background: #080605; border: 1px solid #33241b; border-radius: 3px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
+        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #15803d); width: 100%; transition: width 0.3s ease; }
+        .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #a16207); width: 0%; }
+        .stat-bar-fill.sefer { background: linear-gradient(to right, #3b82f6, #1e40af); width: 100%; }
 
         .main-wrapper {
             width: 100%;
             max-width: 1000px;
             display: grid;
-            grid-template-columns: 200px 1fr;
+            grid-template-columns: 210px 1fr;
             gap: 15px;
         }
 
         .sidebar-menu {
-            background: linear-gradient(to bottom, #1d1712, #110d0a);
-            border: 2px solid #544131;
-            border-radius: 4px;
-            padding: 8px;
+            background: linear-gradient(to bottom, #17120e, #0a0705);
+            border: 1px solid #433222;
+            border-radius: 6px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
             height: fit-content;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         }
 
         .menu-category-title {
             text-align: center;
-            background: #2b231c;
+            background: #231b14;
             color: #f3cf7a;
             font-size: 11px;
             font-weight: bold;
-            padding: 4px;
-            border: 1px solid #433222;
+            padding: 5px;
+            border: 1px solid #3d2f23;
+            border-radius: 4px;
             margin-bottom: 4px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .menu-btn {
-            background: #18130f;
-            border: 1px solid #3d2f23;
-            color: #d4c5b9;
-            padding: 7px 10px;
+            background: #110d0a;
+            border: 1px solid #2d2017;
+            color: #b5a494;
+            padding: 8px 12px;
             text-align: left;
             font-size: 12px;
-            border-radius: 2px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: 0.1s;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
 
         .menu-btn:hover {
-            background: #2b231c;
-            border-color: #f3cf7a;
+            background: #241c15;
+            border-color: #d4af37;
             color: #f3cf7a;
+            transform: translateX(2px);
         }
 
         .content-panel {
-            background: linear-gradient(135deg, #241c15 0%, #15100c 100%);
-            border: 2px solid #544131;
-            border-radius: 4px;
+            background: linear-gradient(135deg, #1b1410 0%, #0d0a08 100%);
+            border: 1px solid #433222;
+            border-radius: 6px;
             padding: 20px;
-            min-height: 500px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            min-height: 520px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.9);
             position: relative;
         }
 
         .panel-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             color: #f3cf7a;
-            border-bottom: 1px solid #433222;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
+            border-bottom: 1px solid #33241b;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            letter-spacing: 0.5px;
         }
 
         .character-screen {
@@ -123,18 +127,19 @@
         }
 
         .char-stats-box {
-            background: #18130f;
-            border: 1px solid #433222;
+            background: #120e0c;
+            border: 1px solid #33241b;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 6px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
         }
 
         .char-stats-box h3 {
-            font-size: 14px;
+            font-size: 13px;
             color: #f3cf7a;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #33241b;
-            padding-bottom: 5px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #221912;
+            padding-bottom: 6px;
         }
 
         .stat-row {
@@ -142,33 +147,34 @@
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
-            padding: 5px 0;
-            border-bottom: 1px dashed #281d15;
+            padding: 6px 0;
+            border-bottom: 1px dashed #1e150f;
         }
 
-        .stat-row span:first-child { color: #a3957f; }
+        .stat-row span:first-child { color: #9c8e7b; }
         .stat-row span:nth-child(2) { color: #f3cf7a; font-weight: bold; }
 
         .btn-stat {
-            background: #b38b4d;
-            border: none;
-            color: #0f0a08;
-            padding: 2px 6px;
+            background: linear-gradient(to bottom, #d4af37, #997415);
+            border: 1px solid #ffdf73;
+            color: #0b0908;
+            padding: 2px 7px;
             font-size: 11px;
             font-weight: bold;
-            border-radius: 2px;
+            border-radius: 3px;
             cursor: pointer;
+            transition: 0.1s;
         }
-        .btn-stat:hover { background: #f3cf7a; }
+        .btn-stat:hover { filter: brightness(1.15); }
 
         .char-portrait {
             width: 100%;
             margin-top: 15px;
-            border: 2px solid #544131;
-            border-radius: 4px;
+            border: 1px solid #433222;
+            border-radius: 6px;
             overflow: hidden;
             background: #000;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
         }
         .char-portrait img {
             width: 100%;
@@ -176,96 +182,182 @@
             filter: brightness(0.9) contrast(1.1);
         }
 
-        .equipment-grid-wrapper {
-            background: #18130f;
-            border: 1px solid #433222;
+        /* 🛡️ MODERN EKİPMAN TASARIMI */
+        .equipment-wrapper {
+            background: #120e0c;
+            border: 1px solid #33241b;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
         }
 
-        .eq-slots-container {
+        .eq-slots-grid {
             display: grid;
-            grid-template-columns: repeat(3, 50px);
-            grid-template-rows: repeat(4, 50px);
-            gap: 8px;
+            grid-template-columns: repeat(4, 52px);
+            grid-template-rows: repeat(2, 52px);
+            gap: 10px;
             justify-content: center;
+            margin-top: 10px;
         }
 
         .eq-slot {
-            background: #110d0a;
-            border: 2px solid #433222;
+            width: 52px;
+            height: 52px;
+            background: radial-gradient(circle, #19120e 0%, #0d0a08 100%);
+            border: 2px solid #3d2f23;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #4a3a2b;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.25s ease;
+        }
+
+        .eq-slot:hover {
+            border-color: #d4af37;
+            transform: scale(1.05);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .eq-slot.filled {
+            border-color: #8c6d36;
+            background: radial-gradient(circle, #2a2016 0%, #120d09 100%);
+        }
+
+        /* 🎒 MODERN ENVANTER TASARIMI */
+        .inventory-container {
+            margin-top: 20px;
+            background: #120e0c;
+            border: 1px solid #33241b;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .inventory-item-card {
+            background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%);
+            border: 1px solid #38291e;
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        }
+
+        .inventory-item-card:hover {
+            border-color: #b38b4d;
+            background: linear-gradient(135deg, #221a14 0%, #140f0c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+        }
+
+        .item-info-area { display: flex; align-items: center; gap: 8px; }
+        .item-icon-box {
+            width: 36px;
+            height: 36px;
+            background: #0b0806;
+            border: 1px solid #2d2017;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 18px;
-            color: #433222;
-            cursor: pointer;
-            transition: 0.2s;
         }
 
-        .eq-slot:hover { border-color: #b38b4d; }
+        .item-details { display: flex; flex-direction: column; gap: 2px; }
+        .item-name { font-size: 12px; font-weight: bold; color: #e6d5c3; }
+        .item-bonus { font-size: 10px; color: #22c55e; font-weight: 600; }
+
+        .btn-equip {
+            background: linear-gradient(to bottom, #3b2e23, #221912);
+            border: 1px solid #544131;
+            color: #d4c5b9;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-equip:hover {
+            background: linear-gradient(to bottom, #d4af37, #997415);
+            border-color: #ffdf73;
+            color: #0b0908;
+        }
 
         .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
         .quest-card, .market-card, .forge-card {
-            background: #18130f;
-            border: 1px solid #433222;
-            border-radius: 4px;
+            background: #120e0c;
+            border: 1px solid #33241b;
+            border-radius: 6px;
             padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             transition: 0.2s;
         }
-        .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1e1712; }
+        .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1a130f; }
         
-        .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 14px; margin-bottom: 3px; }
-        .quest-info p, .market-info p, .forge-info p { color: #a3957f; font-size: 11px; margin-bottom: 6px; }
+        .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 13px; margin-bottom: 3px; }
+        .quest-info p, .market-info p, .forge-info p { color: #9c8e7b; font-size: 11px; margin-bottom: 6px; }
         .quest-rewards { font-size: 11px; color: #22c55e; display: flex; gap: 10px; font-weight: bold; }
         .market-income { font-size: 11px; color: #38bdf8; font-weight: bold; }
         .forge-cost { font-size: 11px; color: #ef4444; font-weight: bold; }
 
         .btn-quest {
-            background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
-            border: 1px solid #543d2b;
-            color: #0f0a08;
+            background: linear-gradient(135deg, #d4af37 0%, #997415 100%);
+            border: 1px solid #ffdf73;
+            color: #0b0908;
             padding: 8px 14px;
             font-size: 12px;
             font-weight: bold;
-            border-radius: 2px;
+            border-radius: 4px;
             cursor: pointer;
             transition: 0.1s;
             white-space: nowrap;
         }
-        .btn-quest:hover:not(:disabled) { background: #f3cf7a; }
+        .btn-quest:hover:not(:disabled) { filter: brightness(1.1); }
         .btn-quest:disabled {
-            background: #332820;
-            color: #665548;
-            border-color: #221a14;
+            background: #231b14;
+            color: #594738;
+            border-color: #2e231b;
             cursor: not-allowed;
         }
         
         .quest-log {
             margin-top: 15px;
-            background: #110d0a;
-            border: 1px solid #33241b;
+            background: #0d0a08;
+            border: 1px solid #2d2017;
             padding: 10px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 12px;
-            color: #a3957f;
+            color: #9c8e7b;
             min-height: 40px;
         }
 
         .chat-container { display: flex; flex-direction: column; gap: 10px; height: 420px; }
         .chat-messages {
             flex: 1;
-            background: #110d0a;
-            border: 1px solid #33241b;
-            border-radius: 4px;
+            background: #0d0a08;
+            border: 1px solid #2d2017;
+            border-radius: 6px;
             padding: 10px;
             overflow-y: auto;
             display: flex;
@@ -273,26 +365,26 @@
             gap: 8px;
             font-size: 12px;
         }
-        .chat-msg { border-bottom: 1px dashed #221a14; padding-bottom: 4px; }
+        .chat-msg { border-bottom: 1px dashed #1e150f; padding-bottom: 4px; }
         .chat-msg span { color: #f3cf7a; font-weight: bold; }
         .chat-input-area { display: flex; gap: 8px; }
         .chat-input-area input {
             flex: 1;
-            background: #110d0a;
-            border: 1px solid #433222;
-            border-radius: 2px;
+            background: #0d0a08;
+            border: 1px solid #3d2f23;
+            border-radius: 4px;
             padding: 8px;
             color: #d4c5b9;
             font-size: 12px;
         }
-        .chat-input-area input:focus { outline: none; border-color: #b38b4d; }
+        .chat-input-area input:focus { outline: none; border-color: #d4af37; }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(10, 6, 4, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        .box { background: #17100c; padding: 30px; border-radius: 4px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
-        .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 22px; }
-        .box p { color: #a3957f; font-size: 13px; margin-bottom: 20px; }
-        .box input { width: 100%; padding: 10px; border-radius: 2px; border: 1px solid #543d2b; background: #0f0a08; color: #f3cf7a; text-align: center; margin-bottom: 12px; font-size: 14px; }
-        .btn-primary { width: 100%; padding: 10px; border: 1px solid #b38b4d; border-radius: 2px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%); color: #0f0a08; font-size: 14px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(8, 6, 5, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        .box { background: #140f0c; padding: 30px; border-radius: 6px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
+        .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 20px; }
+        .box p { color: #9c8e7b; font-size: 12px; margin-bottom: 20px; }
+        .box input { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #3d2f23; background: #080605; color: #f3cf7a; text-align: center; margin-bottom: 12px; font-size: 14px; }
+        .btn-primary { width: 100%; padding: 10px; border: 1px solid #ffdf73; border-radius: 4px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #d4af37 0%, #997415 100%); color: #0b0908; font-size: 14px; }
 
         @media (max-width: 768px) {
             .main-wrapper { grid-template-columns: 1fr; }
@@ -321,15 +413,15 @@
         </div>
         <div class="header-section">
             <div class="bar-container">
-                <span id="hpLabel" style="font-size: 10px; color: #a3957f;">Can Puanı</span>
+                <span id="hpLabel" style="font-size: 10px; color: #9c8e7b;">Can Puanı</span>
                 <div class="stat-bar-mini"><div id="hpBarFill" class="stat-bar-fill" style="width: 100%;"></div></div>
             </div>
             <div class="bar-container">
-                <span id="expLabel" style="font-size: 10px; color: #a3957f;">Tecrübe</span>
+                <span id="expLabel" style="font-size: 10px; color: #9c8e7b;">Tecrübe</span>
                 <div class="stat-bar-mini"><div id="expBarFill" class="stat-bar-fill exp" style="width: 0%;"></div></div>
             </div>
             <div class="bar-container">
-                <span id="seferLabel" style="font-size: 10px; color: #a3957f;">Sefer Limiti (20/20)</span>
+                <span id="seferLabel" style="font-size: 10px; color: #9c8e7b;">Sefer Limiti (20/20)</span>
                 <div class="stat-bar-mini"><div id="seferBarFill" class="stat-bar-fill sefer" style="width: 100%;"></div></div>
             </div>
         </div>
@@ -338,7 +430,7 @@
     <!-- Ana Oyun Çerçevesi -->
     <div class="main-wrapper" id="mainApp" style="display: none;">
         
-        <!-- Sol Dikey Menü (Ayrılmış Pazar Yeri & Tımar) -->
+        <!-- Sol Dikey Menü -->
         <nav class="sidebar-menu">
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
@@ -355,7 +447,7 @@
         <main class="content-panel">
             <div class="panel-title">
                 <span id="panelHeaderTitle">Genel Durum & Karakter</span>
-                <span id="myUsernameDisplay" style="font-size: 13px; color: #a3957f;">Seviye 1</span>
+                <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
             </div>
             
             <div id="panelContentBody">
@@ -394,7 +486,6 @@
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
-            // CAN (HP) GÜNCELLEME
             const maxHp = (data.vit || 5) * 20;
             const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
@@ -404,7 +495,6 @@
             if(hpBarFill) hpBarFill.style.width = `${hpPercent}%`;
             if(hpLabel) hpLabel.innerText = `Can (${currentHp}/${maxHp})`;
 
-            // TECRÜBE (EXP) GÜNCELLEME
             const maxExp = (data.level || 1) * 100;
             const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
 
@@ -413,7 +503,6 @@
             if(expBarFill) expBarFill.style.width = `${expPercent}%`;
             if(expLabel) expLabel.innerText = `XP (%${Math.floor(expPercent)})`;
 
-            // SEFER LİMİTİ GÜNCELLEME
             const seferCount = data.seferLimiti !== undefined ? data.seferLimiti : 20;
             const seferPercent = (seferCount / 20) * 100;
 
@@ -423,7 +512,6 @@
             if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferCount}/20)`;
         }
 
-        // Bağımsız Sefer Süresi Zamanlayıcısı
         function startSeferTimer() {
             if(seferTimerInterval) clearInterval(seferTimerInterval);
             seferTimerInterval = setInterval(() => {
@@ -478,7 +566,7 @@
         }
 
         function renderOverviewTab(container) {
-            const d = currentUserData || { vit: 5, int: 5, str: 5, dex: 5, statPoints: 0, equipped: {}, inventory: [] };
+            const d = currentUserData || { vit: 5, str: 5, statPoints: 0, equipped: {}, inventory: [] };
             const eq = d.equipped || {};
             const inv = d.inventory || [];
 
@@ -506,7 +594,7 @@
                 <div class="character-screen">
                     <div style="display: flex; flex-direction: column; gap: 15px;">
                         <div class="char-stats-box">
-                            <h3>Nitelikler (Puan: <span style="color:#76aab8;">${d.statPoints || 0}</span>)</h3>
+                            <h3>Nitelikler (Puan: <span style="color:#d4af37;">${d.statPoints || 0}</span>)</h3>
                             <div class="stat-row">
                                 <span>Güç:</span> 
                                 <div><b>${d.str || 5} <span style="color:#22c55e;">(+${bonusStr})</span></b> <button class="btn-stat" onclick="addStat('str')">+</button></div>
@@ -522,14 +610,13 @@
                         </div>
                     </div>
 
-                    <div class="equipment-grid-wrapper">
-                        <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kuşanılan Ekipmanlar (Çıkarmak için tıkla)</span>
-                        <div class="eq-slots-container">
+                    <div class="equipment-wrapper">
+                        <span style="font-size: 11px; color: #9c8e7b; letter-spacing: 0.5px;">KUŞANILAN EKİPMANLAR</span>
+                        <div class="eq-slots-grid">
                             ${slotList.map(s => {
                                 const item = eq[s.key];
                                 return `
-                                    <div class="eq-slot" 
-                                         style="${item ? 'border-color: #f3cf7a; background: #2b231c;' : ''}"
+                                    <div class="eq-slot ${item ? 'filled' : ''}" 
                                          title="${item ? item.name + ' (Çıkar)' : s.label}"
                                          onclick="${item ? `socket.emit('unequipItem', {slot: '${s.key}'})` : ''}">
                                         ${item ? item.icon : s.defaultIcon}
@@ -537,23 +624,27 @@
                                 `;
                             }).join('')}
                         </div>
+                        <span style="font-size: 10px; color: #594738; margin-top: 10px; text-align: center;">Ekipmanı çıkarmak için üzerine tıklayın</span>
                     </div>
                 </div>
 
-                <div style="margin-top: 20px; background: #18130f; border: 1px solid #433222; padding: 15px; border-radius: 4px;">
-                    <h3 style="font-size: 14px; color: #f3cf7a; margin-bottom: 10px;">🎒 Envanter</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
-                        ${inv.length === 0 ? '<p style="font-size: 12px; color: #a3957f;">Envanteriniz boş.</p>' : ''}
+                <div class="inventory-container">
+                    <h3 style="font-size: 13px; color: #f3cf7a; margin-bottom: 5px;">🎒 Envanter Çantası</h3>
+                    <div class="inventory-grid">
+                        ${inv.length === 0 ? '<p style="font-size: 12px; color: #9c8e7b;">Envanteriniz boş.</p>' : ''}
                         ${inv.map((item, index) => `
-                            <div style="background: #110d0a; border: 1px solid #33241b; padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-size: 12px; font-weight: bold; color: #d4c5b9;">${item.icon} ${item.name}</div>
-                                    <div style="font-size: 10px; color: #22c55e;">
-                                        ${item.strBonus ? `+${item.strBonus} Güç ` : ''}
-                                        ${item.vitBonus ? `+${item.vitBonus} VIT` : ''}
+                            <div class="inventory-item-card">
+                                <div class="item-info-area">
+                                    <div class="item-icon-box">${item.icon}</div>
+                                    <div class="item-details">
+                                        <div class="item-name">${item.name}</div>
+                                        <div class="item-bonus">
+                                            ${item.strBonus ? `+${item.strBonus} GÜÇ ` : ''}
+                                            ${item.vitBonus ? `+${item.vitBonus} DAY` : ''}
+                                        </div>
                                     </div>
                                 </div>
-                                <button class="btn-stat" style="padding: 4px 8px;" onclick="socket.emit('equipItem', {itemIndex: ${index}})">Kuşan</button>
+                                <button class="btn-equip" onclick="socket.emit('equipItem', {itemIndex: ${index}})">Kuşan</button>
                             </div>
                         `).join('')}
                     </div>
@@ -567,14 +658,14 @@
             const isDisabled = seferCount <= 0 || hpCount <= 0;
 
             container.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; background: #18130f; padding: 10px; border: 1px solid #433222; border-radius: 4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; background: #120e0c; padding: 12px 15px; border: 1px solid #33241b; border-radius: 6px;">
                     <div>
                         <div style="color: #f3cf7a; font-size: 13px; font-weight: bold;">⚔️ Sefer Limiti: ${seferCount} / 20</div>
                         <div id="seferCooldownText" style="color: #38bdf8; font-size: 11px; margin-top: 2px;">
                             ${seferCount < 20 ? 'Sefer Limiti Süresi Devam Ediyor...' : 'Sefer Limiti Hazır!'}
                         </div>
                     </div>
-                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:#fff;" onclick="socket.emit('usePotion')">🧪 Can & İksir İç (50 Altın)</button>
+                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171; color:#fff;" onclick="socket.emit('usePotion')">🧪 Can İksiri İç (50 Altın)</button>
                 </div>
                 
                 <div class="quest-list">
@@ -616,20 +707,18 @@
             `;
         }
 
-        // Pazar Yeri (Boş Bırakıldı)
         function renderMarketTab(container) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 40px 10px; color: #a3957f;">
+                <div style="text-align: center; padding: 60px 10px; color: #9c8e7b;">
                     <h3 style="font-size: 18px; color: #f3cf7a; margin-bottom: 10px;">🛒 Pazar Yeri Yakında Hizmetinizde</h3>
                     <p style="font-size: 13px;">Tüccarlar kervanlarını hazırlıyor. Oyuncular arası ticaret ve pazaryeri tezgahları yakında buraya eklenecektir.</p>
                 </div>
             `;
         }
 
-        // Tımarlar (Mevcut Mülkler)
         function renderTimarTab(container) {
             container.innerHTML = `
-                <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
                 
                 <div class="market-list">
                     <div class="market-card">
@@ -668,7 +757,7 @@
             const upgrades = currentUserData && currentUserData.upgrades ? currentUserData.upgrades : { weapon: 0, armor: 0, helmet: 0 };
             
             container.innerHTML = `
-                <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">Usta demircinin örsünde teçhizatlarını güçlendirerek (+ basarak) savaş gücünü katla.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">Usta demircinin örsünde teçhizatlarını güçlendirerek (+ basarak) savaş gücünü katla.</p>
                 
                 <div class="forge-list">
                     <div class="forge-card">
@@ -705,7 +794,7 @@
 
         function renderChatTab(container) {
             container.innerHTML = `
-                <p style="color: #a3957f; font-size: 12px; margin-bottom: 10px;">Diyar Meclisi'nde diğer hanedanlıklarla fikir alışverişi yap ve fısıldaş.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 10px;">Diyar Meclisi'nde diğer hanedanlıklarla fikir alışverişi yap ve fısıldaş.</p>
                 
                 <div class="chat-container">
                     <div id="chatMessages" class="chat-messages">
