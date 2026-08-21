@@ -47,18 +47,17 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   balance: { type: Number, default: 1250 },
   level: { type: Number, default: 1 },
-  xp: { type: Number, default: 0 },
-  hunger: { type: Number, default: 82 },
-  energy: { type: Number, default: 100 },
-  fun: { type: Number, default: 100 },
+  exp: { type: Number, default: 0 },
+  statPoints: { type: Number, default: 5 },
+  vit: { type: Number, default: 5 },
+  int: { type: Number, default: 5 },
+  str: { type: Number, default: 5 },
+  dex: { type: Number, default: 5 },
   cityRank: { type: Number, default: 2841 },
-  job: { type: String, default: 'demirci' }, // Varsayılan meslek Demirci
+  job: { type: String, default: 'demirci' },
   completedQuests: { type: [String], default: [] },
   stocks: { type: Number, default: 0 },
   workCooldownUntil: { type: Number, default: 0 },
-  loanDebt: { type: Number, default: 0 },
-  loanInstallment: { type: Number, default: 0 },
-  nextLoanPaymentDue: { type: Number, default: 0 },
   properties: {
     type: Map,
     of: new mongoose.Schema({
@@ -89,18 +88,17 @@ async function saveUserData(socketId) {
       await User.findByIdAndUpdate(playerData.dbId, {
         balance: playerData.balance,
         level: playerData.level,
-        xp: playerData.xp,
-        hunger: playerData.hunger,
-        energy: playerData.energy,
-        fun: playerData.fun,
+        exp: playerData.exp,
+        statPoints: playerData.statPoints,
+        vit: playerData.vit,
+        int: playerData.int,
+        str: playerData.str,
+        dex: playerData.dex,
         cityRank: playerData.cityRank,
         job: playerData.job,
         completedQuests: playerData.completedQuests,
         stocks: playerData.stocks,
         workCooldownUntil: playerData.workCooldownUntil,
-        loanDebt: playerData.loanDebt,
-        loanInstallment: playerData.loanInstallment,
-        nextLoanPaymentDue: playerData.nextLoanPaymentDue,
         properties: playerData.properties
       });
     } catch (err) {
@@ -128,18 +126,17 @@ io.on('connection', (socket) => {
           username,
           balance: 1250,
           level: 1,
-          xp: 0,
-          hunger: 82,
-          energy: 100,
-          fun: 100,
+          exp: 0,
+          statPoints: 5,
+          vit: 5,
+          int: 5,
+          str: 5,
+          dex: 5,
           cityRank: 2841,
           job: 'demirci',
           completedQuests: [],
           stocks: 0,
           workCooldownUntil: 0,
-          loanDebt: 0,
-          loanInstallment: 0,
-          nextLoanPaymentDue: 0,
           properties: {}
         };
         socket.emit('userData', onlineUsers[socket.id]);
@@ -158,18 +155,17 @@ io.on('connection', (socket) => {
         username: user.username,
         balance: user.balance,
         level: user.level,
-        xp: user.xp,
-        hunger: user.hunger,
-        energy: user.energy,
-        fun: user.fun,
+        exp: user.exp || 0,
+        statPoints: user.statPoints ?? 5,
+        vit: user.vit ?? 5,
+        int: user.int ?? 5,
+        str: user.str ?? 5,
+        dex: user.dex ?? 5,
         cityRank: user.cityRank,
         job: user.job || 'demirci',
         completedQuests: user.completedQuests || [],
         stocks: user.stocks || 0,
         workCooldownUntil: user.workCooldownUntil || 0,
-        loanDebt: user.loanDebt || 0,
-        loanInstallment: user.loanInstallment || 0,
-        nextLoanPaymentDue: user.nextLoanPaymentDue || 0,
         properties: user.properties || {}
       };
 
@@ -187,7 +183,6 @@ io.on('connection', (socket) => {
     io.emit('chatMessage', { sender: player.username, text: cleanText });
   });
 
-  // Meslek Değiştirme Olayı
   socket.on('selectJob', (jobId) => {
     const player = onlineUsers[socket.id];
     if (!player || !JOBS[jobId]) return;
@@ -196,6 +191,23 @@ io.on('connection', (socket) => {
     socket.emit('userData', player);
     broadcastOnlineList();
     socket.emit('gameLog', `📜 Mesleğin başarıyla "${JOBS[jobId].name}" olarak değiştirildi!`);
+  });
+
+  socket.on('distributeStat', (statName) => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.statPoints <= 0) {
+      socket.emit('gameLog', '❌ Dağıtılabilir stat puanın kalmadı!');
+      return;
+    }
+
+    if (['vit', 'int', 'str', 'dex'].includes(statName)) {
+      player[statName] += 1;
+      player.statPoints -= 1;
+      socket.emit('userData', player);
+      socket.emit('gameLog', `✨ ${statName.toUpperCase()} statı yükseltildi!`);
+    }
   });
 
   socket.on('buyProperty', (id) => {
@@ -267,7 +279,6 @@ io.on('connection', (socket) => {
     socket.emit('gameLog', `🚀 ${item.name} Seviye ${prop.level} oldu!`);
   });
 
-  // Seçili Mesleğe Göre Çalışma (Vardiya / Görev Yap)
   socket.on('workShift', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
@@ -281,8 +292,6 @@ io.on('connection', (socket) => {
     const currentJob = JOBS[player.job] || JOBS['demirci'];
 
     player.balance += currentJob.income;
-    player.energy = Math.max(0, player.energy - currentJob.energyCost);
-    player.hunger = Math.max(0, player.hunger - currentJob.hungerCost);
     player.workCooldownUntil = Date.now() + (8 * 60 * 1000);
 
     socket.emit('userData', player);
