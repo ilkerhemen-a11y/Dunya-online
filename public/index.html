@@ -479,45 +479,93 @@
             `;
         }
 
-        function renderWorkTab(container) {
-            container.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <p style="color: #a3957f; font-size: 12px;">Antik toprakların tehlikeli bölgelerine seferler düzenleyerek şan, tecrübe ve altın kazan.</p>
-                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:#fff;" onclick="socket.emit('usePotion')">🧪 İksir İç (50 Altın)</button>
+        function renderOverviewTab(container) {
+    const d = currentUserData || { vit: 5, int: 5, str: 5, dex: 5, statPoints: 0, equipped: {}, inventory: [] };
+    const eq = d.equipped || {};
+    const inv = d.inventory || [];
+
+    // Ekipmanlardan gelen bonusları hesapla
+    let bonusStr = 0;
+    let bonusVit = 0;
+    Object.values(eq).forEach(item => {
+        if(item) {
+            bonusStr += item.strBonus || 0;
+            bonusVit += item.vitBonus || 0;
+        }
+    });
+
+    const slotList = [
+        { key: 'helmet', label: 'Kask', defaultIcon: '🪖' },
+        { key: 'necklace', label: 'Kolye', defaultIcon: '📿' },
+        { key: 'armor', label: 'Zırh', defaultIcon: '🛡️' },
+        { key: 'weapon', label: 'Silah', defaultIcon: '⚔️' },
+        { key: 'shield', label: 'Kalkan', defaultIcon: '🛡️' },
+        { key: 'ring', label: 'Yüzük', defaultIcon: '💍' },
+        { key: 'gloves', label: 'Eldiven', defaultIcon: '🧤' },
+        { key: 'boots', label: 'Bot', defaultIcon: '👢' }
+    ];
+
+    container.innerHTML = `
+        <div class="character-screen">
+            <!-- Sol: Nitelikler -->
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="char-stats-box">
+                    <h3>Nitelikler (Puan: <span style="color:#76aab8;">${d.statPoints || 0}</span>)</h3>
+                    <div class="stat-row">
+                        <span>Güç:</span> 
+                        <div><b>${d.str || 5} <span style="color:#22c55e;">(+${bonusStr})</span></b> <button class="btn-stat" onclick="addStat('str')">+</button></div>
+                    </div>
+                    <div class="stat-row">
+                        <span>Dayanıklılık:</span> 
+                        <div><b>${d.vit || 5} <span style="color:#22c55e;">(+${bonusVit})</span></b> <button class="btn-stat" onclick="addStat('vit')">+</button></div>
+                    </div>
                 </div>
                 
-                <div class="quest-list">
-                    <div class="quest-card">
-                        <div class="quest-info">
-                            <h4>🌲 Karanlık Orman Bandidoları</h4>
-                            <p>Orman yollarını kesen haydutların kampına baskın düzenle.</p>
-                            <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 XP</span></div>
-                        </div>
-                        <button class="btn-quest" onclick="startQuest(1)">Sefer Düzenle</button>
-                    </div>
-
-                    <div class="quest-card">
-                        <div class="quest-info">
-                            <h4>🏛️ Unutulmuş Tapınak Harabeleri</h4>
-                            <p>Lanetli kalıntıların arasındaki antik koruyucularla dövüş.</p>
-                            <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 XP</span></div>
-                        </div>
-                        <button class="btn-quest" onclick="startQuest(2)">Sefer Düzenle</button>
-                    </div>
-
-                    <div class="quest-card">
-                        <div class="quest-info">
-                            <h4>🐉 Ejderha Dağı Etekleri</h4>
-                            <p>Zirvedeki vahşi yaratıklarla yüzleş ve imparatorluk hazinesini ele geçir.</p>
-                            <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 XP</span></div>
-                        </div>
-                        <button class="btn-quest" onclick="startQuest(3)">Sefer Düzenle</button>
-                    </div>
+                <div class="char-portrait">
+                    <img src="https://i.hizliresim.com/swvsuo4s.jpg" alt="Karakterim">
                 </div>
+            </div>
 
-                <div id="questLog" class="quest-log">Sefer için hazır bekliyorsun... Lordum, bir hedef seçin.</div>
-            `;
-        }
+            <!-- Sağ: Ekipman Slotları -->
+            <div class="equipment-grid-wrapper">
+                <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kuşanılan Ekipmanlar (Çıkarmak için tıkla)</span>
+                <div class="eq-slots-container">
+                    ${slotList.map(s => {
+                        const item = eq[s.key];
+                        return `
+                            <div class="eq-slot" 
+                                 style="${item ? 'border-color: #f3cf7a; background: #2b231c;' : ''}"
+                                 title="${item ? item.name + ' (Çıkar)' : s.label}"
+                                 onclick="${item ? `socket.emit('unequipItem', {slot: '${s.key}'})` : ''}">
+                                ${item ? item.icon : s.defaultIcon}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alt Bölüm: Envanter -->
+        <div style="margin-top: 20px; background: #18130f; border: 1px solid #433222; padding: 15px; border-radius: 4px;">
+            <h3 style="font-size: 14px; color: #f3cf7a; margin-bottom: 10px;">🎒 Envanter</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+                ${inv.length === 0 ? '<p style="font-size: 12px; color: #a3957f;">Envanteriniz boş.</p>' : ''}
+                ${inv.map((item, index) => `
+                    <div style="background: #110d0a; border: 1px solid #33241b; padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 12px; font-weight: bold; color: #d4c5b9;">${item.icon} ${item.name}</div>
+                            <div style="font-size: 10px; color: #22c55e;">
+                                ${item.strBonus ? `+${item.strBonus} Güç ` : ''}
+                                ${item.vitBonus ? `+${item.vitBonus} VIT` : ''}
+                            </div>
+                        </div>
+                        <button class="btn-stat" style="padding: 4px 8px;" onclick="socket.emit('equipItem', {itemIndex: ${index}})">Kuşan</button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
 
         function renderMarketTab(container) {
             container.innerHTML = `
