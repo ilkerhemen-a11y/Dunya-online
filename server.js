@@ -6,10 +6,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(__dirname + '/public')); // index.html dosyanız public klasöründeyse
+app.use(express.static(__dirname + '/public'));
 
-// Bellekte tutulan oyuncu verileri
 const users = {};
+
+// Karakterin varsayılan başlangıç envanter ve teçhizatları
+const getDefaultInventory = () => [
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
+    { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5 },
+    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 }
+];
 
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
@@ -29,16 +35,69 @@ io.on('connection', (socket) => {
             vit: 5,
             statPoints: 0,
             hp: 100,
-            seferLimiti: 20,         // Sefer sınırı (Max 20)
-            seferNextRefill: null,   // Yenilenme süresi (Timestamp)
+            seferLimiti: 20,
+            seferNextRefill: null,
             upgrades: { weapon: 0, armor: 0, helmet: 0 },
-            equipped: {},
-            inventory: [
-                { name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 2, vitBonus: 0 }
-            ]
+            
+            // GELİŞMİŞ ENVANTER SİSTEMİ VERİ YAPISI
+            equipped: {
+                helmet: null,
+                necklace: null,
+                armor: null,
+                weapon: null,
+                shield: null,
+                ring: null,
+                gloves: null,
+                boots: null
+            },
+            inventory: getDefaultInventory()
         };
 
         socket.emit('userData', users[socket.id]);
+    });
+
+    // 🎒 ENVANTER SİSTEMİ: Eşya Kuşanma (Equip Item)
+    socket.on('equipItem', (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const { itemIndex } = data;
+        if (itemIndex === undefined || !user.inventory[itemIndex]) return;
+
+        const itemToEquip = user.inventory[itemIndex];
+        const slotType = itemToEquip.type; // 'weapon', 'armor', 'helmet', vb.
+
+        // Eğer o slotta zaten kuşanılmış bir eşya varsa onu envantere geri at
+        const currentlyEquipped = user.equipped[slotType];
+        
+        // Eşyayı envanterden çıkar
+        user.inventory.splice(itemIndex, 1);
+
+        // Eski kuşanılan eşyayı envantere geri ekle
+        if (currentlyEquipped) {
+            user.inventory.push(currentlyEquipped);
+        }
+
+        // Yeni eşyayı slota yerleştir
+        user.equipped[slotType] = itemToEquip;
+
+        socket.emit('statUpdated', user);
+    });
+
+    // 🎒 ENVANTER SİSTEMİ: Eşya Çıkarma (Unequip Item)
+    socket.on('unequipItem', (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const { slot } = data; // 'weapon', 'armor', vb.
+        if (!slot || !user.equipped[slot]) return;
+
+        // Slot'taki eşyayı al ve envantere taşı
+        const unequippedItem = user.equipped[slot];
+        user.equipped[slot] = null;
+        user.inventory.push(unequippedItem);
+
+        socket.emit('statUpdated', user);
     });
 
     // Sefer / Görev Yapma
@@ -47,15 +106,13 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         const now = Date.now();
-        const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat (Milisaniye)
+        const COOLDOWN_TIME = 60 * 60 * 1000;
 
-        // 1 Saat dolduysa sefer limitini otomatik sıfırla
         if (user.seferNextRefill && now >= user.seferNextRefill) {
             user.seferLimiti = 20;
             user.seferNextRefill = null;
         }
 
-        // Limit kontrolü
         if (user.seferLimiti <= 0) {
             return socket.emit('questResult', {
                 success: false,
@@ -64,13 +121,11 @@ io.on('connection', (socket) => {
             });
         }
 
-        // Limit düşür ve gerekirse geri sayımı başlat
         user.seferLimiti -= 1;
         if (!user.seferNextRefill) {
             user.seferNextRefill = now + COOLDOWN_TIME;
         }
 
-        // Kazanç Hesaplama
         const questId = data.questId || 1;
         const goldEarned = questId * 45 + Math.floor(Math.random() * 15);
         const expEarned = questId * 25;
@@ -78,7 +133,6 @@ io.on('connection', (socket) => {
         user.balance += goldEarned;
         user.exp += expEarned;
 
-        // Seviye Atlama (Level Up) Kontrolü
         const maxExp = user.level * 100;
         if (user.exp >= maxExp) {
             user.level += 1;
@@ -95,7 +149,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Nitelik (Stat) Dağıtma
+    // Nitelik Dağıtma
     socket.on('distributeStat', (statName) => {
         const user = users[socket.id];
         if (!user || user.statPoints <= 0) return;
@@ -106,13 +160,13 @@ io.on('connection', (socket) => {
         } else if (statName === 'vit') {
             user.vit += 1;
             user.statPoints -= 1;
-            user.hp = user.vit * 20; // Canı güncelle
+            user.hp = user.vit * 20;
         }
 
         socket.emit('statUpdated', user);
     });
 
-    // İksir İçme (Sefer / Can Yenileme)
+    // İksir İçme
     socket.on('usePotion', () => {
         const user = users[socket.id];
         if (!user) return;
@@ -144,7 +198,7 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user) return;
 
-        const itemType = data.itemType; // 'weapon', 'armor', 'helmet'
+        const itemType = data.itemType;
         const currentLvl = user.upgrades[itemType] || 0;
         const cost = (currentLvl + 1) * 100;
 
@@ -168,7 +222,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Sohbet Mesajı Gönderme
+    // Sohbet
     socket.on('sendChatMessage', (data) => {
         const user = users[socket.id];
         if (!user || !data.message) return;
@@ -188,5 +242,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Sunucu http://localhost:${PORT} üzerinde çalışıyor.`);
+    console.log(`Sunucu http://localhost:${PORT} üzerinde aktif.`);
 });
