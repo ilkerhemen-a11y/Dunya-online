@@ -216,6 +216,58 @@
 
         .eq-slot:hover { border-color: #b38b4d; }
 
+        /* İş / Görevler (Seferler) Paneli */
+        .quest-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quest-card {
+            background: #18130f;
+            border: 1px solid #433222;
+            border-radius: 4px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .quest-card:hover {
+            border-color: #b38b4d;
+            background: #1e1712;
+        }
+
+        .quest-info h4 { color: #f3cf7a; font-size: 14px; margin-bottom: 3px; }
+        .quest-info p { color: #a3957f; font-size: 11px; margin-bottom: 6px; }
+        .quest-rewards { font-size: 11px; color: #22c55e; display: flex; gap: 10px; font-weight: bold; }
+
+        .btn-quest {
+            background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+            border: 1px solid #543d2b;
+            color: #0f0a08;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+        .btn-quest:hover { background: #f3cf7a; }
+
+        .quest-log {
+            margin-top: 15px;
+            background: #110d0a;
+            border: 1px solid #33241b;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #a3957f;
+            min-height: 40px;
+        }
+
         /* Giriş Modalı */
         .modal-overlay { position: fixed; inset: 0; background: rgba(10, 6, 4, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .box { background: #17100c; padding: 30px; border-radius: 4px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
@@ -275,7 +327,7 @@
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
         </nav>
 
-        <!-- Sağ Ana İçerik Paneli -->
+        <!-- Sağ İçerik Paneli -->
         <main class="content-panel">
             <div class="panel-title">
                 <span id="panelHeaderTitle">Genel Durum & Karakter</span>
@@ -304,11 +356,14 @@
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
             currentUserData = data;
-            document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
-            document.getElementById('myUsernameDisplay').innerText = `${data.username.toUpperCase()} (Seviye ${data.level || 1})`;
-            
+            updateHeader(data);
             switchTab('overview');
         });
+
+        function updateHeader(data) {
+            document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
+            document.getElementById('myUsernameDisplay').innerText = `${data.username.toUpperCase()} (Seviye ${data.level || 1})`;
+        }
 
         function switchTab(tabId) {
             const titleEl = document.getElementById('panelHeaderTitle');
@@ -318,8 +373,8 @@
                 titleEl.innerText = "Genel Durum & Karakter";
                 renderOverviewTab(bodyEl);
             } else if(tabId === 'work') {
-                titleEl.innerText = "İş / Görev Alanı";
-                bodyEl.innerHTML = `<p style="color: #a3957f;">Altın kazanmak için seferlere çık ve görev yap.</p>`;
+                titleEl.innerText = "İş / Görev Alanı (Seferler)";
+                renderWorkTab(bodyEl);
             } else if(tabId === 'market') {
                 titleEl.innerText = "Pazar Yeri & Tımarlar";
                 bodyEl.innerHTML = `<p style="color: #a3957f;">Tımar satın alarak pasif gelir elde et.</p>`;
@@ -372,13 +427,64 @@
             `;
         }
 
+        function renderWorkTab(container) {
+            container.innerHTML = `
+                <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">Antik toprakların tehlikeli bölgelerine seferler düzenleyerek şan, tecrübe ve altın kazan.</p>
+                
+                <div class="quest-list">
+                    <div class="quest-card">
+                        <div class="quest-info">
+                            <h4>🌲 Karanlık Orman Bandidoları</h4>
+                            <p>Orman yollarını kesen haydutların kampına baskın düzenle.</p>
+                            <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 XP</span></div>
+                        </div>
+                        <button class="btn-quest" onclick="startQuest(1)">Sefer Düzenle</button>
+                    </div>
+
+                    <div class="quest-card">
+                        <div class="quest-info">
+                            <h4>🏛️ Unutulmuş Tapınak Harabeleri</h4>
+                            <p>Lanetli kalıntıların arasındaki antik koruyucularla dövüş.</p>
+                            <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 XP</span></div>
+                        </div>
+                        <button class="btn-quest" onclick="startQuest(2)">Sefer Düzenle</button>
+                    </div>
+
+                    <div class="quest-card">
+                        <div class="quest-info">
+                            <h4>🐉 Ejderha Dağı Etekleri</h4>
+                            <p>Zirvedeki vahşi yaratıklarla yüzleş ve imparatorluk hazinesini ele geçir.</p>
+                            <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 XP</span></div>
+                        </div>
+                        <button class="btn-quest" onclick="startQuest(3)">Sefer Düzenle</button>
+                    </div>
+                </div>
+
+                <div id="questLog" class="quest-log">Sefer için hazır bekliyorsun... Lordum, bir hedef seçin.</div>
+            `;
+        }
+
         function addStat(statName) {
             socket.emit('distributeStat', statName);
+        }
+
+        function startQuest(questId) {
+            socket.emit('doQuest', { questId: questId });
         }
 
         socket.on('statUpdated', (data) => {
             currentUserData = data;
             renderOverviewTab(document.getElementById('panelContentBody'));
+        });
+
+        socket.on('questResult', (data) => {
+            currentUserData = data.userData;
+            updateHeader(currentUserData);
+            
+            const logEl = document.getElementById('questLog');
+            if(logEl) {
+                logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span>`;
+            }
         });
     </script>
 </body>
