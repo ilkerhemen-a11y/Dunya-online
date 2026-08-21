@@ -59,22 +59,68 @@ io.on('connection', (socket) => {
     const username = data.username ? data.username.trim() : 'Bilinmeyen Savaşçı';
     const baseVit = 5;
 
-    players[socket.id] = {
-      id: socket.id,
-      username: username,
-      level: 1,
-      balance: 250,
-      rubies: 10,
-      exp: 0,
-      statPoints: 5,
-      str: 5,
-      int: 5,
-      dex: 5,
-      vit: baseVit,
-      hp: baseVit * 20, // Max HP = VIT * 20 (100 HP)
-      upgrades: { weapon: 0, armor: 0, helmet: 0 },
-      estates: { 1: 0, 2: 0, 3: 0 }
-    };
+    // userLogin içindeki player objesine ekleyin:
+players[socket.id] = {
+    id: socket.id,
+    username: username,
+    level: 1,
+    balance: 250,
+    exp: 0,
+    statPoints: 5,
+    str: 5, int: 5, dex: 5, vit: 5,
+    hp: 100,
+    upgrades: { weapon: 0, armor: 0, helmet: 0 },
+    estates: { 1: 0, 2: 0, 3: 0 },
+    // YENİ: Ekipman ve Envanter Yapısı
+    equipped: {
+        helmet: null,
+        necklace: null,
+        armor: null,
+        weapon: { id: 'w1', type: 'weapon', name: 'Paslı Kısa Kılıç', strBonus: 3, vitBonus: 0, icon: '⚔️' },
+        shield: null,
+        ring: null,
+        gloves: null,
+        boots: null
+    },
+    inventory: [
+        { id: 'h1', type: 'helmet', name: 'Deri Miğfer', strBonus: 1, vitBonus: 2, icon: '🪖' },
+        { id: 'a1', type: 'armor', name: 'Köylü Zırhı', strBonus: 0, vitBonus: 4, icon: '🛡️' }
+    ]
+};
+
+// YENİ: Eşya Kuşanma Dinleyicisi
+socket.on('equipItem', (data) => {
+    const player = players[socket.id];
+    if (!player || !player.inventory[data.itemIndex]) return;
+
+    const item = player.inventory[data.itemIndex];
+    const slot = item.type; // helmet, armor, weapon vb.
+
+    // Eğer o slotta zaten bir eşya varsa, onu envantere geri koy
+    if (player.equipped[slot]) {
+        player.inventory.push(player.equipped[slot]);
+    }
+
+    // Eşyayı kuşan ve envanterden çıkar
+    player.equipped[slot] = item;
+    player.inventory.splice(data.itemIndex, 1);
+
+    // Güncel veriyi gönder
+    socket.emit('statUpdated', player);
+});
+
+// YENİ: Eşya Çıkarma Dinleyicisi
+socket.on('unequipItem', (data) => {
+    const player = players[socket.id];
+    if (!player || !player.equipped[data.slot]) return;
+
+    // Eşyayı envantere aktar ve slottan çıkar
+    player.inventory.push(player.equipped[data.slot]);
+    player.equipped[data.slot] = null;
+
+    // Güncel veriyi gönder
+    socket.emit('statUpdated', player);
+});
 
     socket.emit('userData', players[socket.id]);
     
