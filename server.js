@@ -1,17 +1,17 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Statik dosyaları dışarı aç
+// Statik dosyaları ve index.html'i güvenli yolla sun
 app.use(express.static(__dirname));
 
-// Kök dizine (/) girildiğinde index.html'i gönder
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const users = {};
