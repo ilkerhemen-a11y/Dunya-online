@@ -6,7 +6,13 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Statik dosyaları dışarı aç
 app.use(express.static(__dirname));
+
+// Kök dizine (/) girildiğinde index.html'i gönder
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
 
 const users = {};
 
