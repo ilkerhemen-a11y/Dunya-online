@@ -21,15 +21,39 @@ if (!MONGO_URI) {
     .catch(err => console.error('MongoDB BAGLANTI HATASI:', err.message));
 }
 
+// 10 Meslek Tanımı ve Özellikleri
+const JOBS = {
+  'ciftci': { name: 'Çiftçi', income: 150, energyCost: 20, hungerCost: 10 },
+  'demirci': { name: 'Demirci', income: 280, energyCost: 35, hungerCost: 15 },
+  'muhafiz': { name: 'Muhafız', income: 300, energyCost: 30, hungerCost: 12 },
+  'hanci': { name: 'Hancı', income: 200, energyCost: 25, hungerCost: 10 },
+  'buyucu': { name: 'Büyücü', income: 350, energyCost: 40, hungerCost: 15 },
+  'tuccar': { name: 'Tüccar', income: 320, energyCost: 30, hungerCost: 12 },
+  'hirsiz': { name: 'Hırsız', income: 500, energyCost: 40, hungerCost: 20 },
+  'avci': { name: 'Avcı', income: 400, energyCost: 45, hungerCost: 25 },
+  'sifaci': { name: 'Şifacı', income: 250, energyCost: 20, hungerCost: 10 },
+  'soylu': { name: 'Soylu', income: 0, energyCost: 0, hungerCost: 0 }
+};
+
+// Fantezi Katalogu (Dengelenmiş 72 Saatlik Amorti Modeli)
+const catalogItems = {
+  'hut': { name: 'Kulübe', cost: 2500, hourly: 35, type: 'home' },
+  'mansion': { name: 'Köşk', cost: 6000, hourly: 85, type: 'home' },
+  'war_horse': { name: 'Savaş Atı', cost: 4000, hourly: 55, type: 'car' },
+  'magic_tower': { name: 'Büyü Kulesi', cost: 10000, hourly: 140, type: 'special' }
+};
+
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
-  balance: { type: Number, default: 1250 }, // 12480 -> 1250
+  balance: { type: Number, default: 1250 },
   level: { type: Number, default: 1 },
   xp: { type: Number, default: 0 },
   hunger: { type: Number, default: 82 },
   energy: { type: Number, default: 100 },
   fun: { type: Number, default: 100 },
   cityRank: { type: Number, default: 2841 },
+  job: { type: String, default: 'demirci' }, // Varsayılan meslek Demirci
+  completedQuests: { type: [String], default: [] },
   stocks: { type: Number, default: 0 },
   workCooldownUntil: { type: Number, default: 0 },
   loanDebt: { type: Number, default: 0 },
@@ -52,6 +76,7 @@ const onlineUsers = {};
 function broadcastOnlineList() {
   const list = Object.values(onlineUsers).map(u => ({
     username: u.username,
+    job: u.job || 'demirci',
     propertyCount: Object.keys(u.properties || {}).length
   }));
   io.emit('onlineUsersList', list);
@@ -69,6 +94,8 @@ async function saveUserData(socketId) {
         energy: playerData.energy,
         fun: playerData.fun,
         cityRank: playerData.cityRank,
+        job: playerData.job,
+        completedQuests: playerData.completedQuests,
         stocks: playerData.stocks,
         workCooldownUntil: playerData.workCooldownUntil,
         loanDebt: playerData.loanDebt,
@@ -106,6 +133,8 @@ io.on('connection', (socket) => {
           energy: 100,
           fun: 100,
           cityRank: 2841,
+          job: 'demirci',
+          completedQuests: [],
           stocks: 0,
           workCooldownUntil: 0,
           loanDebt: 0,
@@ -134,6 +163,8 @@ io.on('connection', (socket) => {
         energy: user.energy,
         fun: user.fun,
         cityRank: user.cityRank,
+        job: user.job || 'demirci',
+        completedQuests: user.completedQuests || [],
         stocks: user.stocks || 0,
         workCooldownUntil: user.workCooldownUntil || 0,
         loanDebt: user.loanDebt || 0,
@@ -156,13 +187,16 @@ io.on('connection', (socket) => {
     io.emit('chatMessage', { sender: player.username, text: cleanText });
   });
 
-  // Fantezi Katalogu
-  const catalogItems = {
-    'hut': { name: 'Kulübe', cost: 500, hourly: 45, type: 'home' },
-    'mansion': { name: 'Köşk', cost: 1500, hourly: 125, type: 'home' },
-    'war_horse': { name: 'Savaş Atı', cost: 1000, hourly: 85, type: 'car' },
-    'magic_tower': { name: 'Büyü Kulesi', cost: 2500, hourly: 220, type: 'special' }
-  };
+  // Meslek Değiştirme Olayı
+  socket.on('selectJob', (jobId) => {
+    const player = onlineUsers[socket.id];
+    if (!player || !JOBS[jobId]) return;
+
+    player.job = jobId;
+    socket.emit('userData', player);
+    broadcastOnlineList();
+    socket.emit('gameLog', `📜 Mesleğin başarıyla "${JOBS[jobId].name}" olarak değiştirildi!`);
+  });
 
   socket.on('buyProperty', (id) => {
     const player = onlineUsers[socket.id];
@@ -176,7 +210,7 @@ io.on('connection', (socket) => {
     }
 
     if (player.balance < item.cost) {
-      socket.emit('gameLog', `❌ Yeterli altının yok! Gereken: ${item.cost}`);
+      socket.emit('gameLog', `❌ Yeterli altının yok! Gereken: ${item.cost} Altın`);
       return;
     }
 
@@ -233,6 +267,7 @@ io.on('connection', (socket) => {
     socket.emit('gameLog', `🚀 ${item.name} Seviye ${prop.level} oldu!`);
   });
 
+  // Seçili Mesleğe Göre Çalışma (Vardiya / Görev Yap)
   socket.on('workShift', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
@@ -243,16 +278,17 @@ io.on('connection', (socket) => {
       return;
     }
 
-    player.balance += 280;
-    player.energy = Math.max(0, player.energy - 35);
-    player.hunger = Math.max(0, player.hunger - 15);
+    const currentJob = JOBS[player.job] || JOBS['demirci'];
+
+    player.balance += currentJob.income;
+    player.energy = Math.max(0, player.energy - currentJob.energyCost);
+    player.hunger = Math.max(0, player.hunger - currentJob.hungerCost);
     player.workCooldownUntil = Date.now() + (8 * 60 * 1000);
 
     socket.emit('userData', player);
-    socket.emit('gameLog', 'Zanaat tamamlandı! +280 Altın kazandın.');
+    socket.emit('gameLog', `⚔️ ${currentJob.name} görevi tamamlandı! +${currentJob.income} Altın kazandın.`);
   });
 
-  // Diğer işlemler (eatMeal, sleepTime vb.) buraya benzer şekilde güncellenebilir.
   socket.on('disconnect', async () => {
     await saveUserData(socket.id);
     delete onlineUsers[socket.id];
