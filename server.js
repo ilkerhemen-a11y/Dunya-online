@@ -23,16 +23,16 @@ if (!MONGO_URI) {
 
 // 10 Meslek Tanımı ve Özellikleri
 const JOBS = {
-  'ciftci': { name: 'Çiftçi', income: 150, energyCost: 20, hungerCost: 10 },
-  'demirci': { name: 'Demirci', income: 280, energyCost: 35, hungerCost: 15 },
-  'muhafiz': { name: 'Muhafız', income: 300, energyCost: 30, hungerCost: 12 },
-  'hanci': { name: 'Hancı', income: 200, energyCost: 25, hungerCost: 10 },
-  'buyucu': { name: 'Büyücü', income: 350, energyCost: 40, hungerCost: 15 },
-  'tuccar': { name: 'Tüccar', income: 320, energyCost: 30, hungerCost: 12 },
-  'hirsiz': { name: 'Hırsız', income: 500, energyCost: 40, hungerCost: 20 },
-  'avci': { name: 'Avcı', income: 400, energyCost: 45, hungerCost: 25 },
-  'sifaci': { name: 'Şifacı', income: 250, energyCost: 20, hungerCost: 10 },
-  'soylu': { name: 'Soylu', income: 0, energyCost: 0, hungerCost: 0 }
+  'ciftci': { name: 'Çiftçi', income: 150, expReward: 35, energyCost: 20, hungerCost: 10 },
+  'demirci': { name: 'Demirci', income: 280, expReward: 50, energyCost: 35, hungerCost: 15 },
+  'muhafiz': { name: 'Muhafız', income: 300, expReward: 55, energyCost: 30, hungerCost: 12 },
+  'hanci': { name: 'Hancı', income: 200, expReward: 40, energyCost: 25, hungerCost: 10 },
+  'buyucu': { name: 'Büyücü', income: 350, expReward: 70, energyCost: 40, hungerCost: 15 },
+  'tuccar': { name: 'Tüccar', income: 320, expReward: 60, energyCost: 30, hungerCost: 12 },
+  'hirsiz': { name: 'Hırsız', income: 500, expReward: 80, energyCost: 40, hungerCost: 20 },
+  'avci': { name: 'Avcı', income: 400, expReward: 75, energyCost: 45, hungerCost: 25 },
+  'sifaci': { name: 'Şifacı', income: 250, expReward: 45, energyCost: 20, hungerCost: 10 },
+  'soylu': { name: 'Soylu', income: 0, expReward: 10, energyCost: 0, hungerCost: 0 }
 };
 
 // Fantezi Katalogu (Dengelenmiş 72 Saatlik Amorti Modeli)
@@ -71,6 +71,24 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 const onlineUsers = {};
+
+// EXP Ekleme ve Level Atlatma Fonksiyonu
+function addExp(player, amount, socket) {
+  player.exp += amount;
+  let leveledUp = false;
+  
+  // Her seviye için gereken EXP = Mevcut Seviye * 100
+  while (player.exp >= player.level * 100) {
+    player.exp -= player.level * 100;
+    player.level += 1;
+    player.statPoints += 3; // Seviye başına +3 Stat Puanı
+    leveledUp = true;
+  }
+
+  if (leveledUp) {
+    socket.emit('gameLog', `🎉 TEBRİKLER! Seviye atladın! Yeni Seviye: ${player.level} (+3 Stat Puanı Kazandın)`);
+  }
+}
 
 function broadcastOnlineList() {
   const list = Object.values(onlineUsers).map(u => ({
@@ -216,7 +234,7 @@ io.on('connection', (socket) => {
     const item = catalogItems[id];
     if (!item) return;
 
-    if (player.properties.has(id)) {
+    if (player.properties.has && player.properties.has(id)) {
       socket.emit('gameLog', '❌ Bu tımara zaten sahipsin!');
       return;
     }
@@ -227,17 +245,24 @@ io.on('connection', (socket) => {
     }
 
     player.balance -= item.cost;
-    player.properties.set(id, { level: 1, pendingBalance: 0, lastCollected: Date.now() });
+    
+    if (player.properties instanceof Map) {
+      player.properties.set(id, { level: 1, pendingBalance: 0, lastCollected: Date.now() });
+    } else {
+      player.properties[id] = { level: 1, pendingBalance: 0, lastCollected: Date.now() };
+    }
 
+    addExp(player, 100, socket); // Tımar satın alana +100 EXP
     socket.emit('userData', player);
     broadcastOnlineList();
-    socket.emit('gameLog', `🎉 Başarıyla edinildi: ${item.name}`);
+    socket.emit('gameLog', `🎉 Başarıyla edinildi: ${item.name} (+100 EXP)`);
   });
 
   socket.on('collectProperty', (id) => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-    const prop = player.properties.get(id);
+    
+    const prop = player.properties instanceof Map ? player.properties.get(id) : player.properties[id];
     const item = catalogItems[id];
     if (!prop || !item) return;
 
@@ -252,16 +277,23 @@ io.on('connection', (socket) => {
 
     player.balance += earned;
     prop.lastCollected = now;
-    player.properties.set(id, prop);
 
+    if (player.properties instanceof Map) {
+      player.properties.set(id, prop);
+    } else {
+      player.properties[id] = prop;
+    }
+
+    addExp(player, 15, socket); // Gelir toplayana +15 EXP
     socket.emit('userData', player);
-    socket.emit('gameLog', `💰 ${earned} Altın hazineye aktarıldı!`);
+    socket.emit('gameLog', `💰 ${earned} Altın hazineye aktarıldı! (+15 EXP)`);
   });
 
   socket.on('upgradeProperty', (id) => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-    const prop = player.properties.get(id);
+
+    const prop = player.properties instanceof Map ? player.properties.get(id) : player.properties[id];
     const item = catalogItems[id];
     if (!prop || !item) return;
 
@@ -273,10 +305,16 @@ io.on('connection', (socket) => {
 
     player.balance -= upgradeCost;
     prop.level += 1;
-    player.properties.set(id, prop);
 
+    if (player.properties instanceof Map) {
+      player.properties.set(id, prop);
+    } else {
+      player.properties[id] = prop;
+    }
+
+    addExp(player, 50, socket); // Tımar yükselten oyuncuya +50 EXP
     socket.emit('userData', player);
-    socket.emit('gameLog', `🚀 ${item.name} Seviye ${prop.level} oldu!`);
+    socket.emit('gameLog', `🚀 ${item.name} Seviye ${prop.level} oldu! (+50 EXP)`);
   });
 
   socket.on('workShift', async () => {
@@ -294,8 +332,11 @@ io.on('connection', (socket) => {
     player.balance += currentJob.income;
     player.workCooldownUntil = Date.now() + (8 * 60 * 1000);
 
+    // Mesleğe göre EXP kazancı
+    addExp(player, currentJob.expReward, socket);
+
     socket.emit('userData', player);
-    socket.emit('gameLog', `⚔️ ${currentJob.name} görevi tamamlandı! +${currentJob.income} Altın kazandın.`);
+    socket.emit('gameLog', `⚔️ ${currentJob.name} görevi tamamlandı! +${currentJob.income} Altın ve +${currentJob.expReward} EXP kazandın.`);
   });
 
   socket.on('disconnect', async () => {
