@@ -37,9 +37,9 @@
         .header-section { display: flex; align-items: center; gap: 15px; }
         .resource-item { display: flex; align-items: center; gap: 5px; font-weight: bold; color: #f3cf7a; }
         .bar-container { display: flex; flex-direction: column; gap: 2px; }
-        .stat-bar-mini { width: 90px; height: 10px; background: #111; border: 1px solid #433222; border-radius: 2px; position: relative; overflow: hidden; }
-        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 100%; }
-        .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #ca8a04); width: 45%; }
+        .stat-bar-mini { width: 110px; height: 12px; background: #111; border: 1px solid #433222; border-radius: 2px; position: relative; overflow: hidden; }
+        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 100%; transition: width 0.3s ease; }
+        .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #ca8a04); width: 0%; transition: width 0.3s ease; }
 
         /* Ana Oyun Alanı */
         .main-wrapper {
@@ -331,12 +331,12 @@
         </div>
         <div class="header-section">
             <div class="bar-container">
-                <span style="font-size: 10px; color: #a3957f;">Can Puanı</span>
-                <div class="stat-bar-mini"><div class="stat-bar-fill" style="width: 100%;"></div></div>
+                <span id="hpLabel" style="font-size: 10px; color: #a3957f;">Can Puanı</span>
+                <div class="stat-bar-mini"><div id="hpBarFill" class="stat-bar-fill" style="width: 100%;"></div></div>
             </div>
             <div class="bar-container">
-                <span style="font-size: 10px; color: #a3957f;">Tecrübe</span>
-                <div class="stat-bar-mini"><div class="stat-bar-fill exp" style="width: 25%;"></div></div>
+                <span id="expLabel" style="font-size: 10px; color: #a3957f;">Tecrübe</span>
+                <div class="stat-bar-mini"><div id="expBarFill" class="stat-bar-fill exp" style="width: 0%;"></div></div>
             </div>
         </div>
     </header>
@@ -390,8 +390,31 @@
         });
 
         function updateHeader(data) {
+            if(!data) return;
+            currentUserData = data;
+            
+            // Altın ve Kullanıcı Adı
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
-            document.getElementById('myUsernameDisplay').innerText = `${data.username.toUpperCase()} (Seviye ${data.level || 1})`;
+            document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
+
+            // CAN (HP) DİNAMİK GÜNCELLEME
+            const maxHp = (data.vit || 5) * 20;
+            const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
+            const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
+
+            const hpBarFill = document.getElementById('hpBarFill');
+            const hpLabel = document.getElementById('hpLabel');
+            if(hpBarFill) hpBarFill.style.width = `${hpPercent}%`;
+            if(hpLabel) hpLabel.innerText = `Can (${currentHp}/${maxHp})`;
+
+            // TECRÜBE (EXP) DİNAMİK GÜNCELLEME
+            const maxExp = (data.level || 1) * 100;
+            const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
+
+            const expBarFill = document.getElementById('expBarFill');
+            const expLabel = document.getElementById('expLabel');
+            if(expBarFill) expBarFill.style.width = `${expPercent}%`;
+            if(expLabel) expLabel.innerText = `XP (%${Math.floor(expPercent)})`;
         }
 
         function switchTab(tabId) {
@@ -458,7 +481,10 @@
 
         function renderWorkTab(container) {
             container.innerHTML = `
-                <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">Antik toprakların tehlikeli bölgelerine seferler düzenleyerek şan, tecrübe ve altın kazan.</p>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                    <p style="color: #a3957f; font-size: 12px;">Antik toprakların tehlikeli bölgelerine seferler düzenleyerek şan, tecrübe ve altın kazan.</p>
+                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:#fff;" onclick="socket.emit('usePotion')">🧪 İksir İç (50 Altın)</button>
+                </div>
                 
                 <div class="quest-list">
                     <div class="quest-card">
@@ -614,6 +640,7 @@
 
         socket.on('statUpdated', (data) => {
             currentUserData = data;
+            updateHeader(data);
             renderOverviewTab(document.getElementById('panelContentBody'));
         });
 
