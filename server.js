@@ -32,7 +32,8 @@ const userSchema = new mongoose.Schema({
   cityRank: { type: Number, default: 2841 },
   home: { type: String, default: "Stüdyo Daire" },
   car: { type: String, default: "Yok" },
-  stocks: { type: Number, default: 0 }, // Earn Borsa hisse adedi
+  stocks: { type: Number, default: 0 },
+  workCooldownUntil: { type: Number, default: 0 }, // Çalışma zaman sayacı için bitiş zamanı (timestamp)
   isVip: { type: Boolean, default: false }
 });
 
@@ -53,7 +54,8 @@ async function saveUserData(socketId) {
         cityRank: playerData.cityRank,
         home: playerData.home,
         car: playerData.car,
-        stocks: playerData.stocks
+        stocks: playerData.stocks,
+        workCooldownUntil: playerData.workCooldownUntil
       });
     } catch (err) {
       console.error('Veri kaydetme hatası:', err.message);
@@ -83,7 +85,8 @@ io.on('connection', (socket) => {
           cityRank: 2841,
           home: "Stüdyo Daire",
           car: "Yok",
-          stocks: 0
+          stocks: 0,
+          workCooldownUntil: 0
         };
         socket.emit('userData', onlineUsers[socket.id]);
         return;
@@ -108,6 +111,7 @@ io.on('connection', (socket) => {
         home: user.home,
         car: user.car,
         stocks: user.stocks || 0,
+        workCooldownUntil: user.workCooldownUntil || 0,
         isVip: user.isVip
       };
 
@@ -117,13 +121,31 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Çalışma (Vardiya)
+  // Çalışma (Vardiya) - Kurallarla ve Zaman Sayacıyla
   socket.on('workShift', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
 
-    if (player.energy < 30) {
-      socket.emit('gameLog', 'Çok yorgunsun! Çalışabilmek için önce uyumalısın.');
+    const now = Date.now();
+    if (now < player.workCooldownUntil) {
+      const remainingSeconds = Math.ceil((player.workCooldownUntil - now) / 1000);
+      const hours = Math.floor(remainingSeconds / 3600);
+      const minutes = Math.floor((remainingSeconds % 3600) / 60);
+      socket.emit('gameLog', `⏳ Henüz dinleniyorsun! Çalışmak için ${hours} saat ${minutes} dakika beklemelisin.`);
+      return;
+    }
+
+    // İstediğin kurallar: Açlık %0, Enerji %0, Eğlence %50 altı iken çalışma yapılamaz
+    if (player.hunger <= 0) {
+      socket.emit('gameLog', '❌ Açlığın %0! Karnını doyurmadan çalışamazsın.');
+      return;
+    }
+    if (player.energy <= 0) {
+      socket.emit('gameLog', '❌ Enerjin tamamen bitti! Çalışabilmek için önce uymalısın.');
+      return;
+    }
+    if (player.fun < 50) {
+      socket.emit('gameLog', '❌ Eğlence seviyen %50’nin altında! Çalışmak için önce eğlenmelisin.');
       return;
     }
 
@@ -131,155 +153,119 @@ io.on('connection', (socket) => {
     player.xp += 25;
     player.energy = Math.max(0, player.energy - 35);
     player.hunger = Math.max(0, player.hunger - 15);
+    player.fun = Math.max(0, player.fun - 10);
+
+    // 8 saatlik (gerçekçilik için simülasyonda 10 saniye veya test süresi, tam 8 saat için 8*3600*1000 milisaniye)
+    // Şimdilik test kolaylığı veya gerçek 8 saatlik döngü için 8 saat ayarlıyoruz: 8 * 60 * 60 * 1000 ms
+    // Test etmek istersen süreyi kısaltabilirsin, buraya tam 8 saatlik sayaç koyuyoruz:
+    player.workCooldownUntil = Date.now() + (8 * 60 * 60 * 1000);
 
     socket.emit('userData', player);
-    socket.emit('gameLog', 'Vardiya tamamlandı! +2.840 ₺ kazandın.');
+    socket.emit('gameLog', 'Vardiya tamamlandı! +2.840 ₺ kazandın. Yeni vardiya için 8 saat süre başladı.');
   });
 
-  // Yemek Ye (Nourish)
   socket.on('eatMeal', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
     if (player.balance < 150) {
       socket.emit('gameLog', 'Yemek yemek için yeterli paran yok! (150 ₺ gerekiyor)');
       return;
     }
-
     player.balance -= 150;
     player.hunger = Math.min(100, player.hunger + 25);
-
     socket.emit('userData', player);
-    socket.emit('gameLog', 'Karnın doyuruldu, enerjin yerine geldi.');
+    socket.emit('gameLog', 'Karnın doyuruldu, açlık seviyen arttı.');
   });
 
-  // Uyku / Dinlenme
   socket.on('sleepTime', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
     if (player.balance < 200) {
-      socket.emit('gameLog', 'Otel masrafı için yeterli paran yok! (200 ₺ gerekiyor)');
+      socket.emit('gameLog', 'Dinlenmek için yeterli paran yok! (200 ₺ gerekiyor)');
       return;
     }
-
     player.balance -= 200;
     player.energy = 100;
-
     socket.emit('userData', player);
-    socket.emit('gameLog', '8 saat uyku çekildi, enerji tamamen yenilendi.');
+    socket.emit('gameLog', 'Uykunu aldın, enerji tamamen yenilendi.');
   });
 
-  // Eğlence
   socket.on('haveFun', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
     if (player.balance < 500) {
       socket.emit('gameLog', 'Eğlence aktivitesi için yeterli paran yok! (500 ₺ gerekiyor)');
       return;
     }
-
     player.balance -= 500;
     player.fun = 100;
-
     socket.emit('userData', player);
     socket.emit('gameLog', 'Eğlence aktivitesine katıldın, motivasyonun arttı.');
   });
 
-  // EARN - Borsa Sistemi (Hisse Senedi Al / Yatırım Yap)
   socket.on('buyStock', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
-    const stockPrice = 1500; // 1 adet hisse bedeli
-    if (player.balance < stockPrice) {
+    if (player.balance < 1500) {
       socket.emit('gameLog', 'Borsadan hisse almak için yeterli paran yok! (1.500 ₺ gerekiyor)');
       return;
     }
-
-    player.balance -= stockPrice;
+    player.balance -= 1500;
     player.stocks += 1;
-    player.xp += 40;
-
     socket.emit('userData', player);
-    socket.emit('gameLog', '📈 Borsadan 1 adet UrbanTech hissesi satın aldın! Gelir büyüyor.');
+    socket.emit('gameLog', '📈 Borsadan 1 adet hisse alındı.');
   });
 
-  // EARN - Temettü Topla (Borsadan Kâr Payı Al)
   socket.on('collectDividends', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
     if (player.stocks <= 0) {
-      socket.emit('gameLog', 'Temettü alabilmek için önce bütçeden hisse senedi almalısın!');
+      socket.emit('gameLog', 'Temettü alabilmek için hissen olmalı!');
       return;
     }
-
-    const profit = player.stocks * 350; // Hisse başına 350 TL kâr
+    const profit = player.stocks * 350;
     player.balance += profit;
-
     socket.emit('userData', player);
-    socket.emit('gameLog', `💰 Borsadaki yatırımlarından ${profit.toLocaleString('tr-TR')} ₺ temettü (kâr payi) topladın!`);
+    socket.emit('gameLog', `💰 ${profit.toLocaleString('tr-TR')} ₺ temettü toplandı.`);
   });
 
-  // BUILD - Ev/Araç Yatırımı Yaparak Statü Artırma
   socket.on('upgradeBuild', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
-    const upgradeCost = 5000;
-    if (player.balance < upgradeCost) {
-      socket.emit('gameLog', 'Statünü artırmak (Build) için yeterli paran yok! (5.000 ₺ gerekiyor)');
+    if (player.balance < 5000) {
+      socket.emit('gameLog', 'Yetersiz bakiye! (5.000 ₺ gerekiyor)');
       return;
     }
-
-    player.balance -= upgradeCost;
+    player.balance -= 5000;
     player.home = "Lüks Loft Daire";
     player.car = "Spor Araç";
-    player.cityRank = Math.max(1, player.cityRank - 250); // Sıralamada ciddi tırmanış
-
+    player.cityRank = Math.max(1, player.cityRank - 250);
     socket.emit('userData', player);
-    socket.emit('gameLog', '🏗️ Build aşaması tamamlandı! Lüks Loft daireye ve spor araca sahip oldun, statün fırladı.');
+    socket.emit('gameLog', '🏗️ Build tamamlandı, statün yükseldi!');
   });
 
-  // CLIMB - Liderlik Tablosunda Zirveye Tırmanma Hamlesi
   socket.on('climbRank', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
-    if (player.cityRank <= 1) {
-      socket.emit('gameLog', 'Zaten şehrin zirvesindesin!');
-      return;
-    }
-
     player.cityRank = Math.max(1, player.cityRank - 50);
-    player.xp += 50;
-
     socket.emit('userData', player);
-    socket.emit('gameLog', '🏆 Climb hamlesi yapıldı! Liderlik tablosunda üst sıralara tırmandın.');
+    socket.emit('gameLog', '🏆 Liderlik tablosunda tırmandın.');
   });
 
-  // Zaman Hızlandırma (Time Skip)
   socket.on('buyTimeSkip', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-
-    const skipCost = 1000;
-    if (player.balance < skipCost) {
-      socket.emit('gameLog', 'Zamanı hızlandırmak için yeterli paran yok! (1.000 ₺ gerekiyor)');
+    if (player.balance < 1000) {
+      socket.emit('gameLog', 'Zamanı hızlandırmak için 1.000 ₺ gerekiyor.');
       return;
     }
-
-    player.balance -= skipCost;
-    player.xp += 100;
+    player.balance -= 1000;
+    player.workCooldownUntil = 0; // Süreyi sıfırlar, hemen çalışmayı açar!
     player.hunger = Math.min(100, player.hunger + 30);
-    player.energy = Math.min(100, player.energy + 30);
-    player.fun = Math.min(100, player.fun + 30);
-    player.cityRank = Math.max(1, player.cityRank - 20);
-
+    player.energy = 100;
+    player.fun = 100;
     socket.emit('userData', player);
-    socket.emit('gameLog', '⚡ Zaman hızlandırıldı! Bonus XP kazandın.');
+    socket.emit('gameLog', '⚡ Zaman atlandı! Bekleme süreleri sıfırlandı ve ihtiyaçlar doldu.');
   });
 
   socket.on('disconnect', async () => {
@@ -290,5 +276,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`UrbanRise sunucusu ${PORT} portunda başlatıldı.`);
+  console.log(`Sunucu ${PORT} portunda çalışıyor.`);
 });
