@@ -18,7 +18,7 @@
             padding: 10px;
         }
 
-        /* Üst Oyun Çubuğu (Gladiatus Tarzı Header) */
+        /* Üst Oyun Çubuğu */
         .game-header {
             width: 100%;
             max-width: 1000px;
@@ -38,10 +38,10 @@
         .resource-item { display: flex; align-items: center; gap: 5px; font-weight: bold; color: #f3cf7a; }
         .bar-container { display: flex; flex-direction: column; gap: 2px; }
         .stat-bar-mini { width: 90px; height: 10px; background: #111; border: 1px solid #433222; border-radius: 2px; position: relative; overflow: hidden; }
-        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 70%; }
+        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 100%; }
         .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #ca8a04); width: 45%; }
 
-        /* Ana Oyun Alanı (Sol Menü + Sağ İçerik) */
+        /* Ana Oyun Alanı */
         .main-wrapper {
             width: 100%;
             max-width: 1000px;
@@ -50,7 +50,7 @@
             gap: 15px;
         }
 
-        /* Sol Dikey Parşömen Menü */
+        /* Sol Dikey Menü */
         .sidebar-menu {
             background: linear-gradient(to bottom, #1d1712, #110d0a);
             border: 2px solid #544131;
@@ -96,7 +96,7 @@
             color: #f3cf7a;
         }
 
-        /* Sağ Parşömen İçerik Alanı */
+        /* Sağ İçerik Paneli */
         .content-panel {
             background: linear-gradient(135deg, #241c15 0%, #15100c 100%);
             border: 2px solid #544131;
@@ -108,7 +108,7 @@
         }
 
         .panel-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: #f3cf7a;
             border-bottom: 1px solid #433222;
@@ -119,7 +119,88 @@
             align-items: center;
         }
 
-        /* Giriş / Karakter İsim Modalı */
+        /* Gladiatus Karakter Grid Düzeni */
+        .character-screen {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .char-stats-box {
+            background: #18130f;
+            border: 1px solid #433222;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .char-stats-box h3 {
+            font-size: 14px;
+            color: #f3cf7a;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #33241b;
+            padding-bottom: 5px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            padding: 5px 0;
+            border-bottom: 1px dashed #281d15;
+        }
+
+        .stat-row span:first-child { color: #a3957f; }
+        .stat-row span:nth-child(2) { color: #f3cf7a; font-weight: bold; }
+
+        .btn-stat {
+            background: #b38b4d;
+            border: none;
+            color: #0f0a08;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .btn-stat:hover { background: #f3cf7a; }
+
+        /* Ekipman Ekranı (Gladiatus Slotları) */
+        .equipment-grid-wrapper {
+            background: #18130f;
+            border: 1px solid #433222;
+            padding: 15px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .eq-slots-container {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(4, 50px);
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .eq-slot {
+            background: #110d0a;
+            border: 2px solid #433222;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #433222;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .eq-slot:hover { border-color: #b38b4d; }
+
+        /* Giriş Modalı */
         .modal-overlay { position: fixed; inset: 0; background: rgba(10, 6, 4, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .box { background: #17100c; padding: 30px; border-radius: 4px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
         .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 22px; }
@@ -129,7 +210,7 @@
 
         @media (max-width: 768px) {
             .main-wrapper { grid-template-columns: 1fr; }
-            .game-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+            .character-screen { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -139,13 +220,13 @@
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Antik Diyara Adım At</h2>
-            <p>Mücadelene başlamak için kahramanının adını gir.</p> gl
+            <p>Mücadelene başlamak için kahramanının adını gir.</p>
             <input type="text" id="usernameInput" placeholder="Gladyatör / Lord Adı" maxlength="15">
             <button class="btn-primary" onclick="login()">MEYDANA İN</button>
         </div>
     </div>
 
-    <!-- Üst Bilgi Çubuğu (Header) -->
+    <!-- Üst Bilgi Çubuğu -->
     <header class="game-header">
         <div class="header-section">
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
@@ -166,7 +247,7 @@
     <!-- Ana Oyun Çerçevesi -->
     <div class="main-wrapper" id="mainApp" style="display: none;">
         
-        <!-- Sol Dikey Menü (Binalar / Alanlar) -->
+        <!-- Sol Dikey Menü -->
         <nav class="sidebar-menu">
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
@@ -181,12 +262,12 @@
         <!-- Sağ Ana İçerik Paneli -->
         <main class="content-panel">
             <div class="panel-title">
-                <span id="panelHeaderTitle">Genel Durum</span>
+                <span id="panelHeaderTitle">Genel Durum & Karakter</span>
                 <span id="myUsernameDisplay" style="font-size: 13px; color: #a3957f;">Seviye 1</span>
             </div>
             
             <div id="panelContentBody">
-                <p>Burada seçtiğin binanın veya karakter panelinin detayları yer alacak.</p>
+                <!-- Burası dinamik olarak dolacak -->
             </div>
         </main>
 
@@ -195,6 +276,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        let currentUserData = null;
 
         function login() {
             const username = document.getElementById('usernameInput').value;
@@ -205,8 +287,11 @@
         socket.on('userData', (data) => {
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
+            currentUserData = data;
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${data.username.toUpperCase()} (Seviye ${data.level || 1})`;
+            
+            switchTab('overview'); // İlk açılışta Genel Durum yüklensin
         });
 
         function switchTab(tabId) {
@@ -215,21 +300,75 @@
             
             if(tabId === 'overview') {
                 titleEl.innerText = "Genel Durum & Karakter";
-                bodyEl.innerHTML = `<p>Karakter istatistikleri ve ekipman paneli buraya entegre edilecek.</p>`;
+                renderOverviewTab(bodyEl);
             } else if(tabId === 'work') {
                 titleEl.innerText = "İş / Görev Alanı";
-                bodyEl.innerHTML = `<p>Altın kazanmak için seferlere çık ve görev yap.</p>`;
+                bodyEl.innerHTML = `<p style="color: #a3957f;">Altın kazanmak için seferlere çık ve görev yap.</p>`;
             } else if(tabId === 'market') {
                 titleEl.innerText = "Pazar Yeri & Tımarlar";
-                bodyEl.innerHTML = `<p>Tımar satın alarak pasif gelir elde et.</p>`;
+                bodyEl.innerHTML = `<p style="color: #a3957f;">Tımar satın alarak pasif gelir elde et.</p>`;
             } else if(tabId === 'blacksmith') {
                 titleEl.innerText = "Demirhane";
-                bodyEl.innerHTML = `<p>Ekipmanlarını geliştir ve güçlen.</p>`;
+                bodyEl.innerHTML = `<p style="color: #a3957f;">Ekipmanlarını geliştir ve güçlen.</p>`;
             } else if(tabId === 'chat') {
                 titleEl.innerText = "Diyar Meclisi (Sohbet)";
-                bodyEl.innerHTML = `<p>Diğer lordlarla iletişim kur.</p>`;
+                bodyEl.innerHTML = `<p style="color: #a3957f;">Diğer lordlarla iletişim kur.</p>`;
             }
         }
+
+        function renderOverviewTab(container) {
+            const d = currentUserData || { vit: 5, int: 5, str: 5, dex: 5, statPoints: 0 };
+            
+            container.innerHTML = `
+                <div class="character-screen">
+                    <!-- Sol: Nitelikler / Statlar -->
+                    <div class="char-stats-box">
+                        <h3>Karakter Nitelikleri (Stat Puanı: <span id="statPoints" style="color:#76aab8;">${d.statPoints || 0}</span>)</h3>
+                        <div class="stat-row">
+                            <span>Güç (STR):</span>
+                            <div><span id="valStr">${d.str || 5}</span> <button class="btn-stat" onclick="addStat('str')">+</button></div>
+                        </div>
+                        <div class="stat-row">
+                            <span>Beceri (INT):</span>
+                            <div><span id="valInt">${d.int || 5}</span> <button class="btn-stat" onclick="addStat('int')">+</button></div>
+                        </div>
+                        <div class="stat-row">
+                            <span>Çeviklik (DEX):</span>
+                            <div><span id="valDex">${d.dex || 5}</span> <button class="btn-stat" onclick="addStat('dex')">+</button></div>
+                        </div>
+                        <div class="stat-row">
+                            <span>Dayanıklılık (VIT):</span>
+                            <div><span id="valVit">${d.vit || 5}</span> <button class="btn-stat" onclick="addStat('vit')">+</button></div>
+                        </div>
+                    </div>
+
+                    <!-- Sağ: Gladiatus Ekipman Slotları -->
+                    <div class="equipment-grid-wrapper">
+                        <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kurolan Ekipmanlar</span>
+                        <div class="eq-slots-container">
+                            <div class="eq-slot" title="Kask">🪖</div>
+                            <div class="eq-slot" title="Kolye">📿</div>
+                            <div class="eq-slot" title="Zırh">🛡️</div>
+                            <div class="eq-slot" title="Silah">⚔️</div>
+                            <div class="eq-slot" title="Kalkan">🛡️</div>
+                            <div class="eq-slot" title="Yüzük">💍</div>
+                            <div class="eq-slot" title="Eldiven">🧤</div>
+                            <div class="eq-slot" title="Bot">👢</div>
+                            <div class="eq-slot" title="İksir">🧪</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addStat(statName) {
+            socket.emit('distributeStat', statName);
+        }
+
+        socket.on('statUpdated', (data) => {
+            currentUserData = data;
+            renderOverviewTab(document.getElementById('panelContentBody'));
+        });
     </script>
 </body>
 </html>
