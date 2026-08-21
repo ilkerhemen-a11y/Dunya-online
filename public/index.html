@@ -23,16 +23,29 @@
         .hero-card h1 { font-size: 32px; font-weight: 900; margin-bottom: 8px; color: #f59e0b; text-transform: uppercase; }
         .hero-card p { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .stat-box { background: #0b1329; border: 1px solid #1e293b; border-radius: 12px; padding: 12px; }
-        .stat-box span { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px; }
-        .stat-box h3 { font-size: 18px; color: #38bdf8; }
-        .stat-box.cash h3 { color: #f59e0b; }
+        /* Metin2 Karakter Panosu Stili */
+        .metin2-panel { background: #0b1329; border: 2px solid #334155; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+        .metin2-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 12px; }
+        .metin2-header span { font-weight: bold; color: #f59e0b; font-size: 14px; }
+        
+        .metin2-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; text-align: center; }
+        .metin2-box { background: #111c38; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; }
+        .metin2-box span { font-size: 10px; color: #94a3b8; display: block; margin-bottom: 2px; }
+        .metin2-box b { font-size: 13px; color: #fff; }
+
+        .stat-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .stat-table td { padding: 6px 10px; background: #111c38; border: 1px solid #1e293b; font-size: 12px; }
+        .stat-table tr td:first-child { font-weight: bold; color: #38bdf8; width: 60px; }
+        .stat-table tr td:nth-child(2) { text-align: center; width: 40px; color: #fff; }
+        .stat-table tr td:last-child { text-align: right; }
+        
+        .btn-stat-add { background: #f59e0b; color: #0b1329; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .btn-stat-add:hover { background: #d97706; }
 
         .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #fff; border-left: 4px solid #f59e0b; padding-left: 10px; }
         
-        .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .btn-action { background: #0b1329; border: 1px solid #1e293b; color: #f8fafc; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .action-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+        .btn-action { background: #0b1329; border: 1px solid #1e293b; color: #f8fafc; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
         .btn-action:hover { border-color: #f59e0b; background: #111c38; }
 
         .tab-menu { display: grid; grid-template-columns: 1fr 1fr; background: #0b1329; border-radius: 12px; padding: 4px; border: 1px solid #1e293b; margin-bottom: 15px; }
@@ -69,14 +82,12 @@
 
         .log-box { background: #111c38; border: 1px dashed #1e293b; border-radius: 10px; padding: 12px; font-size: 13px; color: #f59e0b; text-align: center; margin-top: 15px; }
 
-        /* Modal Stili */
         .job-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
         .job-modal-content { background: #111c38; padding: 20px; border-radius: 12px; border: 1px solid #f59e0b; width: 90%; max-width: 350px; text-align: center; }
         .job-btn { width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 10px; margin: 5px 0; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .job-btn:hover { border-color: #f59e0b; background: #1e293b; }
 
         @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .market-card { flex-direction: column; align-items: flex-start; gap: 12px; }
             .market-actions { width: 100%; justify-content: space-between; }
         }
@@ -114,29 +125,49 @@
                 <span style="font-size: 11px; color: #94a3b8;">TAHT SAVAŞI</span>
             </div>
             <h1>İmparatorluk Kontrolü</h1>
-            <p>Tımarlarını yönet, vergilerini topla, diyara hükmet.</p>
+            <p>Tımarlarını yönet, zanaatını icra et, diyara hükmet.</p>
 
-            <div class="stats-grid">
-                <div class="stat-box cash">
-                    <span>HAZİNE (ALTIN)</span>
-                    <h3 id="myBalance">0 Altın</h3>
+            <!-- Metin2 Karakter Panosu -->
+            <div class="metin2-panel">
+                <div class="metin2-header">
+                    <span>Karakter Durumu</span>
+                    <span style="color: #38bdf8; font-size: 12px;">Stat Puanı: <b id="statPoints">0</b></span>
                 </div>
-                <div class="stat-box">
-                    <span>KARNIN</span>
-                    <h3 id="myHunger">%0</h3>
+
+                <div class="metin2-row">
+                    <div class="metin2-box"><span>SEVİYE</span><b id="myLevel">1</b></div>
+                    <div class="metin2-box"><span>HAZİNE (ALTIN)</span><b id="myBalance" style="color: #f59e0b;">0 Altın</b></div>
+                    <div class="metin2-box"><span>DİYAR SIRASI</span><b id="myRank">#2841</b></div>
                 </div>
-                <div class="stat-box">
-                    <span>DAYANIKLILIK</span>
-                    <h3 id="myEnergy">%0</h3>
+
+                <div class="metin2-row">
+                    <div class="metin2-box"><span>HP (CAN)</span><b id="myHp" style="color: #10b981;">550 / 550</b></div>
+                    <div class="metin2-box"><span>SP (MANA)</span><b id="mySp" style="color: #38bdf8;">230 / 230</b></div>
+                    <div class="metin2-box"><span>SALDIRI HASARI</span><b id="myAttack" style="color: #ef4444;">50 - 70</b></div>
                 </div>
-                <div class="stat-box">
-                    <span>ŞEREF</span>
-                    <h3 id="myFun">%0</h3>
-                </div>
-                <div class="stat-box">
-                    <span>DİYAR SIRALAMASI</span>
-                    <h3 id="myRank">#2841</h3>
-                </div>
+
+                <table class="stat-table">
+                    <tr>
+                        <td>VIT</td>
+                        <td id="valVit">5</td>
+                        <td><button class="btn-stat-add" onclick="addStat('vit')">+ HP</button></td>
+                    </tr>
+                    <tr>
+                        <td>INT</td>
+                        <td id="valInt">5</td>
+                        <td><button class="btn-stat-add" onclick="addStat('int')">+ SP</button></td>
+                    </tr>
+                    <tr>
+                        <td>STR</td>
+                        <td id="valStr">5</td>
+                        <td><button class="btn-stat-add" onclick="addStat('str')">+ Atk</button></td>
+                    </tr>
+                    <tr>
+                        <td>DEX</td>
+                        <td id="valDex">5</td>
+                        <td><button class="btn-stat-add" onclick="addStat('dex')">+ Hız</button></td>
+                    </tr>
+                </table>
             </div>
 
             <div class="section-title">Temel Eylemler</div>
@@ -144,18 +175,6 @@
                 <button class="btn-action" onclick="workShift()">
                     <span id="workBtnText">⚔️ Görev Yap</span>
                     <b id="workTimerText" style="color: #f59e0b; font-size: 12px;">HAZIR</b>
-                </button>
-                <button class="btn-action" onclick="sleepTime()">
-                    <span>🛌 Dinlen / Han (30 Altın)</span>
-                    <span style="color: #38bdf8;">Enerji Yenile</span>
-                </button>
-                <button class="btn-action" onclick="eatMeal()">
-                    <span>🍲 Ziyafet Çek (20 Altın)</span>
-                    <span style="color: #38bdf8;">Açlık Gider</span>
-                </button>
-                <button class="btn-action" onclick="haveFun()">
-                    <span>🎉 Eğlence / Meclis (50 Altın)</span>
-                    <span style="color: #38bdf8;">Şeref Artır</span>
                 </button>
             </div>
 
@@ -229,16 +248,35 @@
         function updateUI(data) {
             document.getElementById('myUsername').innerText = data.username.toUpperCase();
             document.getElementById('myBalance').innerText = (data.balance || 0).toLocaleString('tr-TR') + ' Altın';
-            document.getElementById('myHunger').innerText = '%' + (data.hunger || 0);
-            document.getElementById('myEnergy').innerText = '%' + (data.energy || 100);
-            document.getElementById('myFun').innerText = '%' + (data.fun || 100);
+            document.getElementById('myLevel').innerText = data.level || 1;
+            document.getElementById('statPoints').innerText = data.statPoints ?? 0;
             
+            // Statlar
+            document.getElementById('valVit').innerText = data.vit ?? 5;
+            document.getElementById('valInt').innerText = data.int ?? 5;
+            document.getElementById('valStr').innerText = data.str ?? 5;
+            document.getElementById('valDex').innerText = data.dex ?? 5;
+
+            // Metin2 Stat Hesaplamaları
+            const maxHp = 500 + ((data.vit ?? 5) * 50);
+            const maxSp = 200 + ((data.int ?? 5) * 30);
+            const minAtk = 20 + ((data.str ?? 5) * 6);
+            const maxAtk = 30 + ((data.str ?? 5) * 8);
+
+            document.getElementById('myHp').innerText = `${maxHp} / ${maxHp}`;
+            document.getElementById('mySp').innerText = `${maxSp} / ${maxSp}`;
+            document.getElementById('myAttack').innerText = `${minAtk} - ${maxAtk}`;
+
             const currentJobName = availableJobs[data.job]?.name || 'Demirci';
-            document.getElementById('myJobBadge').innerText = `Meslek: ${currentJobName} ✏️`;
-            document.getElementById('workBtnText').innerText = `⚔️ ${data.job ? currentJobName.split(' ')[0] : 'Demirci'} Görevi`;
+            document.getElementById('myJobBadge').innerText = `Meslek: ${currentJobName.split(' ')[0]} ✏️`;
+            document.getElementById('workBtnText').innerText = `⚔️ ${currentJobName.split(' ')[0]} Görevi`;
 
             globalCooldownUntil = data.workCooldownUntil || 0;
             renderLists(data.properties || {});
+        }
+
+        function addStat(statName) {
+            socket.emit('distributeStat', statName);
         }
 
         function openJobModal() {
@@ -367,9 +405,6 @@
         });
 
         function workShift() { socket.emit('workShift'); }
-        function sleepTime() { socket.emit('sleepTime'); }
-        function eatMeal() { socket.emit('eatMeal'); }
-        function haveFun() { socket.emit('haveFun'); }
         function buyProperty(id) { socket.emit('buyProperty', id); }
         function collectProperty(id) { socket.emit('collectProperty', id); }
         function upgradeProperty(id) { socket.emit('upgradeProperty', id); }
