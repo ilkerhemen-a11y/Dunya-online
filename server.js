@@ -26,12 +26,13 @@ const userSchema = new mongoose.Schema({
   balance: { type: Number, default: 12480 },
   level: { type: Number, default: 1 },
   xp: { type: Number, default: 0 },
-  hunger: { type: Number, default: 82 },     // Açlık / Yemek
-  energy: { type: Number, default: 100 },    // Uyku / Dinlenme (8 Saatlik Uyku Dengesi)
-  fun: { type: Number, default: 100 },       // Eğlence (8 Saatlik Sosyal Yaşam)
+  hunger: { type: Number, default: 82 },
+  energy: { type: Number, default: 100 },
+  fun: { type: Number, default: 100 },
   cityRank: { type: Number, default: 2841 },
   home: { type: String, default: "Stüdyo Daire" },
   car: { type: String, default: "Yok" },
+  stocks: { type: Number, default: 0 }, // Earn Borsa hisse adedi
   isVip: { type: Boolean, default: false }
 });
 
@@ -51,7 +52,8 @@ async function saveUserData(socketId) {
         fun: playerData.fun,
         cityRank: playerData.cityRank,
         home: playerData.home,
-        car: playerData.car
+        car: playerData.car,
+        stocks: playerData.stocks
       });
     } catch (err) {
       console.error('Veri kaydetme hatası:', err.message);
@@ -80,7 +82,8 @@ io.on('connection', (socket) => {
           fun: 100,
           cityRank: 2841,
           home: "Stüdyo Daire",
-          car: "Yok"
+          car: "Yok",
+          stocks: 0
         };
         socket.emit('userData', onlineUsers[socket.id]);
         return;
@@ -104,6 +107,7 @@ io.on('connection', (socket) => {
         cityRank: user.cityRank,
         home: user.home,
         car: user.car,
+        stocks: user.stocks || 0,
         isVip: user.isVip
       };
 
@@ -113,7 +117,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 8 Saatlik Çalışma (Vardiya)
+  // Çalışma (Vardiya)
   socket.on('workShift', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
@@ -125,48 +129,14 @@ io.on('connection', (socket) => {
 
     player.balance += 2840;
     player.xp += 25;
-    player.energy = Math.max(0, player.energy - 35); // Çalışmak enerji harcar
+    player.energy = Math.max(0, player.energy - 35);
     player.hunger = Math.max(0, player.hunger - 15);
 
     socket.emit('userData', player);
     socket.emit('gameLog', 'Vardiya tamamlandı! +2.840 ₺ kazandın.');
   });
 
-  // 8 Saatlik Uyku / Dinlenme (Enerji Doldurma)
-  socket.on('sleepTime', async () => {
-    const player = onlineUsers[socket.id];
-    if (!player) return;
-
-    if (player.balance < 200) {
-      socket.emit('gameLog', 'Otel/Ev masrafı için yeterli paran yok! (200 ₺ gerekiyor)');
-      return;
-    }
-
-    player.balance -= 200;
-    player.energy = 100; // Enerji tamamen yenilenir
-
-    socket.emit('userData', player);
-    socket.emit('gameLog', '8 saat uyku çekildi, enerji tamamen yenilendi! (-200 ₺)');
-  });
-
-  // 8 Saatlik Eğlence
-  socket.on('haveFun', async () => {
-    const player = onlineUsers[socket.id];
-    if (!player) return;
-
-    if (player.balance < 500) {
-      socket.emit('gameLog', 'Eğlence aktivitesi için yeterli paran yok! (500 ₺ gerekiyor)');
-      return;
-    }
-
-    player.balance -= 500;
-    player.fun = 100;
-
-    socket.emit('userData', player);
-    socket.emit('gameLog', 'Eğlence aktivitesine katıldın, motivasyonun arttı! (-500 ₺)');
-  });
-
-  // Yemek Yeme
+  // Yemek Ye (Nourish)
   socket.on('eatMeal', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
@@ -180,10 +150,117 @@ io.on('connection', (socket) => {
     player.hunger = Math.min(100, player.hunger + 25);
 
     socket.emit('userData', player);
-    socket.emit('gameLog', 'Karnın doyuruldu! Açlık seviyen yükseldi.');
+    socket.emit('gameLog', 'Karnın doyuruldu, enerjin yerine geldi.');
   });
 
-  // Zamanı Hızlandırma / Zaman Atlatma Satın Al (Time Skip - 1.000 ₺)
+  // Uyku / Dinlenme
+  socket.on('sleepTime', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.balance < 200) {
+      socket.emit('gameLog', 'Otel masrafı için yeterli paran yok! (200 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= 200;
+    player.energy = 100;
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', '8 saat uyku çekildi, enerji tamamen yenilendi.');
+  });
+
+  // Eğlence
+  socket.on('haveFun', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.balance < 500) {
+      socket.emit('gameLog', 'Eğlence aktivitesi için yeterli paran yok! (500 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= 500;
+    player.fun = 100;
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', 'Eğlence aktivitesine katıldın, motivasyonun arttı.');
+  });
+
+  // EARN - Borsa Sistemi (Hisse Senedi Al / Yatırım Yap)
+  socket.on('buyStock', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    const stockPrice = 1500; // 1 adet hisse bedeli
+    if (player.balance < stockPrice) {
+      socket.emit('gameLog', 'Borsadan hisse almak için yeterli paran yok! (1.500 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= stockPrice;
+    player.stocks += 1;
+    player.xp += 40;
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', '📈 Borsadan 1 adet UrbanTech hissesi satın aldın! Gelir büyüyor.');
+  });
+
+  // EARN - Temettü Topla (Borsadan Kâr Payı Al)
+  socket.on('collectDividends', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.stocks <= 0) {
+      socket.emit('gameLog', 'Temettü alabilmek için önce bütçeden hisse senedi almalısın!');
+      return;
+    }
+
+    const profit = player.stocks * 350; // Hisse başına 350 TL kâr
+    player.balance += profit;
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', `💰 Borsadaki yatırımlarından ${profit.toLocaleString('tr-TR')} ₺ temettü (kâr payi) topladın!`);
+  });
+
+  // BUILD - Ev/Araç Yatırımı Yaparak Statü Artırma
+  socket.on('upgradeBuild', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    const upgradeCost = 5000;
+    if (player.balance < upgradeCost) {
+      socket.emit('gameLog', 'Statünü artırmak (Build) için yeterli paran yok! (5.000 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= upgradeCost;
+    player.home = "Lüks Loft Daire";
+    player.car = "Spor Araç";
+    player.cityRank = Math.max(1, player.cityRank - 250); // Sıralamada ciddi tırmanış
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', '🏗️ Build aşaması tamamlandı! Lüks Loft daireye ve spor araca sahip oldun, statün fırladı.');
+  });
+
+  // CLIMB - Liderlik Tablosunda Zirveye Tırmanma Hamlesi
+  socket.on('climbRank', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.cityRank <= 1) {
+      socket.emit('gameLog', 'Zaten şehrin zirvesindesin!');
+      return;
+    }
+
+    player.cityRank = Math.max(1, player.cityRank - 50);
+    player.xp += 50;
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', '🏆 Climb hamlesi yapıldı! Liderlik tablosunda üst sıralara tırmandın.');
+  });
+
+  // Zaman Hızlandırma (Time Skip)
   socket.on('buyTimeSkip', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
@@ -195,15 +272,14 @@ io.on('connection', (socket) => {
     }
 
     player.balance -= skipCost;
-    player.xp += 100; // Zaman atlama bonus XP verir
-    // Tüm ihtiyaçlar optimize olur
+    player.xp += 100;
     player.hunger = Math.min(100, player.hunger + 30);
     player.energy = Math.min(100, player.energy + 30);
     player.fun = Math.min(100, player.fun + 30);
-    player.cityRank = Math.max(1, player.cityRank - 15); // Sıralamada yükselir
+    player.cityRank = Math.max(1, player.cityRank - 20);
 
     socket.emit('userData', player);
-    socket.emit('gameLog', '⚡ Zaman hızlandırıldı! Bonus XP kazandın ve şehir sıralamasında yükseldin.');
+    socket.emit('gameLog', '⚡ Zaman hızlandırıldı! Bonus XP kazandın.');
   });
 
   socket.on('disconnect', async () => {
