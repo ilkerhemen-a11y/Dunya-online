@@ -10,7 +10,6 @@ app.use(express.static(__dirname + '/public'));
 
 const users = {};
 
-// Karakterin varsayılan başlangıç envanter ve teçhizatları
 const getDefaultInventory = () => [
     { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
     { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5 },
@@ -20,7 +19,7 @@ const getDefaultInventory = () => [
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Giriş Yapma / Oyuncu Oluşturma
+    // Giriş Yapma
     socket.on('userLogin', (data) => {
         const username = data.username ? data.username.trim() : 'Gladyatör';
         
@@ -34,12 +33,10 @@ io.on('connection', (socket) => {
             str: 5,
             vit: 5,
             statPoints: 0,
-            hp: 100,
-            seferLimiti: 20,
-            seferNextRefill: null,
+            hp: 100,                 // Mevcut Can
+            seferLimiti: 20,         // Sefer Sayısı
+            seferNextRefill: null,   // Süre Zamanlayıcısı
             upgrades: { weapon: 0, armor: 0, helmet: 0 },
-            
-            // GELİŞMİŞ ENVANTER SİSTEMİ VERİ YAPISI
             equipped: {
                 helmet: null,
                 necklace: null,
@@ -56,7 +53,7 @@ io.on('connection', (socket) => {
         socket.emit('userData', users[socket.id]);
     });
 
-    // 🎒 ENVANTER SİSTEMİ: Eşya Kuşanma (Equip Item)
+    // Eşya Kuşanma
     socket.on('equipItem', (data) => {
         const user = users[socket.id];
         if (!user) return;
@@ -65,34 +62,27 @@ io.on('connection', (socket) => {
         if (itemIndex === undefined || !user.inventory[itemIndex]) return;
 
         const itemToEquip = user.inventory[itemIndex];
-        const slotType = itemToEquip.type; // 'weapon', 'armor', 'helmet', vb.
+        const slotType = itemToEquip.type;
 
-        // Eğer o slotta zaten kuşanılmış bir eşya varsa onu envantere geri at
         const currentlyEquipped = user.equipped[slotType];
-        
-        // Eşyayı envanterden çıkar
         user.inventory.splice(itemIndex, 1);
 
-        // Eski kuşanılan eşyayı envantere geri ekle
         if (currentlyEquipped) {
             user.inventory.push(currentlyEquipped);
         }
 
-        // Yeni eşyayı slota yerleştir
         user.equipped[slotType] = itemToEquip;
-
         socket.emit('statUpdated', user);
     });
 
-    // 🎒 ENVANTER SİSTEMİ: Eşya Çıkarma (Unequip Item)
+    // Eşya Çıkarma
     socket.on('unequipItem', (data) => {
         const user = users[socket.id];
         if (!user) return;
 
-        const { slot } = data; // 'weapon', 'armor', vb.
+        const { slot } = data;
         if (!slot || !user.equipped[slot]) return;
 
-        // Slot'taki eşyayı al ve envantere taşı
         const unequippedItem = user.equipped[slot];
         user.equipped[slot] = null;
         user.inventory.push(unequippedItem);
@@ -100,39 +90,58 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // Sefer / Görev Yapma
+    // Sefer / Görev Yapma (Can Düşme ve Sefer Mantığı)
     socket.on('doQuest', (data) => {
         const user = users[socket.id];
         if (!user) return;
 
         const now = Date.now();
-        const COOLDOWN_TIME = 60 * 60 * 1000;
+        const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat
 
+        // Zamanlayıcı süresi dolduysa 20 sefer hakkını yenile
         if (user.seferNextRefill && now >= user.seferNextRefill) {
             user.seferLimiti = 20;
             user.seferNextRefill = null;
         }
 
-        if (user.seferLimiti <= 0) {
+        // Can Kontrolü
+        const maxHp = user.vit * 20;
+        if (user.hp <= 0) {
             return socket.emit('questResult', {
                 success: false,
-                message: "Sefer limitiniz dolmuştur! Yenilenmesi için sürenin bitmesini bekleyin.",
+                message: "Canınız (HP) tükenmiş! Sefer düzenlemek için iksir içmelisiniz.",
                 userData: user
             });
         }
 
+        // Sefer Hak Kontrolü
+        if (user.seferLimiti <= 0) {
+            return socket.emit('questResult', {
+                success: false,
+                message: "Sefer limitiniz dolmuştur! Yenilenmesi için geri sayımın tamamlanmasını bekleyin.",
+                userData: user
+            });
+        }
+
+        // Limit düşür ve ilk kullanımda geri sayımı başlat
         user.seferLimiti -= 1;
         if (!user.seferNextRefill) {
             user.seferNextRefill = now + COOLDOWN_TIME;
         }
 
+        // Dövüş Hesaplaması (Can Düşüşü)
         const questId = data.questId || 1;
+        const hpLost = Math.floor(Math.random() * (questId * 12)) + 5; // Görev zorluğuna göre HP düşüşü
+        user.hp = Math.max(0, user.hp - hpLost);
+
+        // Ödül Hesaplama
         const goldEarned = questId * 45 + Math.floor(Math.random() * 15);
         const expEarned = questId * 25;
 
         user.balance += goldEarned;
         user.exp += expEarned;
 
+        // Seviye Atlama (Level Up)
         const maxExp = user.level * 100;
         if (user.exp >= maxExp) {
             user.level += 1;
@@ -145,6 +154,7 @@ io.on('connection', (socket) => {
             message: "Sefer başarıyla tamamlandı!",
             goldEarned: goldEarned,
             expEarned: expEarned,
+            hpLost: hpLost,
             userData: user
         });
     });
@@ -166,7 +176,7 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // İksir İçme
+    // İksir İçme (Sadece Can ve Sefer Haklarını Yeniler — Süreyi Sıfırlamaz)
     socket.on('usePotion', () => {
         const user = users[socket.id];
         if (!user) return;
@@ -181,14 +191,16 @@ io.on('connection', (socket) => {
         }
 
         user.balance -= potionCost;
-        user.seferLimiti = 20;
-        user.seferNextRefill = null;
+        user.hp = user.vit * 20;      // Canı Fulleyelim
+        user.seferLimiti = 20;         // Sefer Sayısı Haklarını Yenileyelim
+        // NOT: user.seferNextRefill sıfırlanmıyor! Süre bağımsız olarak işlemeye devam eder.
 
         socket.emit('questResult', {
             success: true,
-            message: "İksir içildi! Sefer limitiniz tamamen yenilendi.",
+            message: "İksir içildi! Canınız ve sefer haklarınız tamamen yenilendi.",
             goldEarned: 0,
             expEarned: 0,
+            hpLost: 0,
             userData: user
         });
     });
@@ -222,7 +234,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Sohbet
+    // Sohbet Mesajı
     socket.on('sendChatMessage', (data) => {
         const user = users[socket.id];
         if (!user || !data.message) return;
