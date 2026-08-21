@@ -69,6 +69,12 @@
 
         .log-box { background: #111c38; border: 1px dashed #1e293b; border-radius: 10px; padding: 12px; font-size: 13px; color: #f59e0b; text-align: center; margin-top: 15px; }
 
+        /* Modal Stili */
+        .job-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+        .job-modal-content { background: #111c38; padding: 20px; border-radius: 12px; border: 1px solid #f59e0b; width: 90%; max-width: 350px; text-align: center; }
+        .job-btn { width: 100%; background: #0b1329; border: 1px solid #334155; color: #fff; padding: 10px; margin: 5px 0; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .job-btn:hover { border-color: #f59e0b; background: #1e293b; }
+
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .market-card { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -87,12 +93,25 @@
         </div>
     </div>
 
+    <!-- Meslek Seçim Penceresi -->
+    <div id="jobModal" class="job-modal">
+        <div class="job-modal-content">
+            <h3 style="color: #f59e0b; margin-bottom: 10px;">Meslekler Loncası</h3>
+            <p style="color: #94a3b8; font-size: 12px; margin-bottom: 15px;">Diyardaki görevini seç:</p>
+            <div id="jobListContainer" style="max-height: 250px; overflow-y: auto;"></div>
+            <button onclick="closeJobModal()" style="margin-top: 15px; background: #e11d48; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Kapat</button>
+        </div>
+    </div>
+
     <div id="mainApp" class="container">
         
         <div class="hero-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span id="myUsername" style="font-weight: bold; color: #f59e0b;">-</span>
-                <span style="font-size: 11px; color: #94a3b8;">TAHT SAVAŞI — KRALLIK</span>
+                <div>
+                    <span id="myUsername" style="font-weight: bold; color: #f59e0b; font-size: 15px;">-</span>
+                    <span id="myJobBadge" style="background: #1e293b; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; cursor: pointer;" onclick="openJobModal()">Meslek: Demirci ✏️</span>
+                </div>
+                <span style="font-size: 11px; color: #94a3b8;">TAHT SAVAŞI</span>
             </div>
             <h1>İmparatorluk Kontrolü</h1>
             <p>Tımarlarını yönet, vergilerini topla, diyara hükmet.</p>
@@ -116,14 +135,14 @@
                 </div>
                 <div class="stat-box">
                     <span>DİYAR SIRALAMASI</span>
-                    <h3 id="myRank">#0</h3>
+                    <h3 id="myRank">#2841</h3>
                 </div>
             </div>
 
             <div class="section-title">Temel Eylemler</div>
             <div class="action-grid">
                 <button class="btn-action" onclick="workShift()">
-                    <span>⚔️ Zanaat / Görev Yap (+280 Altın)</span>
+                    <span id="workBtnText">⚔️ Görev Yap</span>
                     <b id="workTimerText" style="color: #f59e0b; font-size: 12px;">HAZIR</b>
                 </button>
                 <button class="btn-action" onclick="sleepTime()">
@@ -175,12 +194,24 @@
         let globalCooldownUntil = 0;
         let currentUserData = null;
 
-        // Sunucudaki katalog verileriyle birebir uyumlu fantezi mülkleri
-        const catalogData = {
-            'hut': { name: 'Kulübe', cost: 500, hourly: 45 },
-            'mansion': { name: 'Köşk', cost: 1500, hourly: 125 },
-            'war_horse': { name: 'Savaş Atı', cost: 1000, hourly: 85 },
-            'magic_tower': { name: 'Büyü Kulesi', cost: 2500, hourly: 220 }
+        const catalogItems = {
+            'hut': { name: 'Kulübe', cost: 2500, hourly: 35 },
+            'mansion': { name: 'Köşk', cost: 6000, hourly: 85 },
+            'war_horse': { name: 'Savaş Atı', cost: 4000, hourly: 55 },
+            'magic_tower': { name: 'Büyü Kulesi', cost: 10000, hourly: 140 }
+        };
+
+        const availableJobs = {
+            'ciftci': { name: 'Çiftçi (+150 Altın)' },
+            'demirci': { name: 'Demirci (+280 Altın)' },
+            'muhafiz': { name: 'Muhafız (+300 Altın)' },
+            'hanci': { name: 'Hancı (+200 Altın)' },
+            'buyucu': { name: 'Büyücü (+350 Altın)' },
+            'tuccar': { name: 'Tüccar (+320 Altın)' },
+            'hirsiz': { name: 'Hırsız (+500 Altın)' },
+            'avci': { name: 'Avcı (+400 Altın)' },
+            'sifaci': { name: 'Şifacı (+250 Altın)' },
+            'soylu': { name: 'Soylu (Vergi Toplayıcı)' }
         };
 
         function login() {
@@ -201,10 +232,31 @@
             document.getElementById('myHunger').innerText = '%' + (data.hunger || 0);
             document.getElementById('myEnergy').innerText = '%' + (data.energy || 100);
             document.getElementById('myFun').innerText = '%' + (data.fun || 100);
-            document.getElementById('myRank').innerText = '#' + (data.cityRank || 2841);
-            globalCooldownUntil = data.workCooldownUntil || 0;
+            
+            const currentJobName = availableJobs[data.job]?.name || 'Demirci';
+            document.getElementById('myJobBadge').innerText = `Meslek: ${currentJobName} ✏️`;
+            document.getElementById('workBtnText').innerText = `⚔️ ${data.job ? currentJobName.split(' ')[0] : 'Demirci'} Görevi`;
 
+            globalCooldownUntil = data.workCooldownUntil || 0;
             renderLists(data.properties || {});
+        }
+
+        function openJobModal() {
+            const container = document.getElementById('jobListContainer');
+            container.innerHTML = '';
+            for (const [id, info] of Object.entries(availableJobs)) {
+                container.innerHTML += `<button class="job-btn" onclick="selectJob('${id}')">${info.name}</button>`;
+            }
+            document.getElementById('jobModal').style.display = 'flex';
+        }
+
+        function closeJobModal() {
+            document.getElementById('jobModal').style.display = 'none';
+        }
+
+        function selectJob(jobId) {
+            socket.emit('selectJob', jobId);
+            closeJobModal();
         }
 
         let activeTab = 'buy';
@@ -226,13 +278,13 @@
 
             let ownedCount = 0;
 
-            for (const [id, item] of Object.entries(catalogData)) {
-                // Mongoose Map veya normal JS objesi desteği için kontrol
-                const isOwned = properties instanceof Map ? properties.has(id) : properties.hasOwnProperty(id);
+            for (const [id, item] of Object.entries(catalogItems)) {
+                const propMap = properties instanceof Map ? properties : new Map(Object.entries(properties || {}));
+                const isOwned = propMap.has(id);
 
                 if (isOwned) {
                     ownedCount++;
-                    const propData = properties instanceof Map ? properties.get(id) : properties[id];
+                    const propData = propMap.get(id);
                     const upgradeCost = Math.floor(item.cost * 0.5 * propData.level);
                     
                     const hoursElapsed = (Date.now() - (propData.lastCollected || Date.now())) / (60 * 1000);
