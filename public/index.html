@@ -261,42 +261,6 @@
             min-height: 40px;
         }
 
-        /* Sohbet (Diyar Meclisi) Alanı */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            height: 420px;
-        }
-        .chat-messages {
-            flex: 1;
-            background: #110d0a;
-            border: 1px solid #33241b;
-            border-radius: 4px;
-            padding: 10px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 12px;
-        }
-        .chat-msg { border-bottom: 1px dashed #221a14; padding-bottom: 4px; }
-        .chat-msg span { color: #f3cf7a; font-weight: bold; }
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-        }
-        .chat-input-area input {
-            flex: 1;
-            background: #110d0a;
-            border: 1px solid #433222;
-            border-radius: 2px;
-            padding: 8px;
-            color: #d4c5b9;
-            font-size: 12px;
-        }
-        .chat-input-area input:focus { outline: none; border-color: #b38b4d; }
-
         /* Giriş Modalı */
         .modal-overlay { position: fixed; inset: 0; background: rgba(10, 6, 4, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .box { background: #17100c; padding: 30px; border-radius: 4px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
@@ -412,7 +376,7 @@
                 renderBlacksmithTab(bodyEl);
             } else if(tabId === 'chat') {
                 titleEl.innerText = "Diyar Meclisi (Sohbet)";
-                renderChatTab(bodyEl);
+                bodyEl.innerHTML = `<p style="color: #a3957f;">Diğer lordlarla iletişim kur.</p>`;
             }
         }
 
@@ -569,22 +533,6 @@
             `;
         }
 
-        function renderChatTab(container) {
-            container.innerHTML = `
-                <p style="color: #a3957f; font-size: 12px; margin-bottom: 10px;">Diyar Meclisi'nde diğer hanedanlıklarla fikir alışverişi yap ve fısıldaş.</p>
-                
-                <div class="chat-container">
-                    <div id="chatMessages" class="chat-messages">
-                        <div class="chat-msg"><span>Sistem:</span> Diyar Meclisi'ne hoş geldiniz, lordlar.</div>
-                    </div>
-                    <div class="chat-input-area">
-                        <input type="text" id="chatInput" placeholder="Meclise bir söz söyle..." maxlength="120" onkeypress="handleChatKey(event)">
-                        <button class="btn-quest" onclick="sendChatMessage()">Gönder</button>
-                    </div>
-                </div>
-            `;
-        }
-
         function addStat(statName) {
             socket.emit('distributeStat', statName);
         }
@@ -601,17 +549,6 @@
             socket.emit('upgradeItem', { itemType: itemType });
         }
 
-        function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            if(!input || !input.value.trim()) return;
-            socket.emit('sendChatMessage', { message: input.value.trim() });
-            input.value = '';
-        }
-
-        function handleChatKey(e) {
-            if(e.key === 'Enter') sendChatMessage();
-        }
-
         socket.on('statUpdated', (data) => {
             currentUserData = data;
             renderOverviewTab(document.getElementById('panelContentBody'));
@@ -620,6 +557,7 @@
         socket.on('questResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            
             const logEl = document.getElementById('questLog');
             if(logEl) {
                 logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span>`;
@@ -629,6 +567,7 @@
         socket.on('marketResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            
             const logEl = document.getElementById('marketLog');
             if(logEl) {
                 logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
@@ -638,6 +577,8 @@
         socket.on('forgeResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            
+            // Demirhane ekranı açıksa değerleri anlık güncelle
             const lvlEl = document.getElementById(`lvl${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
             const costEl = document.getElementById(`cost${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
             if(lvlEl) lvlEl.innerText = data.newLevel;
@@ -646,17 +587,6 @@
             const logEl = document.getElementById('forgeLog');
             if(logEl) {
                 logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
-            }
-        });
-
-        socket.on('receiveChatMessage', (data) => {
-            const chatBox = document.getElementById('chatMessages');
-            if(chatBox) {
-                const div = document.createElement('div');
-                div.className = 'chat-msg';
-                div.innerHTML = `<span>${data.username}:</span> ${data.message}`;
-                chatBox.appendChild(div);
-                chatBox.scrollTop = chatBox.scrollHeight;
             }
         });
     </script>
