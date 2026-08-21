@@ -736,35 +736,53 @@
         }
 
         function renderTimarTab(container) {
+            const estates = currentUserData && currentUserData.estates ? currentUserData.estates : {};
+
+            const getAccumulatedGold = (estateId, rate) => {
+                const est = estates[estateId];
+                if (!est || est.count === 0) return 0;
+                const elapsedMinutes = (Date.now() - est.lastCollected) / (1000 * 60);
+                return Math.floor(elapsedMinutes * rate * est.count);
+            };
+
             container.innerHTML = `
-                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde mülkler satın alarak pasif gelir elde et. Biriken altınları **en az 1 saat** sonra toplayabilirsin.</p>
                 
                 <div class="market-list">
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🌾 Küçük Buğday Çiftliği</h4>
-                            <p>Verimli ovalarda küçük bir tarım arazisi.</p>
-                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk Pasif Gelir</div>
+                            <h4>🌾 Küçük Buğday Çiftliği (Sahip: <span id="estCount1">${estates[1]?.count || 0}</span>)</h4>
+                            <p>Biriken Altın: <b style="color: #f3cf7a;" id="accumGold1">${getAccumulatedGold(1, 10)}</b> Altın</p>
+                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(1)">Satın Al</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-quest" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #4ade80;" onclick="collectEstate(1)">Topla</button>
+                            <button class="btn-quest" onclick="buyEstate(1)">Satın Al</button>
+                        </div>
                     </div>
 
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🍷 Üzüm Bağı ve Şaraphane</h4>
-                            <p>Diyar genelinde değerli şaraplar üreten tesis.</p>
-                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk Pasif Gelir</div>
+                            <h4>🍷 Üzüm Bağı ve Şaraphane (Sahip: <span id="estCount2">${estates[2]?.count || 0}</span>)</h4>
+                            <p>Biriken Altın: <b style="color: #f3cf7a;" id="accumGold2">${getAccumulatedGold(2, 45)}</b> Altın</p>
+                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(2)">Satın Al</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-quest" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #4ade80;" onclick="collectEstate(2)">Topla</button>
+                            <button class="btn-quest" onclick="buyEstate(2)">Satın Al</button>
+                        </div>
                     </div>
 
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🏰 Sınır Kalesi ve Ticaret Noktası</h4>
-                            <p>Kervanlardan geçiş vergisi toplayan stratejik kale.</p>
-                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk Pasif Gelir</div>
+                            <h4>🏰 Sınır Kalesi ve Ticaret Noktası (Sahip: <span id="estCount3">${estates[3]?.count || 0}</span>)</h4>
+                            <p>Biriken Altın: <b style="color: #f3cf7a;" id="accumGold3">${getAccumulatedGold(3, 180)}</b> Altın</p>
+                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(3)">Satın Al</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-quest" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #4ade80;" onclick="collectEstate(3)">Topla</button>
+                            <button class="btn-quest" onclick="buyEstate(3)">Satın Al</button>
+                        </div>
                     </div>
                 </div>
 
@@ -839,6 +857,10 @@
             socket.emit('buyEstate', { estateId: estateId });
         }
 
+        function collectEstate(estateId) {
+            socket.emit('collectEstateGold', { estateId: estateId });
+        }
+
         function upgradeItem(itemType) {
             socket.emit('upgradeItem', { itemType: itemType });
         }
@@ -878,20 +900,23 @@
         socket.on('marketResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            if(activeTab === 'timar') renderTimarTab(document.getElementById('panelContentBody'));
             const logEl = document.getElementById('marketLog');
-            if(logEl) logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
+            if(logEl) {
+                const color = data.success ? '#22c55e' : '#ef4444';
+                logEl.innerHTML = `<b style="color: ${color};">${data.message}</b>`;
+            }
         });
 
         socket.on('forgeResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
-            const lvlEl = document.getElementById(`lvl${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
-            const costEl = document.getElementById(`cost${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
-            if(lvlEl) lvlEl.innerText = data.newLevel;
-            if(costEl) costEl.innerText = (data.newLevel + 1) * 100;
-
+            if(activeTab === 'blacksmith') renderBlacksmithTab(document.getElementById('panelContentBody'));
             const logEl = document.getElementById('forgeLog');
-            if(logEl) logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
+            if(logEl) {
+                const color = data.success ? '#22c55e' : '#ef4444';
+                logEl.innerHTML = `<b style="color: ${color};">${data.message}</b>`;
+            }
         });
 
         socket.on('receiveChatMessage', (data) => {
