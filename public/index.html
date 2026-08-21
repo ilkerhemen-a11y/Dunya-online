@@ -182,7 +182,7 @@
             filter: brightness(0.9) contrast(1.1);
         }
 
-        /* 🛡️ MODERN EKİPMAN TASARIMI */
+        /* 🛡️ EKİPMAN TASARIMI */
         .equipment-wrapper {
             background: #120e0c;
             border: 1px solid #33241b;
@@ -217,6 +217,7 @@
             color: #4a3a2b;
             cursor: pointer;
             position: relative;
+            overflow: hidden;
             box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.3);
             transition: all 0.25s ease;
         }
@@ -232,7 +233,13 @@
             background: radial-gradient(circle, #2a2016 0%, #120d09 100%);
         }
 
-        /* 🎒 MODERN ENVANTER TASARIMI */
+        .eq-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 🎒 ENVANTER TASARIMI */
         .inventory-container {
             margin-top: 20px;
             background: #120e0c;
@@ -279,6 +286,13 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
+            overflow: hidden;
+        }
+
+        .item-icon-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .item-details { display: flex; flex-direction: column; gap: 2px; }
@@ -565,6 +579,14 @@
             }
         }
 
+        // Yardımcı fonksiyon: İkonun resim URL'si mi yoksa emoji mi olduğunu kontrol eder
+        function renderIcon(icon) {
+            if (icon && (icon.startsWith('http://') || icon.startsWith('https://'))) {
+                return `<img src="${icon}" alt="Item">`;
+            }
+            return icon;
+        }
+
         function renderOverviewTab(container) {
             const d = currentUserData || { vit: 5, str: 5, statPoints: 0, equipped: {}, inventory: [] };
             const eq = d.equipped || {};
@@ -619,7 +641,7 @@
                                     <div class="eq-slot ${item ? 'filled' : ''}" 
                                          title="${item ? item.name + ' (Çıkar)' : s.label}"
                                          onclick="${item ? `socket.emit('unequipItem', {slot: '${s.key}'})` : ''}">
-                                        ${item ? item.icon : s.defaultIcon}
+                                        ${item ? renderIcon(item.icon) : s.defaultIcon}
                                     </div>
                                 `;
                             }).join('')}
@@ -635,7 +657,7 @@
                         ${inv.map((item, index) => `
                             <div class="inventory-item-card">
                                 <div class="item-info-area">
-                                    <div class="item-icon-box">${item.icon}</div>
+                                    <div class="item-icon-box">${renderIcon(item.icon)}</div>
                                     <div class="item-details">
                                         <div class="item-name">${item.name}</div>
                                         <div class="item-bonus">
