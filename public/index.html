@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanRise — Online City Life Sim</title>
+    <title>UrbanRise — Çevrimiçi Şehir Yaşam Simülasyonu</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #0b1329; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
@@ -51,7 +51,7 @@
 </head>
 <body>
 
-    <!-- Giriş Modalı (Şehrine Katıl) -->
+    <!-- Giriş Modalı -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Şehrine Katıl.</h2>
@@ -68,38 +68,38 @@
         <div class="hero-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <span id="myUsername" style="font-weight: bold; color: #a3e635;">-</span>
-                <span style="font-size: 12px; color: #94a3b8;">ONLINE CITY / SEASON 01</span>
+                <span style="font-size: 12px; color: #94a3b8;">ÇEVRİMİÇİ ŞEHİR / SEZON 01</span>
             </div>
-            <h1>Make Your Move.</h1>
+            <h1>Hamleni Yap.</h1>
             <p>Gerçek hayatın kurallarını kendi lehine çevir. Çalış. Kazan. Yüksel.</p>
 
             <div class="stats-grid">
                 <div class="stat-box cash">
-                    <span>CASHFLOW</span>
-                    <h3 id="myBalance">$0</h3>
+                    <span>NAKİT AKIŞI</span>
+                    <h3 id="myBalance">0 ₺</h3>
                 </div>
                 <div class="stat-box">
-                    <span>HUNGER</span>
-                    <h3 id="myHunger">0%</h3>
+                    <span>AÇLIK DURUMU</span>
+                    <h3 id="myHunger">%0</h3>
                 </div>
                 <div class="stat-box">
-                    <span>CITY RANK</span>
+                    <span>ŞEHİR SIRalaması</span>
                     <h3 id="myRank">#0</h3>
                 </div>
             </div>
 
             <!-- Eylemler -->
             <div class="action-buttons">
-                <button class="btn-action btn-work" onclick="workShift()">💼 Vardiya Çalış ($2,840)</button>
-                <button class="btn-action btn-eat" onclick="eatMeal()">🍲 Yemek Ye ($150)</button>
+                <button class="btn-action btn-work" onclick="workShift()">💼 Vardiya Çalış (2.840 ₺)</button>
+                <button class="btn-action btn-eat" onclick="eatMeal()">🍲 Yemek Ye (150 ₺)</button>
             </div>
 
             <div class="log-box" id="gameLog">Şehre hoş geldin! İlk hamleni yaparak başla.</div>
         </div>
 
-        <!-- Piyasa ve Yaşam Alanı -->
+        <!-- Piyasa Alanı -->
         <div>
-            <div class="section-title">Property & Vehicle Market</div>
+            <div class="section-title">Emlak ve Araç Piyasası</div>
             <div class="market-grid">
                 <div class="market-card">
                     <div>
@@ -137,8 +137,8 @@
 
         function updateUI(data) {
             document.getElementById('myUsername').innerText = data.username.toUpperCase();
-            document.getElementById('myBalance').innerText = '$' + (data.balance || 0).toLocaleString();
-            document.getElementById('myHunger').innerText = (data.hunger || 0) + '%';
+            document.getElementById('myBalance').innerText = (data.balance || 0).toLocaleString('tr-TR') + ' ₺';
+            document.getElementById('myHunger').innerText = '%' + (data.hunger || 0);
             document.getElementById('myRank').innerText = '#' + (data.cityRank || 2841);
             document.getElementById('myHome').innerText = data.home || 'Stüdyo Daire';
             document.getElementById('myCar').innerText = data.car || 'Yok';
