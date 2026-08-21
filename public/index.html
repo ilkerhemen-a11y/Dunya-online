@@ -216,14 +216,9 @@
 
         .eq-slot:hover { border-color: #b38b4d; }
 
-        /* İş / Görevler (Seferler) Paneli */
-        .quest-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .quest-card {
+        /* Ortak Liste & Kart Yapıları */
+        .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
+        .quest-card, .market-card, .forge-card {
             background: #18130f;
             border: 1px solid #433222;
             border-radius: 4px;
@@ -233,15 +228,13 @@
             align-items: center;
             transition: 0.2s;
         }
-
-        .quest-card:hover {
-            border-color: #b38b4d;
-            background: #1e1712;
-        }
-
-        .quest-info h4 { color: #f3cf7a; font-size: 14px; margin-bottom: 3px; }
-        .quest-info p { color: #a3957f; font-size: 11px; margin-bottom: 6px; }
+        .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1e1712; }
+        
+        .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 14px; margin-bottom: 3px; }
+        .quest-info p, .market-info p, .forge-info p { color: #a3957f; font-size: 11px; margin-bottom: 6px; }
         .quest-rewards { font-size: 11px; color: #22c55e; display: flex; gap: 10px; font-weight: bold; }
+        .market-income { font-size: 11px; color: #38bdf8; font-weight: bold; }
+        .forge-cost { font-size: 11px; color: #ef4444; font-weight: bold; }
 
         .btn-quest {
             background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
@@ -256,7 +249,7 @@
             white-space: nowrap;
         }
         .btn-quest:hover { background: #f3cf7a; }
-
+        
         .quest-log {
             margin-top: 15px;
             background: #110d0a;
@@ -377,10 +370,10 @@
                 renderWorkTab(bodyEl);
             } else if(tabId === 'market') {
                 titleEl.innerText = "Pazar Yeri & Tımarlar";
-                bodyEl.innerHTML = `<p style="color: #a3957f;">Tımar satın alarak pasif gelir elde et.</p>`;
+                renderMarketTab(bodyEl);
             } else if(tabId === 'blacksmith') {
-                titleEl.innerText = "Demirhane";
-                bodyEl.innerHTML = `<p style="color: #a3957f;">Ekipmanlarını geliştir ve güçlen.</p>`;
+                titleEl.innerText = "Demirhane (+ Basma)";
+                renderBlacksmithTab(bodyEl);
             } else if(tabId === 'chat') {
                 titleEl.innerText = "Diyar Meclisi (Sohbet)";
                 bodyEl.innerHTML = `<p style="color: #a3957f;">Diğer lordlarla iletişim kur.</p>`;
@@ -410,7 +403,7 @@
 
                     <!-- Sağ: Ekipman Slotları -->
                     <div class="equipment-grid-wrapper">
-                        <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kurolan Ekipmanlar</span>
+                        <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kuşatılan Ekipmanlar</span>
                         <div class="eq-slots-container">
                             <div class="eq-slot" title="Kask">🪖</div>
                             <div class="eq-slot" title="Kolye">📿</div>
@@ -464,12 +457,96 @@
             `;
         }
 
+        function renderMarketTab(container) {
+            container.innerHTML = `
+                <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
+                
+                <div class="market-list">
+                    <div class="market-card">
+                        <div class="market-info">
+                            <h4>🌾 Küçük Buğday Çiftliği</h4>
+                            <p>Verimli ovalarda küçük bir tarım arazisi.</p>
+                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk Pasif Gelir</div>
+                        </div>
+                        <button class="btn-quest" onclick="buyEstate(1)">Satın Al</button>
+                    </div>
+
+                    <div class="market-card">
+                        <div class="market-info">
+                            <h4>🍷 Üzüm Bağı ve Şaraphane</h4>
+                            <p>Diyar genelinde değerli şaraplar üreten tesis.</p>
+                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk Pasif Gelir</div>
+                        </div>
+                        <button class="btn-quest" onclick="buyEstate(2)">Satın Al</button>
+                    </div>
+
+                    <div class="market-card">
+                        <div class="market-info">
+                            <h4>🏰 Sınır Kalesi ve Ticaret Noktası</h4>
+                            <p>Kervanlardan geçiş vergisi toplayan stratejik kale.</p>
+                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk Pasif Gelir</div>
+                        </div>
+                        <button class="btn-quest" onclick="buyEstate(3)">Satın Al</button>
+                    </div>
+                </div>
+
+                <div id="marketLog" class="quest-log">Pazar yeri tüccarları emrinizde, lordum.</div>
+            `;
+        }
+
+        function renderBlacksmithTab(container) {
+            const upgrades = currentUserData && currentUserData.upgrades ? currentUserData.upgrades : { weapon: 0, armor: 0, helmet: 0 };
+            
+            container.innerHTML = `
+                <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">Usta demircinin örsünde teçhizatlarını güçlendirerek (+ basarak) savaş gücünü katla.</p>
+                
+                <div class="forge-list">
+                    <div class="forge-card">
+                        <div class="forge-info">
+                            <h4>⚔️ Gladyatör Kılıcı (+<span id="lvlWeapon">${upgrades.weapon}</span>)</h4>
+                            <p>Saldırı gücünü artırır.</p>
+                            <div class="forge-cost">Yükseltme Bedeli: <span id="costWeapon">${(upgrades.weapon + 1) * 100}</span> Altın</div>
+                        </div>
+                        <button class="btn-quest" onclick="upgradeItem('weapon')">+ Bas</button>
+                    </div>
+
+                    <div class="forge-card">
+                        <div class="forge-info">
+                            <h4>🛡️ Savaş Zırhı (+<span id="lvlArmor">${upgrades.armor}</span>)</h4>
+                            <p>Savunma ve dayanıklılığı artırır.</p>
+                            <div class="forge-cost">Yükseltme Bedeli: <span id="costArmor">${(upgrades.armor + 1) * 100}</span> Altın</div>
+                        </div>
+                        <button class="btn-quest" onclick="upgradeItem('armor')">+ Bas</button>
+                    </div>
+
+                    <div class="forge-card">
+                        <div class="forge-info">
+                            <h4>🪖 Çelik Kask (+<span id="lvlHelmet">${upgrades.helmet}</span>)</h4>
+                            <p>Kritik direnci ve zihinsel gücü artırır.</p>
+                            <div class="forge-cost">Yükseltme Bedeli: <span id="costHelmet">${(upgrades.helmet + 1) * 100}</span> Altın</div>
+                        </div>
+                        <button class="btn-quest" onclick="upgradeItem('helmet')">+ Bas</button>
+                    </div>
+                </div>
+
+                <div id="forgeLog" class="quest-log">Örsün ateşi harlı, demirci geliştirmeler için hazır bekliyor...</div>
+            `;
+        }
+
         function addStat(statName) {
             socket.emit('distributeStat', statName);
         }
 
         function startQuest(questId) {
             socket.emit('doQuest', { questId: questId });
+        }
+
+        function buyEstate(estateId) {
+            socket.emit('buyEstate', { estateId: estateId });
+        }
+
+        function upgradeItem(itemType) {
+            socket.emit('upgradeItem', { itemType: itemType });
         }
 
         socket.on('statUpdated', (data) => {
@@ -484,6 +561,32 @@
             const logEl = document.getElementById('questLog');
             if(logEl) {
                 logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span>`;
+            }
+        });
+
+        socket.on('marketResult', (data) => {
+            currentUserData = data.userData;
+            updateHeader(currentUserData);
+            
+            const logEl = document.getElementById('marketLog');
+            if(logEl) {
+                logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
+            }
+        });
+
+        socket.on('forgeResult', (data) => {
+            currentUserData = data.userData;
+            updateHeader(currentUserData);
+            
+            // Demirhane ekranı açıksa değerleri anlık güncelle
+            const lvlEl = document.getElementById(`lvl${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
+            const costEl = document.getElementById(`cost${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
+            if(lvlEl) lvlEl.innerText = data.newLevel;
+            if(costEl) costEl.innerText = (data.newLevel + 1) * 100;
+
+            const logEl = document.getElementById('forgeLog');
+            if(logEl) {
+                logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
             }
         });
     </script>
