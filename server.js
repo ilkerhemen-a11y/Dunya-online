@@ -33,8 +33,15 @@ const userSchema = new mongoose.Schema({
   home: { type: String, default: "Stüdyo Daire" },
   car: { type: String, default: "Yok" },
   stocks: { type: Number, default: 0 },
-  workCooldownUntil: { type: Number, default: 0 }, // Çalışma zaman sayacı için bitiş zamanı (timestamp)
-  isVip: { type: Boolean, default: false }
+  workCooldownUntil: { type: Number, default: 0 },
+  // Kredi ve Gider Alanları
+  loanDebt: { type: Number, default: 0 }, // Toplam Kredi Borcu
+  loanInstallment: { type: Number, default: 0 }, // Taksit Tutarı
+  nextLoanPaymentDue: { type: Number, default: 0 }, // Sonraki ödeme zamanı (timestamp)
+  expenses: {
+    rent: { type: Number, default: 500 }, // Kira gideri
+    bills: { type: Number, default: 300 }, // Fatura gideri
+  }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -55,7 +62,11 @@ async function saveUserData(socketId) {
         home: playerData.home,
         car: playerData.car,
         stocks: playerData.stocks,
-        workCooldownUntil: playerData.workCooldownUntil
+        workCooldownUntil: playerData.workCooldownUntil,
+        loanDebt: playerData.loanDebt,
+        loanInstallment: playerData.loanInstallment,
+        nextLoanPaymentDue: playerData.nextLoanPaymentDue,
+        expenses: playerData.expenses
       });
     } catch (err) {
       console.error('Veri kaydetme hatası:', err.message);
@@ -86,7 +97,11 @@ io.on('connection', (socket) => {
           home: "Stüdyo Daire",
           car: "Yok",
           stocks: 0,
-          workCooldownUntil: 0
+          workCooldownUntil: 0,
+          loanDebt: 0,
+          loanInstallment: 0,
+          nextLoanPaymentDue: 0,
+          expenses: { rent: 500, bills: 300 }
         };
         socket.emit('userData', onlineUsers[socket.id]);
         return;
@@ -112,7 +127,10 @@ io.on('connection', (socket) => {
         car: user.car,
         stocks: user.stocks || 0,
         workCooldownUntil: user.workCooldownUntil || 0,
-        isVip: user.isVip
+        loanDebt: user.loanDebt || 0,
+        loanInstallment: user.loanInstallment || 0,
+        nextLoanPaymentDue: user.nextLoanPaymentDue || 0,
+        expenses: user.expenses || { rent: 500, bills: 300 }
       };
 
       socket.emit('userData', onlineUsers[socket.id]);
@@ -121,21 +139,35 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Çalışma (Vardiya) - Kurallarla ve Zaman Sayacıyla
+  // Çalışma (Vardiya) - Kurallarla ve Taksit Kontrolüyle
   socket.on('workShift', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
 
     const now = Date.now();
+
+    // Kredi taksit zamanı geldiyse otomatik düşür
+    if (player.loanDebt > 0 && now >= player.nextLoanPaymentDue) {
+      if (player.balance >= player.loanInstallment) {
+        player.balance -= player.loanInstallment;
+        player.loanDebt = Math.max(0, player.loanDebt - player.loanInstallment);
+        player.nextLoanPaymentDue = now + (60 * 1000); // Örnek olarak her 1 dakikada bir taksit döngüsü
+        socket.emit('gameLog', `💳 Kredi taksiti (${player.loanInstallment} ₺) hesaptan otomatik çekildi! Kalan borç: ${player.loanDebt} ₺`);
+      } else {
+        socket.emit('gameLog', `⚠️ Bakiye yetersiz! Kredi taksiti ödenemedi, ceza puanı aldın.`);
+      }
+    }
+
     if (now < player.workCooldownUntil) {
       const remainingSeconds = Math.ceil((player.workCooldownUntil - now) / 1000);
       const hours = Math.floor(remainingSeconds / 3600);
       const minutes = Math.floor((remainingSeconds % 3600) / 60);
-      socket.emit('gameLog', `⏳ Henüz dinleniyorsun! Çalışmak için ${hours} saat ${minutes} dakika beklemelisin.`);
+      const seconds = remainingSeconds % 60;
+      socket.emit('gameLog', `⏳ Henüz dinleniyorsun! Çalışmak için ${hours}s ${minutes}d ${seconds}s beklemelisin.`);
       return;
     }
 
-    // İstediğin kurallar: Açlık %0, Enerji %0, Eğlence %50 altı iken çalışma yapılamaz
+    // İstediğin kurallar
     if (player.hunger <= 0) {
       socket.emit('gameLog', '❌ Açlığın %0! Karnını doyurmadan çalışamazsın.');
       return;
@@ -154,11 +186,7 @@ io.on('connection', (socket) => {
     player.energy = Math.max(0, player.energy - 35);
     player.hunger = Math.max(0, player.hunger - 15);
     player.fun = Math.max(0, player.fun - 10);
-
-    // 8 saatlik (gerçekçilik için simülasyonda 10 saniye veya test süresi, tam 8 saat için 8*3600*1000 milisaniye)
-    // Şimdilik test kolaylığı veya gerçek 8 saatlik döngü için 8 saat ayarlıyoruz: 8 * 60 * 60 * 1000 ms
-    // Test etmek istersen süreyi kısaltabilirsin, buraya tam 8 saatlik sayaç koyuyoruz:
-    player.workCooldownUntil = Date.now() + (8 * 60 * 60 * 1000);
+    player.workCooldownUntil = Date.now() + (8 * 60 * 60 * 1000); // 8 saat döngü
 
     socket.emit('userData', player);
     socket.emit('gameLog', 'Vardiya tamamlandı! +2.840 ₺ kazandın. Yeni vardiya için 8 saat süre başladı.');
@@ -229,27 +257,39 @@ io.on('connection', (socket) => {
     socket.emit('gameLog', `💰 ${profit.toLocaleString('tr-TR')} ₺ temettü toplandı.`);
   });
 
-  socket.on('upgradeBuild', async () => {
+  // Kredi Çekerek Ev Al
+  const loanTypes = {
+    'home': { cost: 15000, name: 'Lüks Rezidans', installment: 2500 },
+    'car': { cost: 10000, name: 'Spor Otomobil', installment: 1800 }
+  };
+
+  socket.on('takeLoanAndBuy', async (type) => {
     const player = onlineUsers[socket.id];
     if (!player) return;
-    if (player.balance < 5000) {
-      socket.emit('gameLog', 'Yetersiz bakiye! (5.000 ₺ gerekiyor)');
+    
+    const target = loanTypes[type];
+    if (!target) return;
+
+    if (player.loanDebt > 0) {
+      socket.emit('gameLog', '❌ Zaten aktif bir kredi borcun var! Yeni kredi çekemezsin.');
       return;
     }
-    player.balance -= 5000;
-    player.home = "Lüks Loft Daire";
-    player.car = "Spor Araç";
-    player.cityRank = Math.max(1, player.cityRank - 250);
-    socket.emit('userData', player);
-    socket.emit('gameLog', '🏗️ Build tamamlandı, statün yükseldi!');
-  });
 
-  socket.on('climbRank', async () => {
-    const player = onlineUsers[socket.id];
-    if (!player) return;
-    player.cityRank = Math.max(1, player.cityRank - 50);
+    player.balance += target.cost; // Kredi nakit olarak hesaba yatar
+    player.loanDebt = target.cost * 1.3; // %30 faizli toplam borç
+    player.loanInstallment = target.installment;
+    player.nextLoanPaymentDue = Date.now() + (60 * 1000); // 1 dakika sonra ilk taksit zamanı
+
+    if (type === 'home') {
+      player.home = target.name;
+      player.expenses.rent += 800;
+    } else if (type === 'car') {
+      player.car = target.name;
+    }
+
+    player.cityRank = Math.max(1, player.cityRank - 300);
     socket.emit('userData', player);
-    socket.emit('gameLog', '🏆 Liderlik tablosunda tırmandın.');
+    socket.emit('gameLog', `🏦 Kredi onaylandı! ${target.name} alındı. Borç: ${player.loanDebt} ₺`);
   });
 
   socket.on('buyTimeSkip', async () => {
@@ -260,7 +300,7 @@ io.on('connection', (socket) => {
       return;
     }
     player.balance -= 1000;
-    player.workCooldownUntil = 0; // Süreyi sıfırlar, hemen çalışmayı açar!
+    player.workCooldownUntil = 0;
     player.hunger = Math.min(100, player.hunger + 30);
     player.energy = 100;
     player.fun = 100;
