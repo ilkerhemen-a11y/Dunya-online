@@ -31,7 +31,6 @@
 
         .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #fff; border-left: 4px solid #a3e635; padding-left: 10px; }
         
-        /* Sade ve uyumlu butonlar */
         .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
         .btn-action { background: #0b1329; border: 1px solid #1e293b; color: #f8fafc; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: left; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
         .btn-action:hover { border-color: #38bdf8; background: #111c38; }
@@ -52,10 +51,23 @@
 
         .log-box { background: #111c38; border: 1px dashed #1e293b; border-radius: 10px; padding: 12px; font-size: 13px; color: #a3e635; text-align: center; margin-top: 15px; }
 
+        /* Sohbet ve Online Paneli Stilleri */
+        .community-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-top: 15px; }
+        .chat-box-wrapper { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; height: 220px; }
+        .chat-messages { flex: 1; overflow-y: auto; font-size: 12px; color: #cbd5e1; display: flex; flex-direction: column; gap: 6px; padding-right: 5px; margin-bottom: 10px; }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row input { flex: 1; background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 12px; }
+        .chat-input-row button { background: #38bdf8; border: none; color: #0b1329; font-weight: bold; padding: 0 16px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+
+        .online-list-wrapper { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; height: 220px; overflow-y: auto; font-size: 12px; }
+        .online-item { padding: 6px 0; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; }
+        .online-item b { color: #fff; }
+
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .feature-grid { grid-template-columns: 1fr; }
             .action-grid { grid-template-columns: 1fr; }
+            .community-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -75,10 +87,10 @@
         <div class="hero-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <span id="myUsername" style="font-weight: bold; color: #a3e635;">-</span>
-                <span style="font-size: 11px; color: #94a3b8;">SURVIVE. THRIVE. DOMINATE.</span>
+                <span style="font-size: 11px; color: #94a3b8;">WORLD TIME: 24h = 24m</span>
             </div>
             <h1>Make Your Move.</h1>
-            <p>Borsayı yönet, kredilerini öde, dengeni kur.</p>
+            <p>Borsayı yönet, kredilerini öde, diğer vatandaşlarla sosyalleş.</p>
 
             <div class="stats-grid">
                 <div class="stat-box cash">
@@ -103,8 +115,8 @@
                 </div>
             </div>
 
-            <!-- Temel Eylemler -->
-            <div class="section-title" style="margin-top: 10px;">Temel Eylemler (8s Döngü)</div>
+            <!-- Temel Eylemler (8 Dakika Bekleme Süresi) -->
+            <div class="section-title" style="margin-top: 10px;">Temel Eylemler (8 Dakika Süreç)</div>
             <div class="action-grid">
                 <button class="btn-action" onclick="workShift()">
                     <span>💼 Vardiya Çalış (+2.840 ₺)</span>
@@ -136,7 +148,7 @@
             <div class="log-box" id="gameLog">Şehre hoş geldin! Kurallara dikkat ederek hamleni yap.</div>
         </div>
 
-        <!-- Stratejik Sistemler (NOURISH yerine BANKA ve GİDERLER eklendi) -->
+        <!-- Stratejik Sistemler & Finans -->
         <div>
             <div class="section-title">Stratejik Sistemler & Finans</div>
             <div class="feature-grid">
@@ -190,6 +202,30 @@
             </div>
         </div>
 
+        <!-- Canlı Topluluk Alanı: Sohbet ve Online Kişiler -->
+        <div>
+            <div class="section-title">Şehir İletişim & Vatandaşlar (<span id="onlineCount">0</span> Online)</div>
+            <div class="community-grid">
+                
+                <!-- Chat Alanı -->
+                <div class="chat-box-wrapper">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Mesajlar buraya düşecek -->
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chatInput" placeholder="Şehre bir mesaj yaz..." maxlength="250" onkeydown="if(event.key==='Enter') sendChat()">
+                        <button onclick="sendChat()">Gönder</button>
+                    </div>
+                </div>
+
+                <!-- Online Oyuncular Listesi -->
+                <div class="online-list-wrapper" id="onlineListContainer">
+                    <!-- Aktif oyuncular buraya listelenecek -->
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -222,16 +258,16 @@
             globalCooldownUntil = data.workCooldownUntil || 0;
         }
 
+        // Zaman Sayaç Güncelleyicisi (24dk formatı için uyumlu)
         setInterval(() => {
             const timerEl = document.getElementById('workTimerText');
             if (!timerEl) return;
             const now = Date.now();
             if (now < globalCooldownUntil) {
                 const diff = Math.ceil((globalCooldownUntil - now) / 1000);
-                const h = Math.floor(diff / 3600);
-                const m = Math.floor((diff % 3600) / 60);
+                const m = Math.floor(diff / 60);
                 const s = diff % 60;
-                timerEl.innerText = `${h}s ${m}d ${s}s`;
+                timerEl.innerText = `${m}d ${s}s`;
                 timerEl.style.color = '#f59e0b';
             } else {
                 timerEl.innerText = 'HAZIR';
@@ -241,6 +277,36 @@
 
         socket.on('gameLog', (msg) => {
             document.getElementById('gameLog').innerText = msg;
+        });
+
+        // Sohbet İşlemleri
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            const text = input.value;
+            if (!text.trim()) return;
+            socket.emit('sendChat', text);
+            input.value = '';
+        }
+
+        socket.on('chatMessage', (data) => {
+            const chatContainer = document.getElementById('chatMessages');
+            const msgEl = document.createElement('div');
+            msgEl.innerHTML = `<b style="color: #38bdf8;">${data.sender}:</b> ${data.text}`;
+            chatContainer.appendChild(msgEl);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
+
+        // Online Oyuncu Listesi Güncelleyicisi
+        socket.on('onlineUsersList', (users) => {
+            document.getElementById('onlineCount').innerText = users.length;
+            const container = document.getElementById('onlineListContainer');
+            container.innerHTML = '';
+            users.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'online-item';
+                item.innerHTML = `<span><b>${u.username}</b></span><span style="font-size: 10px; color: #64748b;">${u.home}</span>`;
+                container.appendChild(item);
+            });
         });
 
         function workShift() { socket.emit('workShift'); }
