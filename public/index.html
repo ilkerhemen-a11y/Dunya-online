@@ -31,7 +31,12 @@
 
         .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #fff; border-left: 4px solid #a3e635; padding-left: 10px; }
         
-        /* Özellik Kartları (Earn, Nourish, Build, Climb) */
+        /* Sade ve uyumlu butonlar */
+        .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+        .btn-action { background: #0b1329; border: 1px solid #1e293b; color: #f8fafc; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: left; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .btn-action:hover { border-color: #38bdf8; background: #111c38; }
+        .btn-action span { color: #94a3b8; font-size: 12px; }
+
         .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         .feature-card { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
         .feature-card h4 { font-size: 16px; margin-bottom: 6px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
@@ -39,17 +44,11 @@
         .feature-card p { font-size: 12px; color: #94a3b8; margin-bottom: 15px; }
         
         .card-buttons { display: flex; gap: 8px; }
-        .btn-feature { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-feature { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #1e293b; background: #0b1329; color: #f8fafc; font-weight: 600; cursor: pointer; font-size: 12px; }
+        .btn-feature:hover { border-color: #a3e635; }
 
-        .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .btn-action { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
-        .btn-work { background: #a3e635; color: #0b1329; }
-        .btn-sleep { background: #818cf8; color: #fff; }
-        .btn-eat { background: #38bdf8; color: #0b1329; }
-        .btn-fun { background: #f472b6; color: #0b1329; }
-        
-        .timeskip-banner { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
-        .btn-skip { background: #f59e0b; color: #000; padding: 10px 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .timeskip-banner { background: linear-gradient(135deg, #111c38, #0b1329); border: 1px solid #1e293b; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+        .btn-skip { background: #a3e635; color: #0b1329; padding: 10px 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         .log-box { background: #111c38; border: 1px dashed #1e293b; border-radius: 10px; padding: 12px; font-size: 13px; color: #a3e635; text-align: center; margin-top: 15px; }
 
@@ -62,7 +61,6 @@
 </head>
 <body>
 
-    <!-- Giriş Modalı -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Şehrine Katıl.</h2>
@@ -72,16 +70,14 @@
         </div>
     </div>
 
-    <!-- Ana Oyun Ekranı -->
     <div id="mainApp" class="container">
         
-        <!-- Üst Bilgi Kartı -->
         <div class="hero-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <span id="myUsername" style="font-weight: bold; color: #a3e635;">-</span>
                 <span style="font-size: 11px; color: #94a3b8;">SURVIVE. THRIVE. DOMINATE.</span>
             </div>
-            <h1>Make Your Move.</h1>
+            <h1>Gerçek Dünyaya Hoşgeldin</h1>
             <p>İşine yatırım yap, açlığını yönet, eğlenceye zaman ayır. Dengeni bulan kazanır.</p>
 
             <div class="stats-grid">
@@ -107,77 +103,85 @@
                 </div>
             </div>
 
-            <!-- Günlük Eylemler -->
+            <!-- Temel Eylemler (Sade Tasarım ve Sayaç Bilgisi) -->
             <div class="section-title" style="margin-top: 10px;">Temel Eylemler (8s Döngü)</div>
             <div class="action-grid">
-                <button class="btn-action btn-work" onclick="workShift()">💼 8s Çalış (+2.840 ₺)</button>
-                <button class="btn-action btn-sleep" onclick="sleepTime()">🛌 8s Uyu (200 ₺)</button>
-                <button class="btn-action btn-eat" onclick="eatMeal()">🍲 Yemek Ye (150 ₺)</button>
-                <button class="btn-action btn-fun" onclick="haveFun()">🎉 8s Eğlen (500 ₺)</button>
+                <button class="btn-action" onclick="workShift()">
+                    <span>💼 Vardiya Çalış (+2.840 ₺)</span>
+                    <b id="workTimerText" style="color: #a3e635; font-size: 12px;">HAZIR</b>
+                </button>
+                <button class="btn-action" onclick="sleepTime()">
+                    <span>🛌 Dinlen / Uyu (200 ₺)</span>
+                    <span style="color: #38bdf8;">Enerji Yenile</span>
+                </button>
+                <button class="btn-action" onclick="eatMeal()">
+                    <span>🍲 Öğün Tüket (150 ₺)</span>
+                    <span style="color: #38bdf8;">Açlık Gider</span>
+                </button>
+                <button class="btn-action" onclick="haveFun()">
+                    <span>🎉 Sosyal Yaşam (500 ₺)</span>
+                    <span style="color: #38bdf8;">Eğlence Artır</span>
+                </button>
             </div>
 
             <!-- Zaman Hızlandırma -->
             <div class="timeskip-banner">
                 <div>
-                    <h4 style="font-size: 14px; color: #fff;">⚡ Zamanı Hızlandır (Time Skip)</h4>
-                    <p style="font-size: 11px; color: #cbd5e1; margin: 2px 0 0 0;">Beklemek istemiyorsan zamanı atla, bonus XP kazan!</p>
+                    <h4 style="font-size: 13px; color: #fff;">⚡ Zamanı Hızlandır (Time Skip)</h4>
+                    <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Bekleme sürelerini sıfırla, ihtiyaçları fulle!</p>
                 </div>
                 <button class="btn-skip" onclick="buyTimeSkip()">1.000 ₺</button>
             </div>
 
-            <div class="log-box" id="gameLog">Şehre hoş geldin! Stratejik hamlelerini yapmaya başla.</div>
+            <div class="log-box" id="gameLog">Şehre hoş geldin! Kurallara dikkat ederek hamleni yap.</div>
         </div>
 
-        <!-- Görseldeki 4 Ana Modül: EARN, NOURISH, BUILD, CLIMB -->
+        <!-- 4 Ana Modül (EARN, NOURISH, BUILD, CLIMB) -->
         <div>
             <div class="section-title">Stratejik Sistemler</div>
             <div class="feature-grid">
                 
-                <!-- EARN (Borsa Sistemi) -->
                 <div class="feature-card">
                     <div>
                         <h4>EARN <span>// 01</span></h4>
-                        <p>Yeni beceriler öğren, borsa yatırımları yap ve geliri büyüt.</p>
+                        <p>Borsa yatırımları yap ve geliri büyüt.</p>
                         <p style="color: #a3e635; font-size: 11px; margin-bottom: 10px;">Hisseniz: <span id="myStocks">0</span> Adet</p>
                     </div>
                     <div class="card-buttons">
-                        <button class="btn-feature" style="background:#a3e635; color:#0b1329;" onclick="buyStock()">Hisse Al (1.500₺)</button>
-                        <button class="btn-feature" style="background:#38bdf8; color:#0b1329;" onclick="collectDividends()">Temettü Al</button>
+                        <button class="btn-feature" onclick="buyStock()">Hisse Al (1.500₺)</button>
+                        <button class="btn-feature" onclick="collectDividends()">Temettü Al</button>
                     </div>
                 </div>
 
-                <!-- NOURISH (Beslenme & Yaşam Dengesi) -->
                 <div class="feature-card">
                     <div>
                         <h4>NOURISH <span>// 02</span></h4>
                         <p>Enerjini koru, açlık ve yorgunluk seni durdurmasın.</p>
                     </div>
                     <div class="card-buttons">
-                        <button class="btn-feature" style="background:#38bdf8; color:#0b1329;" onclick="eatMeal()">Öğün Tüket</button>
-                        <button class="btn-feature" style="background:#818cf8; color:#fff;" onclick="sleepTime()">Dinlenmeye Çekil</button>
+                        <button class="btn-feature" onclick="eatMeal()">Öğün Tüket</button>
+                        <button class="btn-feature" onclick="sleepTime()">Dinlen</button>
                     </div>
                 </div>
 
-                <!-- BUILD (Evin, Araban ve Statün) -->
                 <div class="feature-card">
                     <div>
                         <h4>BUILD <span>// 03</span></h4>
-                        <p>Evin ve aracınla statünü artır, üst düzey konuma yüksel.</p>
+                        <p>Evin ve aracınla statünü artır.</p>
                         <p style="color: #a3e635; font-size: 11px; margin-bottom: 10px;">Konum: <span id="myHome">Stüdyo Daire</span></p>
                     </div>
                     <div class="card-buttons">
-                        <button class="btn-feature" style="background:#a3e635; color:#0b1329;" onclick="upgradeBuild()">Lüks Konuta Geç (5.000₺)</button>
+                        <button class="btn-feature" onclick="upgradeBuild()">Lüks Konut (5.000₺)</button>
                     </div>
                 </div>
 
-                <!-- CLIMB (Liderlik Tablosu) -->
                 <div class="feature-card">
                     <div>
                         <h4>CLIMB <span>// 04</span></h4>
-                        <p>Liderlik tablosunda iz bırak, adını zirveye yazdır.</p>
+                        <p>Liderlik tablosunda iz bırak.</p>
                     </div>
                     <div class="card-buttons">
-                        <button class="btn-feature" style="background:#f59e0b; color:#000;" onclick="climbRank()">Zirveye Hamle Yap</button>
+                        <button class="btn-feature" onclick="climbRank()">Zirveye Hamle</button>
                     </div>
                 </div>
 
@@ -189,6 +193,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        let globalCooldownUntil = 0;
 
         function login() {
             const username = document.getElementById('usernameInput').value;
@@ -210,7 +215,26 @@
             document.getElementById('myRank').innerText = '#' + (data.cityRank || 2841);
             document.getElementById('myHome').innerText = data.home || 'Stüdyo Daire';
             document.getElementById('myStocks').innerText = data.stocks || 0;
+            globalCooldownUntil = data.workCooldownUntil || 0;
         }
+
+        // Geri sayım sayacını her saniye ekranda güncelle
+        setInterval(() => {
+            const timerEl = document.getElementById('workTimerText');
+            if (!timerEl) return;
+            const now = Date.now();
+            if (now < globalCooldownUntil) {
+                const diff = Math.ceil((globalCooldownUntil - now) / 1000);
+                const h = Math.floor(diff / 3600);
+                const m = Math.floor((diff % 3600) / 60);
+                const s = diff % 60;
+                timerEl.innerText = `${h}s ${m}d ${s}s`;
+                timerEl.style.color = '#f59e0b'; // Sarı/Turuncu (bekliyor)
+            } else {
+                timerEl.innerText = 'HAZIR';
+                timerEl.style.color = '#a3e635'; // Yeşil (hazır)
+            }
+        }, 1000);
 
         socket.on('gameLog', (msg) => {
             document.getElementById('gameLog').innerText = msg;
@@ -221,8 +245,6 @@
         function eatMeal() { socket.emit('eatMeal'); }
         function haveFun() { socket.emit('haveFun'); }
         function buyTimeSkip() { socket.emit('buyTimeSkip'); }
-        
-        // Yeni Eklenen Modüllerin Tetikleyicileri
         function buyStock() { socket.emit('buyStock'); }
         function collectDividends() { socket.emit('collectDividends'); }
         function upgradeBuild() { socket.emit('upgradeBuild'); }
