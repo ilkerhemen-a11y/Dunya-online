@@ -26,7 +26,9 @@ const userSchema = new mongoose.Schema({
   balance: { type: Number, default: 12480 },
   level: { type: Number, default: 1 },
   xp: { type: Number, default: 0 },
-  hunger: { type: Number, default: 82 },
+  hunger: { type: Number, default: 82 },     // Açlık / Yemek
+  energy: { type: Number, default: 100 },    // Uyku / Dinlenme (8 Saatlik Uyku Dengesi)
+  fun: { type: Number, default: 100 },       // Eğlence (8 Saatlik Sosyal Yaşam)
   cityRank: { type: Number, default: 2841 },
   home: { type: String, default: "Stüdyo Daire" },
   car: { type: String, default: "Yok" },
@@ -45,6 +47,8 @@ async function saveUserData(socketId) {
         level: playerData.level,
         xp: playerData.xp,
         hunger: playerData.hunger,
+        energy: playerData.energy,
+        fun: playerData.fun,
         cityRank: playerData.cityRank,
         home: playerData.home,
         car: playerData.car
@@ -72,6 +76,8 @@ io.on('connection', (socket) => {
           level: 1,
           xp: 0,
           hunger: 82,
+          energy: 100,
+          fun: 100,
           cityRank: 2841,
           home: "Stüdyo Daire",
           car: "Yok"
@@ -93,6 +99,8 @@ io.on('connection', (socket) => {
         level: user.level,
         xp: user.xp,
         hunger: user.hunger,
+        energy: user.energy,
+        fun: user.fun,
         cityRank: user.cityRank,
         home: user.home,
         car: user.car,
@@ -105,18 +113,60 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 8 Saatlik Çalışma (Vardiya)
   socket.on('workShift', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
 
+    if (player.energy < 30) {
+      socket.emit('gameLog', 'Çok yorgunsun! Çalışabilmek için önce uyumalısın.');
+      return;
+    }
+
     player.balance += 2840;
     player.xp += 25;
-    player.hunger = Math.max(0, player.hunger - 10);
+    player.energy = Math.max(0, player.energy - 35); // Çalışmak enerji harcar
+    player.hunger = Math.max(0, player.hunger - 15);
 
     socket.emit('userData', player);
     socket.emit('gameLog', 'Vardiya tamamlandı! +2.840 ₺ kazandın.');
   });
 
+  // 8 Saatlik Uyku / Dinlenme (Enerji Doldurma)
+  socket.on('sleepTime', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.balance < 200) {
+      socket.emit('gameLog', 'Otel/Ev masrafı için yeterli paran yok! (200 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= 200;
+    player.energy = 100; // Enerji tamamen yenilenir
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', '8 saat uyku çekildi, enerji tamamen yenilendi! (-200 ₺)');
+  });
+
+  // 8 Saatlik Eğlence
+  socket.on('haveFun', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    if (player.balance < 500) {
+      socket.emit('gameLog', 'Eğlence aktivitesi için yeterli paran yok! (500 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= 500;
+    player.fun = 100;
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', 'Eğlence aktivitesine katıldın, motivasyonun arttı! (-500 ₺)');
+  });
+
+  // Yemek Yeme
   socket.on('eatMeal', async () => {
     const player = onlineUsers[socket.id];
     if (!player) return;
@@ -127,10 +177,33 @@ io.on('connection', (socket) => {
     }
 
     player.balance -= 150;
-    player.hunger = Math.min(100, player.hunger + 20);
+    player.hunger = Math.min(100, player.hunger + 25);
 
     socket.emit('userData', player);
     socket.emit('gameLog', 'Karnın doyuruldu! Açlık seviyen yükseldi.');
+  });
+
+  // Zamanı Hızlandırma / Zaman Atlatma Satın Al (Time Skip - 1.000 ₺)
+  socket.on('buyTimeSkip', async () => {
+    const player = onlineUsers[socket.id];
+    if (!player) return;
+
+    const skipCost = 1000;
+    if (player.balance < skipCost) {
+      socket.emit('gameLog', 'Zamanı hızlandırmak için yeterli paran yok! (1.000 ₺ gerekiyor)');
+      return;
+    }
+
+    player.balance -= skipCost;
+    player.xp += 100; // Zaman atlama bonus XP verir
+    // Tüm ihtiyaçlar optimize olur
+    player.hunger = Math.min(100, player.hunger + 30);
+    player.energy = Math.min(100, player.energy + 30);
+    player.fun = Math.min(100, player.fun + 30);
+    player.cityRank = Math.max(1, player.cityRank - 15); // Sıralamada yükselir
+
+    socket.emit('userData', player);
+    socket.emit('gameLog', '⚡ Zaman hızlandırıldı! Bonus XP kazandın ve şehir sıralamasında yükseldin.');
   });
 
   socket.on('disconnect', async () => {
