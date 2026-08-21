@@ -18,7 +18,6 @@
             padding: 10px;
         }
 
-        /* Üst Oyun Çubuğu */
         .game-header {
             width: 100%;
             max-width: 1000px;
@@ -42,7 +41,6 @@
         .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #ca8a04); width: 0%; transition: width 0.3s ease; }
         .stat-bar-fill.sefer { background: linear-gradient(to right, #3b82f6, #1d4ed8); width: 100%; transition: width 0.3s ease; }
 
-        /* Ana Oyun Alanı */
         .main-wrapper {
             width: 100%;
             max-width: 1000px;
@@ -51,7 +49,6 @@
             gap: 15px;
         }
 
-        /* Sol Dikey Menü */
         .sidebar-menu {
             background: linear-gradient(to bottom, #1d1712, #110d0a);
             border: 2px solid #544131;
@@ -97,7 +94,6 @@
             color: #f3cf7a;
         }
 
-        /* Sağ İçerik Paneli */
         .content-panel {
             background: linear-gradient(135deg, #241c15 0%, #15100c 100%);
             border: 2px solid #544131;
@@ -120,7 +116,6 @@
             align-items: center;
         }
 
-        /* Gladiatus Karakter Grid Düzeni */
         .character-screen {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -333,7 +328,6 @@
                 <span id="expLabel" style="font-size: 10px; color: #a3957f;">Tecrübe</span>
                 <div class="stat-bar-mini"><div id="expBarFill" class="stat-bar-fill exp" style="width: 0%;"></div></div>
             </div>
-            <!-- SEFER LİMİTİ BARI -->
             <div class="bar-container">
                 <span id="seferLabel" style="font-size: 10px; color: #a3957f;">Sefer Limiti (20/20)</span>
                 <div class="stat-bar-mini"><div id="seferBarFill" class="stat-bar-fill sefer" style="width: 100%;"></div></div>
@@ -344,12 +338,13 @@
     <!-- Ana Oyun Çerçevesi -->
     <div class="main-wrapper" id="mainApp" style="display: none;">
         
-        <!-- Sol Dikey Menü -->
+        <!-- Sol Dikey Menü (Ayrılmış Pazar Yeri & Tımar) -->
         <nav class="sidebar-menu">
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
             <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
+            <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
             
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
@@ -399,7 +394,7 @@
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
-            // CAN (HP) DİNAMİK GÜNCELLEME
+            // CAN (HP) GÜNCELLEME
             const maxHp = (data.vit || 5) * 20;
             const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
@@ -409,7 +404,7 @@
             if(hpBarFill) hpBarFill.style.width = `${hpPercent}%`;
             if(hpLabel) hpLabel.innerText = `Can (${currentHp}/${maxHp})`;
 
-            // TECRÜBE (EXP) DİNAMİK GÜNCELLEME
+            // TECRÜBE (EXP) GÜNCELLEME
             const maxExp = (data.level || 1) * 100;
             const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
 
@@ -418,8 +413,8 @@
             if(expBarFill) expBarFill.style.width = `${expPercent}%`;
             if(expLabel) expLabel.innerText = `XP (%${Math.floor(expPercent)})`;
 
-            // SEFER LİMİTİ DİNAMİK GÜNCELLEME
-            const seferCount = data.seferLimiti !== undefined ? data.seferLimiti : (data.serdarBasi !== undefined ? data.serdarBasi : 20);
+            // SEFER LİMİTİ GÜNCELLEME
+            const seferCount = data.seferLimiti !== undefined ? data.seferLimiti : 20;
             const seferPercent = (seferCount / 20) * 100;
 
             const seferBarFill = document.getElementById('seferBarFill');
@@ -428,30 +423,30 @@
             if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferCount}/20)`;
         }
 
-        // Canlı Sefer Limiti Geri Sayım Zamanlayıcısı
+        // Bağımsız Sefer Süresi Zamanlayıcısı
         function startSeferTimer() {
             if(seferTimerInterval) clearInterval(seferTimerInterval);
             seferTimerInterval = setInterval(() => {
                 if(!currentUserData) return;
-                const seferCount = currentUserData.seferLimiti !== undefined ? currentUserData.seferLimiti : (currentUserData.serdarBasi !== undefined ? currentUserData.serdarBasi : 20);
-                const nextRefill = currentUserData.seferNextRefill || currentUserData.serdarNextRefill || 0;
+                const seferCount = currentUserData.seferLimiti !== undefined ? currentUserData.seferLimiti : 20;
+                const nextRefill = currentUserData.seferNextRefill || 0;
                 const now = Date.now();
                 const diff = nextRefill - now;
 
                 const seferLabel = document.getElementById('seferLabel');
 
-                if (seferCount < 20 && diff > 0) {
+                if (diff > 0) {
                     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
                     const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                     if(seferLabel) seferLabel.innerText = `Sefer (${seferCount}/20) - ${formattedTime}`;
 
                     const cdEl = document.getElementById('seferCooldownText');
-                    if(cdEl) cdEl.innerText = `Kalan Yenilenme Süresi: ${formattedTime}`;
+                    if(cdEl) cdEl.innerText = `Kalan Süre: ${formattedTime}`;
                 } else {
                     if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferCount}/20)`;
                     const cdEl = document.getElementById('seferCooldownText');
-                    if(cdEl) cdEl.innerText = `Sefer Hakkı Hazır! (${seferCount}/20)`;
+                    if(cdEl) cdEl.innerText = `Sefer Zamanlayıcısı Tamamlandı! (${seferCount}/20)`;
                 }
             }, 1000);
         }
@@ -468,8 +463,11 @@
                 titleEl.innerText = "İş / Görev Alanı (Seferler)";
                 renderWorkTab(bodyEl);
             } else if(tabId === 'market') {
-                titleEl.innerText = "Pazar Yeri & Tımarlar";
+                titleEl.innerText = "Pazar Yeri";
                 renderMarketTab(bodyEl);
+            } else if(tabId === 'timar') {
+                titleEl.innerText = "Tımarlar ve Mülkler";
+                renderTimarTab(bodyEl);
             } else if(tabId === 'blacksmith') {
                 titleEl.innerText = "Demirhane (+ Basma)";
                 renderBlacksmithTab(bodyEl);
@@ -564,18 +562,19 @@
         }
 
         function renderWorkTab(container) {
-            const seferCount = currentUserData && currentUserData.seferLimiti !== undefined ? currentUserData.seferLimiti : (currentUserData && currentUserData.serdarBasi !== undefined ? currentUserData.serdarBasi : 20);
-            const isDisabled = seferCount <= 0;
+            const seferCount = currentUserData && currentUserData.seferLimiti !== undefined ? currentUserData.seferLimiti : 20;
+            const hpCount = currentUserData && currentUserData.hp !== undefined ? currentUserData.hp : 100;
+            const isDisabled = seferCount <= 0 || hpCount <= 0;
 
             container.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; background: #18130f; padding: 10px; border: 1px solid #433222; border-radius: 4px;">
                     <div>
-                        <div style="color: #f3cf7a; font-size: 13px; font-weight: bold;">⚔️ Sefer Limiti (Günlük Sefer Hakkı): ${seferCount} / 20</div>
+                        <div style="color: #f3cf7a; font-size: 13px; font-weight: bold;">⚔️ Sefer Limiti: ${seferCount} / 20</div>
                         <div id="seferCooldownText" style="color: #38bdf8; font-size: 11px; margin-top: 2px;">
-                            ${seferCount < 20 ? 'Sefer Limiti Yenileniyor...' : 'Sefer Limiti Dolu!'}
+                            ${seferCount < 20 ? 'Sefer Limiti Süresi Devam Ediyor...' : 'Sefer Limiti Hazır!'}
                         </div>
                     </div>
-                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:#fff;" onclick="socket.emit('usePotion')">🧪 İksir İç (50 Altın)</button>
+                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:#fff;" onclick="socket.emit('usePotion')">🧪 Can & İksir İç (50 Altın)</button>
                 </div>
                 
                 <div class="quest-list">
@@ -586,7 +585,7 @@
                             <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 XP</span></div>
                         </div>
                         <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(1)">
-                            ${isDisabled ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)'}
+                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)')}
                         </button>
                     </div>
 
@@ -597,7 +596,7 @@
                             <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 XP</span></div>
                         </div>
                         <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(2)">
-                            ${isDisabled ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)'}
+                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)')}
                         </button>
                     </div>
 
@@ -608,7 +607,7 @@
                             <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 XP</span></div>
                         </div>
                         <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(3)">
-                            ${isDisabled ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)'}
+                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)')}
                         </button>
                     </div>
                 </div>
@@ -617,7 +616,18 @@
             `;
         }
 
+        // Pazar Yeri (Boş Bırakıldı)
         function renderMarketTab(container) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 10px; color: #a3957f;">
+                    <h3 style="font-size: 18px; color: #f3cf7a; margin-bottom: 10px;">🛒 Pazar Yeri Yakında Hizmetinizde</h3>
+                    <p style="font-size: 13px;">Tüccarlar kervanlarını hazırlıyor. Oyuncular arası ticaret ve pazaryeri tezgahları yakında buraya eklenecektir.</p>
+                </div>
+            `;
+        }
+
+        // Tımarlar (Mevcut Mülkler)
+        function renderTimarTab(container) {
             container.innerHTML = `
                 <p style="color: #a3957f; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
                 
@@ -650,7 +660,7 @@
                     </div>
                 </div>
 
-                <div id="marketLog" class="quest-log">Pazar yeri tüccarları emrinizde, lordum.</div>
+                <div id="marketLog" class="quest-log">Tımar kahyaları emrinizde, lordum.</div>
             `;
         }
 
@@ -689,7 +699,7 @@
                     </div>
                 </div>
 
-                <div id="forgeLog" class="quest-log">Örsün ateşi harlı, demirci geliştirmeler için hazır bekliyyor...</div>
+                <div id="forgeLog" class="quest-log">Örsün ateşi harlı, demirci geliştirmeler için hazır bekliyor...</div>
             `;
         }
 
@@ -752,7 +762,7 @@
                 if(data.success === false) {
                     logEl.innerHTML = `<b style="color: #ef4444;">${data.message}</b>`;
                 } else {
-                    logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span>`;
+                    logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span> | <span style="color: #ef4444;">Harcanan Can: -${data.hpLost || 0} HP</span>`;
                 }
             }
         });
