@@ -475,6 +475,7 @@
         let currentUserData = null;
         let activeTab = 'overview';
         let seferTimerInterval = null;
+        let timarTimerInterval = null;
 
         function login() {
             const username = document.getElementById('usernameInput').value;
@@ -553,6 +554,8 @@
 
         function switchTab(tabId) {
             activeTab = tabId;
+            if(timarTimerInterval) { clearInterval(timarTimerInterval); timarTimerInterval = null; }
+
             const titleEl = document.getElementById('panelHeaderTitle');
             const bodyEl = document.getElementById('panelContentBody');
             
@@ -568,6 +571,7 @@
             } else if(tabId === 'timar') {
                 titleEl.innerText = "Tımarlar ve Mülkler";
                 renderTimarTab(bodyEl);
+                startTimarLiveUpdate();
             } else if(tabId === 'blacksmith') {
                 titleEl.innerText = "Demirhane (+ Basma)";
                 renderBlacksmithTab(bodyEl);
@@ -736,40 +740,117 @@
         }
 
         function renderTimarTab(container) {
+            const estates = currentUserData && currentUserData.estates ? currentUserData.estates : {};
+
+            const getEstateStatus = (estateId, rate) => {
+                const est = estates[estateId];
+                if (!est || est.count === 0) return { gold: 0, canCollect: false, text: 'Mülk sahibi değilsiniz' };
+                
+                const elapsedMs = Date.now() - est.lastCollected;
+                const elapsedMinutes = elapsedMs / (1000 * 60);
+                const gold = Math.floor(elapsedMinutes * rate * est.count);
+
+                if (elapsedMinutes < 60) {
+                    const remainingSecs = Math.ceil((60 * 60 * 1000 - elapsedMs) / 1000);
+                    const mins = Math.floor(remainingSecs / 60);
+                    const secs = remainingSecs % 60;
+                    return { gold, canCollect: false, text: `Kalan süre: ${mins}dk ${secs}sn` };
+                }
+                return { gold, canCollect: true, text: 'Toplamaya Hazır!' };
+            };
+
+            const s1 = getEstateStatus(1, 10);
+            const s2 = getEstateStatus(2, 45);
+            const s3 = getEstateStatus(3, 180);
+
             container.innerHTML = `
-                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde mülkler satın alarak pasif gelir elde et. Biriken altınları **en az 1 saat** sonra toplayabilirsin.</p>
                 
                 <div class="market-list">
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🌾 Küçük Buğday Çiftliği</h4>
-                            <p>Verimli ovalarda küçük bir tarım arazisi.</p>
-                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk Pasif Gelir</div>
+                            <h4>🌾 Küçük Buğday Çiftliği (Sahip: <span id="estCount1">${estates[1]?.count || 0}</span>)</h4>
+                            <p>Biriken Altın: <b style="color: #f3cf7a;" id="accumGold1">${s1.gold}</b> Altın</p>
+                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk</div>
+                            <div id="estTimer1" style="font-size: 10px; color: ${s1.canCollect ? '#22c55e' : '#38bdf8'}; margin-top:2px;">${s1.text}</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(1)">Satın Al</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button id="collectBtn1" class="btn-quest" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #4ade80;" ${!s1.canCollect ? 'disabled' : ''} onclick="collectEstate(1)">Topla</button>
+                            <button class="btn-quest" onclick="buyEstate(1)">Satın Al</button>
+                        </div>
                     </div>
 
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🍷 Üzüm Bağı ve Şaraphane</h4>
-                            <p>Diyar genelinde değerli şaraplar üreten tesis.</p>
-                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk Pasif Gelir</div>
+                            <h4>🍷 Üzüm Bağı ve Şaraphane (Sahip: <span id="estCount2">${estates[2]?.count || 0}</span>)</h4>
+                            <p>Biriken Altın: <b style="color: #f3cf7a;" id="accumGold2">${s2.gold}</b> Altın</p>
+                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk</div>
+                            <div id="estTimer2" style="font-size: 10px; color: ${s2.canCollect ? '#22c55e' : '#38bdf8'}; margin-top:2px;">${s2.text}</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(2)">Satın Al</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button id="collectBtn2" class="btn-quest" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #4ade80;" ${!s2.canCollect ? 'disabled' : ''} onclick="collectEstate(2)">Topla</button>
+                            <button class="btn-quest" onclick="buyEstate(2)">Satın Al</button>
+                        </div>
                     </div>
 
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🏰 Sınır Kalesi ve Ticaret Noktası</h4>
-                            <p>Kervanlardan geçiş vergisi toplayan stratejik kale.</p>
-                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk Pasif Gelir</div>
+                            <h4>🏰 Sınır Kalesi ve Ticaret Noktası (Sahip: <span id="estCount3">${estates[3]?.count || 0}</span>)</h4>
+                            <p>Biriken Altın: <b style="color: #f3cf7a;" id="accumGold3">${s3.gold}</b> Altın</p>
+                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk</div>
+                            <div id="estTimer3" style="font-size: 10px; color: ${s3.canCollect ? '#22c55e' : '#38bdf8'}; margin-top:2px;">${s3.text}</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(3)">Satın Al</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button id="collectBtn3" class="btn-quest" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #4ade80;" ${!s3.canCollect ? 'disabled' : ''} onclick="collectEstate(3)">Topla</button>
+                            <button class="btn-quest" onclick="buyEstate(3)">Satın Al</button>
+                        </div>
                     </div>
                 </div>
 
                 <div id="marketLog" class="quest-log">Tımar kahyaları emrinizde, lordum.</div>
             `;
+        }
+
+        function startTimarLiveUpdate() {
+            if(timarTimerInterval) clearInterval(timarTimerInterval);
+            timarTimerInterval = setInterval(() => {
+                if(activeTab !== 'timar') return;
+                const estates = currentUserData && currentUserData.estates ? currentUserData.estates : {};
+                
+                const rates = { 1: 10, 2: 45, 3: 180 };
+
+                [1, 2, 3].forEach(id => {
+                    const est = estates[id];
+                    const goldEl = document.getElementById(`accumGold${id}`);
+                    const timerEl = document.getElementById(`estTimer${id}`);
+                    const btnEl = document.getElementById(`collectBtn${id}`);
+
+                    if(!est || est.count === 0) return;
+
+                    const elapsedMs = Date.now() - est.lastCollected;
+                    const elapsedMins = elapsedMs / (1000 * 60);
+                    const gold = Math.floor(elapsedMins * rates[id] * est.count);
+
+                    if(goldEl) goldEl.innerText = gold;
+
+                    if(elapsedMins < 60) {
+                        const remainingSecs = Math.ceil((60 * 60 * 1000 - elapsedMs) / 1000);
+                        const mins = Math.floor(remainingSecs / 60);
+                        const secs = remainingSecs % 60;
+                        if(timerEl) {
+                            timerEl.style.color = '#38bdf8';
+                            timerEl.innerText = `Kalan süre: ${mins}dk ${secs}sn`;
+                        }
+                        if(btnEl) btnEl.disabled = true;
+                    } else {
+                        if(timerEl) {
+                            timerEl.style.color = '#22c55e';
+                            timerEl.innerText = 'Toplamaya Hazır!';
+                        }
+                        if(btnEl) btnEl.disabled = false;
+                    }
+                });
+            }, 1000);
         }
 
         function renderBlacksmithTab(container) {
@@ -839,6 +920,10 @@
             socket.emit('buyEstate', { estateId: estateId });
         }
 
+        function collectEstate(estateId) {
+            socket.emit('collectEstateGold', { estateId: estateId });
+        }
+
         function upgradeItem(itemType) {
             socket.emit('upgradeItem', { itemType: itemType });
         }
@@ -878,20 +963,25 @@
         socket.on('marketResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            if(activeTab === 'timar') {
+                renderTimarTab(document.getElementById('panelContentBody'));
+            }
             const logEl = document.getElementById('marketLog');
-            if(logEl) logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
+            if(logEl) {
+                const color = data.success ? '#22c55e' : '#ef4444';
+                logEl.innerHTML = `<b style="color: ${color};">${data.message}</b>`;
+            }
         });
 
         socket.on('forgeResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
-            const lvlEl = document.getElementById(`lvl${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
-            const costEl = document.getElementById(`cost${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
-            if(lvlEl) lvlEl.innerText = data.newLevel;
-            if(costEl) costEl.innerText = (data.newLevel + 1) * 100;
-
+            if(activeTab === 'blacksmith') renderBlacksmithTab(document.getElementById('panelContentBody'));
             const logEl = document.getElementById('forgeLog');
-            if(logEl) logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
+            if(logEl) {
+                const color = data.success ? '#22c55e' : '#ef4444';
+                logEl.innerHTML = `<b style="color: ${color};">${data.message}</b>`;
+            }
         });
 
         socket.on('receiveChatMessage', (data) => {
