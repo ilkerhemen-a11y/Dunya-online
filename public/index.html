@@ -165,6 +165,22 @@
         }
         .btn-stat:hover { background: #f3cf7a; }
 
+        /* Karakter Resmi Çerçevesi */
+        .char-portrait {
+            width: 100%;
+            margin-top: 15px;
+            border: 2px solid #544131;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .char-portrait img {
+            width: 100%;
+            display: block;
+            filter: brightness(0.9) contrast(1.1);
+        }
+
         /* Ekipman Ekranı (Gladiatus Slotları) */
         .equipment-grid-wrapper {
             background: #18130f;
@@ -291,7 +307,7 @@
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${data.username.toUpperCase()} (Seviye ${data.level || 1})`;
             
-            switchTab('overview'); // İlk açılışta Genel Durum yüklensin
+            switchTab('overview');
         });
 
         function switchTab(tabId) {
@@ -321,28 +337,23 @@
             
             container.innerHTML = `
                 <div class="character-screen">
-                    <!-- Sol: Nitelikler / Statlar -->
-                    <div class="char-stats-box">
-                        <h3>Karakter Nitelikleri (Stat Puanı: <span id="statPoints" style="color:#76aab8;">${d.statPoints || 0}</span>)</h3>
-                        <div class="stat-row">
-                            <span>Güç (STR):</span>
-                            <div><span id="valStr">${d.str || 5}</span> <button class="btn-stat" onclick="addStat('str')">+</button></div>
+                    <!-- Sol: Nitelikler ve Karakter Resmi -->
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="char-stats-box">
+                            <h3>Nitelikler (Puan: <span id="statPoints" style="color:#76aab8;">${d.statPoints || 0}</span>)</h3>
+                            <div class="stat-row"><span>Güç:</span> <div><b>${d.str || 5}</b> <button class="btn-stat" onclick="addStat('str')">+</button></div></div>
+                            <div class="stat-row"><span>Beceri:</span> <div><b>${d.int || 5}</b> <button class="btn-stat" onclick="addStat('int')">+</button></div></div>
+                            <div class="stat-row"><span>Çeviklik:</span> <div><b>${d.dex || 5}</b> <button class="btn-stat" onclick="addStat('dex')">+</button></div></div>
+                            <div class="stat-row"><span>Dayanıklılık:</span> <div><b>${d.vit || 5}</b> <button class="btn-stat" onclick="addStat('vit')">+</button></div></div>
                         </div>
-                        <div class="stat-row">
-                            <span>Beceri (INT):</span>
-                            <div><span id="valInt">${d.int || 5}</span> <button class="btn-stat" onclick="addStat('int')">+</button></div>
-                        </div>
-                        <div class="stat-row">
-                            <span>Çeviklik (DEX):</span>
-                            <div><span id="valDex">${d.dex || 5}</span> <button class="btn-stat" onclick="addStat('dex')">+</button></div>
-                        </div>
-                        <div class="stat-row">
-                            <span>Dayanıklılık (VIT):</span>
-                            <div><span id="valVit">${d.vit || 5}</span> <button class="btn-stat" onclick="addStat('vit')">+</button></div>
+                        
+                        <!-- Karakter Resmi -->
+                        <div class="char-portrait">
+                            <img src="karakter.jpg" alt="Karakterim">
                         </div>
                     </div>
 
-                    <!-- Sağ: Gladiatus Ekipman Slotları -->
+                    <!-- Sağ: Ekipman Slotları -->
                     <div class="equipment-grid-wrapper">
                         <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kurolan Ekipmanlar</span>
                         <div class="eq-slots-container">
