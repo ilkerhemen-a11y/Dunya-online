@@ -1,370 +1,192 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Public klasöründen statik sunum
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname + '/public')); // index.html dosyanız public klasöründeyse
 
-// Anlık Oyuncu Veritabanı
-const players = {};
-
-// Görevler (Hasar oranları eklendi)
-const QUESTS = {
-  1: { name: 'Karanlık Orman Bandidoları', gold: 45, exp: 20, damage: 15 },
-  2: { name: 'Unutulmuş Tapınak Harabeleri', gold: 120, exp: 55, damage: 30 },
-  3: { name: 'Ejderha Dağı Etekleri', gold: 300, exp: 140, damage: 50 }
-};
-
-// Pazar / Mülk Verileri
-const ESTATES = {
-  1: { name: 'Küçük Buğday Çiftliği', cost: 500, incomePerMin: 10 },
-  2: { name: 'Üzüm Bağı ve Şaraphane', cost: 2000, incomePerMin: 45 },
-  3: { name: 'Sınır Kalesi ve Ticaret Noktası', cost: 7500, incomePerMin: 180 }
-};
-
-// Dakikalık Pasif Mülk Gelir Döngüsü
-setInterval(() => {
-  Object.keys(players).forEach(socketId => {
-    const player = players[socketId];
-    if (player && player.estates) {
-      let passiveIncome = 0;
-      Object.keys(player.estates).forEach(estateId => {
-        const count = player.estates[estateId];
-        if (count > 0 && ESTATES[estateId]) {
-          passiveIncome += ESTATES[estateId].incomePerMin * count;
-        }
-      });
-
-      if (passiveIncome > 0) {
-        player.balance += passiveIncome;
-        io.to(socketId).emit('marketResult', {
-          userData: player,
-          message: `Tımarlarınızdan ${passiveIncome} Altın pasif gelir toplandı!`
-        });
-      }
-    }
-  });
-}, 60000);
+// Bellekte tutulan oyuncu verileri
+const users = {};
 
 io.on('connection', (socket) => {
-  console.log(`Yeni oyuncu bağlandı: ${socket.id}`);
+    console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-  // 1. KULLANICI GİRİŞİ (userLogin)
-  socket.on('userLogin', (data) => {
-    const username = data.username ? data.username.trim() : 'Bilinmeyen Savaşçı';
-    const baseVit = 5;
+    // Giriş Yapma / Oyuncu Oluşturma
+    socket.on('userLogin', (data) => {
+        const username = data.username ? data.username.trim() : 'Gladyatör';
+        
+        users[socket.id] = {
+            id: socket.id,
+            username: username,
+            level: 1,
+            exp: 0,
+            balance: 100,
+            rubies: 10,
+            str: 5,
+            vit: 5,
+            statPoints: 0,
+            hp: 100,
+            seferLimiti: 20,         // Sefer sınırı (Max 20)
+            seferNextRefill: null,   // Yenilenme süresi (Timestamp)
+            upgrades: { weapon: 0, armor: 0, helmet: 0 },
+            equipped: {},
+            inventory: [
+                { name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 2, vitBonus: 0 }
+            ]
+        };
 
-    // userLogin içindeki player objesine ekleyin:
-players[socket.id] = {
-    id: socket.id,
-    username: username,
-    level: 1,
-    balance: 250,
-    exp: 0,
-    statPoints: 5,
-    str: 5, int: 5, dex: 5, vit: 5,
-    hp: 100,
-    upgrades: { weapon: 0, armor: 0, helmet: 0 },
-    estates: { 1: 0, 2: 0, 3: 0 },
-    // YENİ: Ekipman ve Envanter Yapısı
-    equipped: {
-        helmet: null,
-        necklace: null,
-        armor: null,
-        weapon: { id: 'w1', type: 'weapon', name: 'Paslı Kısa Kılıç', strBonus: 3, vitBonus: 0, icon: '⚔️' },
-        shield: null,
-        ring: null,
-        gloves: null,
-        boots: null
-    },
-    inventory: [
-        { id: 'h1', type: 'helmet', name: 'Deri Miğfer', strBonus: 1, vitBonus: 2, icon: '🪖' },
-        { id: 'a1', type: 'armor', name: 'Köylü Zırhı', strBonus: 0, vitBonus: 4, icon: '🛡️' }
-    ]
-};
-
-// YENİ: Eşya Kuşanma Dinleyicisi
-socket.on('equipItem', (data) => {
-    const player = players[socket.id];
-    if (!player || !player.inventory[data.itemIndex]) return;
-
-    const item = player.inventory[data.itemIndex];
-    const slot = item.type; // helmet, armor, weapon vb.
-
-    // Eğer o slotta zaten bir eşya varsa, onu envantere geri koy
-    if (player.equipped[slot]) {
-        player.inventory.push(player.equipped[slot]);
-    }
-
-    // Eşyayı kuşan ve envanterden çıkar
-    player.equipped[slot] = item;
-    player.inventory.splice(data.itemIndex, 1);
-
-    // Güncel veriyi gönder
-    socket.emit('statUpdated', player);
-});
-
-// YENİ: Eşya Çıkarma Dinleyicisi
-socket.on('unequipItem', (data) => {
-    const player = players[socket.id];
-    if (!player || !player.equipped[data.slot]) return;
-
-    // Eşyayı envantere aktar ve slottan çıkar
-    player.inventory.push(player.equipped[data.slot]);
-    player.equipped[data.slot] = null;
-
-    // Güncel veriyi gönder
-    socket.emit('statUpdated', player);
-});
-
-    socket.emit('userData', players[socket.id]);
-    
-    io.emit('receiveChatMessage', {
-      username: 'Sistem',
-      message: `${username} meydanlara adım attı!`
+        socket.emit('userData', users[socket.id]);
     });
-  });
 
-  // 2. NİTELİK DAĞITIMI (distributeStat)
-  socket.on('distributeStat', (statName) => {
-    const player = players[socket.id];
-    if (!player) return;
+    // Sefer / Görev Yapma
+    socket.on('doQuest', (data) => {
+        const user = users[socket.id];
+        if (!user) return;
 
-    if (player.statPoints > 0 && ['str', 'int', 'dex', 'vit'].includes(statName)) {
-      player.statPoints -= 1;
-      player[statName] += 1;
+        const now = Date.now();
+        const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat (Milisaniye)
 
-      // VIT artarsa Maksimum ve mevcut HP +20 yükselir
-      if (statName === 'vit') {
-        player.hp += 20;
-      }
+        // 1 Saat dolduysa sefer limitini otomatik sıfırla
+        if (user.seferNextRefill && now >= user.seferNextRefill) {
+            user.seferLimiti = 20;
+            user.seferNextRefill = null;
+        }
 
-      socket.emit('statUpdated', player);
-    }
-  });
+        // Limit kontrolü
+        if (user.seferLimiti <= 0) {
+            return socket.emit('questResult', {
+                success: false,
+                message: "Sefer limitiniz dolmuştur! Yenilenmesi için sürenin bitmesini bekleyin.",
+                userData: user
+            });
+        }
 
-  // 3. SEFER DÜZENLEME & HASAR ALMA (doQuest)
-  socket.on('doQuest', (data) => {
-    const player = players[socket.id];
-    if (!player) return;
+        // Limit düşür ve gerekirse geri sayımı başlat
+        user.seferLimiti -= 1;
+        if (!user.seferNextRefill) {
+            user.seferNextRefill = now + COOLDOWN_TIME;
+        }
 
-    const quest = QUESTS[data.questId];
-    if (!quest) return;
+        // Kazanç Hesaplama
+        const questId = data.questId || 1;
+        const goldEarned = questId * 45 + Math.floor(Math.random() * 15);
+        const expEarned = questId * 25;
 
-    // Can kontrolü
-    if (player.hp <= 10) {
-      return socket.emit('questResult', {
-        userData: player,
-        message: "⚠️ Canınız çok düşük (10 HP altı)! Sefere çıkmak için önce iksir içmelisiniz.",
-        goldEarned: 0,
-        expEarned: 0
-      });
-    }
+        user.balance += goldEarned;
+        user.exp += expEarned;
 
-    // Hasar ve ödül hesabı
-    const damageTaken = quest.damage;
-    player.hp = Math.max(0, player.hp - damageTaken);
+        // Seviye Atlama (Level Up) Kontrolü
+        const maxExp = user.level * 100;
+        if (user.exp >= maxExp) {
+            user.level += 1;
+            user.exp -= maxExp;
+            user.statPoints += 3;
+        }
 
-    player.balance += quest.gold;
-    player.exp += quest.exp;
-
-    // Seviye Atlama (Gerekli EXP: Level * 100)
-    let maxExp = player.level * 100;
-    let leveledUp = false;
-
-    if (player.exp >= maxExp) {
-      player.level += 1;
-      player.exp -= maxExp;
-      player.statPoints += 3;
-      player.hp = player.vit * 20; // Seviye atlayınca can fuller
-      leveledUp = true;
-    }
-
-    let msg = `${quest.name} seferinde ${damageTaken} HP kaybettiniz.`;
-    if (leveledUp) {
-      msg += ` 🎉 SEVİYE ATLADINIZ (${player.level}. Seviye)! Canınız tazelendi, +3 Stat puanı kazandınız.`;
-    }
-
-    socket.emit('questResult', {
-      userData: player,
-      message: msg,
-      goldEarned: quest.gold,
-      expEarned: quest.exp
+        socket.emit('questResult', {
+            success: true,
+            message: "Sefer başarıyla tamamlandı!",
+            goldEarned: goldEarned,
+            expEarned: expEarned,
+            userData: user
+        });
     });
-  });
 
-  // 4. İKSİR KULLANMA (usePotion)
-  socket.on('usePotion', () => {
-    const player = players[socket.id];
-    if (!player) return;
+    // Nitelik (Stat) Dağıtma
+    socket.on('distributeStat', (statName) => {
+        const user = users[socket.id];
+        if (!user || user.statPoints <= 0) return;
 
-    const maxHp = player.vit * 20;
-    const potionCost = 50;
+        if (statName === 'str') {
+            user.str += 1;
+            user.statPoints -= 1;
+        } else if (statName === 'vit') {
+            user.vit += 1;
+            user.statPoints -= 1;
+            user.hp = user.vit * 20; // Canı güncelle
+        }
 
-    if (player.hp >= maxHp) {
-      return socket.emit('questResult', {
-        userData: player,
-        message: "Canınız zaten tamamen dolu!",
-        goldEarned: 0,
-        expEarned: 0
-      });
-    }
-
-    if (player.balance >= potionCost) {
-      player.balance -= potionCost;
-      player.hp = Math.min(maxHp, player.hp + 50);
-      socket.emit('questResult', {
-        userData: player,
-        message: "🧪 İksir içildi! +50 HP kazanıldı.",
-        goldEarned: 0,
-        expEarned: 0
-      });
-    } else {
-      socket.emit('questResult', {
-        userData: player,
-        message: "Yetersiz Altın! İksir bedeli: 50 Altın.",
-        goldEarned: 0,
-        expEarned: 0
-      });
-    }
-  });
-
-  // 5. MÜLK SATIN ALMA (buyEstate)
-  socket.on('buyEstate', (data) => {
-    const player = players[socket.id];
-    if (!player) return;
-
-    const estate = ESTATES[data.estateId];
-    if (!estate) return;
-
-    if (player.balance >= estate.cost) {
-      player.balance -= estate.cost;
-      player.estates[data.estateId] = (player.estates[data.estateId] || 0) + 1;
-
-      socket.emit('marketResult', {
-        userData: player,
-        message: `${estate.name} satın alındı! Pasif gelirinize eklendi.`
-      });
-    } else {
-      socket.emit('marketResult', {
-        userData: player,
-        message: `Yetersiz Altın! ${estate.name} için ${estate.cost} Altın gerekiyor.`
-      });
-    }
-  });
-
-  // 6. DEMİRHANE / + BASMA (upgradeItem)
-  socket.on('upgradeItem', (data) => {
-    const player = players[socket.id];
-    if (!player) return;
-
-    const itemType = data.itemType;
-    if (player.upgrades[itemType] === undefined) return;
-
-    const currentLevel = player.upgrades[itemType];
-    const cost = (currentLevel + 1) * 100;
-
-    if (player.balance >= cost) {
-      player.balance -= cost;
-      player.upgrades[itemType] += 1;
-
-      // Nitelik bonusları
-      if (itemType === 'weapon') player.str += 1;
-      if (itemType === 'armor') {
-        player.vit += 1;
-        player.hp += 20;
-      }
-      if (itemType === 'helmet') player.int += 1;
-
-      socket.emit('forgeResult', {
-        userData: player,
-        itemType: itemType,
-        newLevel: player.upgrades[itemType],
-        message: `Teçhizatınız +${player.upgrades[itemType]} seviyesine yükseltildi!`
-      });
-    } else {
-      socket.emit('forgeResult', {
-        userData: player,
-        itemType: itemType,
-        newLevel: currentLevel,
-        message: `Yetersiz Altın! Yükseltme bedeli: ${cost} Altın.`
-      });
-    }
-  });
-
-  // 7. SOHBET (sendChatMessage)
-  socket.on('sendChatMessage', (data) => {
-    const player = players[socket.id];
-    if (!player || !data.message) return;
-
-    const cleanMsg = data.message.trim();
-    if (cleanMsg.length === 0) return;
-
-    io.emit('receiveChatMessage', {
-      username: player.username,
-      message: cleanMsg
+        socket.emit('statUpdated', user);
     });
-  });
 
-  // Bağlantı Kopması
-  socket.on('disconnect', () => {
-    delete players[socket.id];
-    console.log(`Oyuncu ayrıldı: ${socket.id}`);
-  });
+    // İksir İçme (Sefer / Can Yenileme)
+    socket.on('usePotion', () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const potionCost = 50;
+        if (user.balance < potionCost) {
+            return socket.emit('questResult', {
+                success: false,
+                message: "İksir satın almak için yeterli altınınız yok!",
+                userData: user
+            });
+        }
+
+        user.balance -= potionCost;
+        user.seferLimiti = 20;
+        user.seferNextRefill = null;
+
+        socket.emit('questResult', {
+            success: true,
+            message: "İksir içildi! Sefer limitiniz tamamen yenilendi.",
+            goldEarned: 0,
+            expEarned: 0,
+            userData: user
+        });
+    });
+
+    // Demirhane (+ Basma)
+    socket.on('upgradeItem', (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const itemType = data.itemType; // 'weapon', 'armor', 'helmet'
+        const currentLvl = user.upgrades[itemType] || 0;
+        const cost = (currentLvl + 1) * 100;
+
+        if (user.balance < cost) {
+            return socket.emit('marketResult', {
+                success: false,
+                message: "Geliştirme için yeterli altınınız bulunmuyor!",
+                userData: user
+            });
+        }
+
+        user.balance -= cost;
+        user.upgrades[itemType] = currentLvl + 1;
+
+        socket.emit('forgeResult', {
+            success: true,
+            itemType: itemType,
+            newLevel: user.upgrades[itemType],
+            message: `${itemType.toUpperCase()} başarıyla +${user.upgrades[itemType]} seviyesine yükseltildi!`,
+            userData: user
+        });
+    });
+
+    // Sohbet Mesajı Gönderme
+    socket.on('sendChatMessage', (data) => {
+        const user = users[socket.id];
+        if (!user || !data.message) return;
+
+        io.emit('receiveChatMessage', {
+            username: user.username,
+            message: data.message
+        });
+    });
+
+    // Bağlantı Kopması
+    socket.on('disconnect', () => {
+        console.log('Gladyatör ayrıldı:', socket.id);
+        delete users[socket.id];
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Diyar Online sunucusu ${PORT} portunda aktif! http://localhost:${PORT}`);
-});
-// Oyuncu objesindeki isimler:
-// user.seferLimiti = 20;
-// user.seferNextRefill = null;
-
-socket.on('doQuest', (data) => {
-    const user = users[socket.id];
-    if (!user) return;
-
-    const now = Date.now();
-    const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat
-
-    // 1 Saat dolduğunda hakkı yenile
-    if (user.seferNextRefill && now >= user.seferNextRefill) {
-        user.seferLimiti = 20;
-        user.seferNextRefill = null;
-    }
-
-    if (user.seferLimiti <= 0) {
-        return socket.emit('questResult', {
-            success: false,
-            message: "Sefer limitiniz dolmuştur! Yenilenmesi için 1 saat beklemeniz gerekiyor.",
-            userData: user
-        });
-    }
-
-    // Sefer hakkını düşür
-    user.seferLimiti -= 1;
-
-    if (!user.seferNextRefill) {
-        user.seferNextRefill = now + COOLDOWN_TIME;
-    }
-
-    const goldEarned = data.questId * 40 + Math.floor(Math.random() * 20);
-    const expEarned = data.questId * 20;
-
-    user.balance = (user.balance || 0) + goldEarned;
-    user.exp = (user.exp || 0) + expEarned;
-
-    socket.emit('questResult', {
-        success: true,
-        message: "Sefer başarıyla tamamlandı!",
-        goldEarned: goldEarned,
-        expEarned: expEarned,
-        userData: user
-    });
+    console.log(`Sunucu http://localhost:${PORT} üzerinde çalışıyor.`);
 });
