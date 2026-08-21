@@ -37,9 +37,10 @@
         .header-section { display: flex; align-items: center; gap: 15px; }
         .resource-item { display: flex; align-items: center; gap: 5px; font-weight: bold; color: #f3cf7a; }
         .bar-container { display: flex; flex-direction: column; gap: 2px; }
-        .stat-bar-mini { width: 110px; height: 12px; background: #111; border: 1px solid #433222; border-radius: 2px; position: relative; overflow: hidden; }
+        .stat-bar-mini { width: 100px; height: 12px; background: #111; border: 1px solid #433222; border-radius: 2px; position: relative; overflow: hidden; }
         .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 100%; transition: width 0.3s ease; }
         .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #ca8a04); width: 0%; transition: width 0.3s ease; }
+        .stat-bar-fill.sefer { background: linear-gradient(to right, #3b82f6, #1d4ed8); width: 100%; transition: width 0.3s ease; }
 
         /* Ana Oyun Alanı */
         .main-wrapper {
@@ -165,7 +166,6 @@
         }
         .btn-stat:hover { background: #f3cf7a; }
 
-        /* Karakter Resmi Çerçevesi */
         .char-portrait {
             width: 100%;
             margin-top: 15px;
@@ -181,7 +181,6 @@
             filter: brightness(0.9) contrast(1.1);
         }
 
-        /* Ekipman Ekranı (Gladiatus Slotları) */
         .equipment-grid-wrapper {
             background: #18130f;
             border: 1px solid #433222;
@@ -216,7 +215,6 @@
 
         .eq-slot:hover { border-color: #b38b4d; }
 
-        /* Ortak Liste & Kart Yapıları */
         .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
         .quest-card, .market-card, .forge-card {
             background: #18130f;
@@ -248,7 +246,13 @@
             transition: 0.1s;
             white-space: nowrap;
         }
-        .btn-quest:hover { background: #f3cf7a; }
+        .btn-quest:hover:not(:disabled) { background: #f3cf7a; }
+        .btn-quest:disabled {
+            background: #332820;
+            color: #665548;
+            border-color: #221a14;
+            cursor: not-allowed;
+        }
         
         .quest-log {
             margin-top: 15px;
@@ -261,13 +265,7 @@
             min-height: 40px;
         }
 
-        /* Sohbet (Diyar Meclisi) Alanı */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            height: 420px;
-        }
+        .chat-container { display: flex; flex-direction: column; gap: 10px; height: 420px; }
         .chat-messages {
             flex: 1;
             background: #110d0a;
@@ -282,10 +280,7 @@
         }
         .chat-msg { border-bottom: 1px dashed #221a14; padding-bottom: 4px; }
         .chat-msg span { color: #f3cf7a; font-weight: bold; }
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-        }
+        .chat-input-area { display: flex; gap: 8px; }
         .chat-input-area input {
             flex: 1;
             background: #110d0a;
@@ -297,7 +292,6 @@
         }
         .chat-input-area input:focus { outline: none; border-color: #b38b4d; }
 
-        /* Giriş Modalı */
         .modal-overlay { position: fixed; inset: 0; background: rgba(10, 6, 4, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .box { background: #17100c; padding: 30px; border-radius: 4px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
         .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 22px; }
@@ -308,6 +302,7 @@
         @media (max-width: 768px) {
             .main-wrapper { grid-template-columns: 1fr; }
             .character-screen { grid-template-columns: 1fr; }
+            .game-header { flex-direction: column; gap: 8px; padding: 10px; }
         }
     </style>
 </head>
@@ -338,6 +333,11 @@
                 <span id="expLabel" style="font-size: 10px; color: #a3957f;">Tecrübe</span>
                 <div class="stat-bar-mini"><div id="expBarFill" class="stat-bar-fill exp" style="width: 0%;"></div></div>
             </div>
+            <!-- SEFER LİMİTİ BARI -->
+            <div class="bar-container">
+                <span id="seferLabel" style="font-size: 10px; color: #a3957f;">Sefer Limiti (20/20)</span>
+                <div class="stat-bar-mini"><div id="seferBarFill" class="stat-bar-fill sefer" style="width: 100%;"></div></div>
+            </div>
         </div>
     </header>
 
@@ -364,7 +364,7 @@
             </div>
             
             <div id="panelContentBody">
-                <!-- Burası dinamik olarak dolacak -->
+                <!-- Dinamik içerik -->
             </div>
         </main>
 
@@ -374,6 +374,8 @@
     <script>
         const socket = io();
         let currentUserData = null;
+        let activeTab = 'overview';
+        let seferTimerInterval = null;
 
         function login() {
             const username = document.getElementById('usernameInput').value;
@@ -387,13 +389,13 @@
             currentUserData = data;
             updateHeader(data);
             switchTab('overview');
+            startSeferTimer();
         });
 
         function updateHeader(data) {
             if(!data) return;
             currentUserData = data;
             
-            // Altın ve Kullanıcı Adı
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
@@ -415,9 +417,47 @@
             const expLabel = document.getElementById('expLabel');
             if(expBarFill) expBarFill.style.width = `${expPercent}%`;
             if(expLabel) expLabel.innerText = `XP (%${Math.floor(expPercent)})`;
+
+            // SEFER LİMİTİ DİNAMİK GÜNCELLEME
+            const seferCount = data.seferLimiti !== undefined ? data.seferLimiti : (data.serdarBasi !== undefined ? data.serdarBasi : 20);
+            const seferPercent = (seferCount / 20) * 100;
+
+            const seferBarFill = document.getElementById('seferBarFill');
+            const seferLabel = document.getElementById('seferLabel');
+            if(seferBarFill) seferBarFill.style.width = `${seferPercent}%`;
+            if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferCount}/20)`;
+        }
+
+        // Canlı Sefer Limiti Geri Sayım Zamanlayıcısı
+        function startSeferTimer() {
+            if(seferTimerInterval) clearInterval(seferTimerInterval);
+            seferTimerInterval = setInterval(() => {
+                if(!currentUserData) return;
+                const seferCount = currentUserData.seferLimiti !== undefined ? currentUserData.seferLimiti : (currentUserData.serdarBasi !== undefined ? currentUserData.serdarBasi : 20);
+                const nextRefill = currentUserData.seferNextRefill || currentUserData.serdarNextRefill || 0;
+                const now = Date.now();
+                const diff = nextRefill - now;
+
+                const seferLabel = document.getElementById('seferLabel');
+
+                if (seferCount < 20 && diff > 0) {
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    if(seferLabel) seferLabel.innerText = `Sefer (${seferCount}/20) - ${formattedTime}`;
+
+                    const cdEl = document.getElementById('seferCooldownText');
+                    if(cdEl) cdEl.innerText = `Kalan Yenilenme Süresi: ${formattedTime}`;
+                } else {
+                    if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferCount}/20)`;
+                    const cdEl = document.getElementById('seferCooldownText');
+                    if(cdEl) cdEl.innerText = `Sefer Hakkı Hazır! (${seferCount}/20)`;
+                }
+            }, 1000);
         }
 
         function switchTab(tabId) {
+            activeTab = tabId;
             const titleEl = document.getElementById('panelHeaderTitle');
             const bodyEl = document.getElementById('panelContentBody');
             
@@ -444,7 +484,6 @@
             const eq = d.equipped || {};
             const inv = d.inventory || [];
 
-            // Ekipmanlardan gelen bonusları hesapla
             let bonusStr = 0;
             let bonusVit = 0;
             Object.values(eq).forEach(item => {
@@ -467,7 +506,6 @@
 
             container.innerHTML = `
                 <div class="character-screen">
-                    <!-- Sol: Nitelikler -->
                     <div style="display: flex; flex-direction: column; gap: 15px;">
                         <div class="char-stats-box">
                             <h3>Nitelikler (Puan: <span style="color:#76aab8;">${d.statPoints || 0}</span>)</h3>
@@ -486,7 +524,6 @@
                         </div>
                     </div>
 
-                    <!-- Sağ: Ekipman Slotları -->
                     <div class="equipment-grid-wrapper">
                         <span style="font-size: 12px; color: #a3957f; margin-bottom: 10px;">Kuşanılan Ekipmanlar (Çıkarmak için tıkla)</span>
                         <div class="eq-slots-container">
@@ -505,7 +542,6 @@
                     </div>
                 </div>
 
-                <!-- Alt Bölüm: Envanter -->
                 <div style="margin-top: 20px; background: #18130f; border: 1px solid #433222; padding: 15px; border-radius: 4px;">
                     <h3 style="font-size: 14px; color: #f3cf7a; margin-bottom: 10px;">🎒 Envanter</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
@@ -528,9 +564,17 @@
         }
 
         function renderWorkTab(container) {
+            const seferCount = currentUserData && currentUserData.seferLimiti !== undefined ? currentUserData.seferLimiti : (currentUserData && currentUserData.serdarBasi !== undefined ? currentUserData.serdarBasi : 20);
+            const isDisabled = seferCount <= 0;
+
             container.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <p style="color: #a3957f; font-size: 12px;">Antik toprakların tehlikeli bölgelerine seferler düzenleyerek şan, tecrübe ve altın kazan.</p>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; background: #18130f; padding: 10px; border: 1px solid #433222; border-radius: 4px;">
+                    <div>
+                        <div style="color: #f3cf7a; font-size: 13px; font-weight: bold;">⚔️ Sefer Limiti (Günlük Sefer Hakkı): ${seferCount} / 20</div>
+                        <div id="seferCooldownText" style="color: #38bdf8; font-size: 11px; margin-top: 2px;">
+                            ${seferCount < 20 ? 'Sefer Limiti Yenileniyor...' : 'Sefer Limiti Dolu!'}
+                        </div>
+                    </div>
                     <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:#fff;" onclick="socket.emit('usePotion')">🧪 İksir İç (50 Altın)</button>
                 </div>
                 
@@ -541,7 +585,9 @@
                             <p>Orman yollarını kesen haydutların kampına baskın düzenle.</p>
                             <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 XP</span></div>
                         </div>
-                        <button class="btn-quest" onclick="startQuest(1)">Sefer Düzenle</button>
+                        <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(1)">
+                            ${isDisabled ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)'}
+                        </button>
                     </div>
 
                     <div class="quest-card">
@@ -550,7 +596,9 @@
                             <p>Lanetli kalıntıların arasındaki antik koruyucularla dövüş.</p>
                             <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 XP</span></div>
                         </div>
-                        <button class="btn-quest" onclick="startQuest(2)">Sefer Düzenle</button>
+                        <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(2)">
+                            ${isDisabled ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)'}
+                        </button>
                     </div>
 
                     <div class="quest-card">
@@ -559,7 +607,9 @@
                             <p>Zirvedeki vahşi yaratıklarla yüzleş ve imparatorluk hazinesini ele geçir.</p>
                             <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 XP</span></div>
                         </div>
-                        <button class="btn-quest" onclick="startQuest(3)">Sefer Düzenle</button>
+                        <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(3)">
+                            ${isDisabled ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)'}
+                        </button>
                     </div>
                 </div>
 
@@ -639,7 +689,7 @@
                     </div>
                 </div>
 
-                <div id="forgeLog" class="quest-log">Örsün ateşi harlı, demirci geliştirmeler için hazır bekliyor...</div>
+                <div id="forgeLog" class="quest-log">Örsün ateşi harlı, demirci geliştirmeler için hazır bekliyyor...</div>
             `;
         }
 
@@ -689,15 +739,21 @@
         socket.on('statUpdated', (data) => {
             currentUserData = data;
             updateHeader(data);
-            renderOverviewTab(document.getElementById('panelContentBody'));
+            if(activeTab === 'overview') renderOverviewTab(document.getElementById('panelContentBody'));
         });
 
         socket.on('questResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            if(activeTab === 'work') renderWorkTab(document.getElementById('panelContentBody'));
+
             const logEl = document.getElementById('questLog');
             if(logEl) {
-                logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span>`;
+                if(data.success === false) {
+                    logEl.innerHTML = `<b style="color: #ef4444;">${data.message}</b>`;
+                } else {
+                    logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b> <br><span style="color: #22c55e;">Kazanılan: ${data.goldEarned} Altın, ${data.expEarned} XP</span>`;
+                }
             }
         });
 
@@ -705,9 +761,7 @@
             currentUserData = data.userData;
             updateHeader(currentUserData);
             const logEl = document.getElementById('marketLog');
-            if(logEl) {
-                logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
-            }
+            if(logEl) logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
         });
 
         socket.on('forgeResult', (data) => {
@@ -719,9 +773,7 @@
             if(costEl) costEl.innerText = (data.newLevel + 1) * 100;
 
             const logEl = document.getElementById('forgeLog');
-            if(logEl) {
-                logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
-            }
+            if(logEl) logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
         });
 
         socket.on('receiveChatMessage', (data) => {
