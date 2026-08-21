@@ -3,182 +3,296 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taht Savaşı - RPG</title>
+  <title>Diyar Online - RPG</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
-      --bg-color: #121214;
-      --card-bg: #1a1a1e;
-      --accent: #e5a93b;
-      --accent-hover: #f5b94b;
-      --text: #e1e1e6;
-      --text-dim: #a8a8b3;
-      --border: #29292e;
-      --danger: #e54b4b;
-      --success: #4be584;
+      --bg-dark: #0f0a06;
+      --panel-bg: #1a120b;
+      --panel-card: #221810;
+      --border-color: #3d2b1f;
+      --border-accent: #5a402d;
+      --text-main: #cbb89d;
+      --text-bright: #f0e2cf;
+      --text-gold: #d4af37;
+      --accent-btn: #4a3423;
+      --accent-btn-hover: #634731;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: var(--bg-color); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', 'Times New Roman', serif; user-select: none; }
 
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding-bottom: 20px;
+    }
+
+    /* Login Screen Overlay */
     #login-screen {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.92);
       display: flex; justify-content: center; align-items: center; z-index: 100;
     }
-    .login-box { background: var(--card-bg); padding: 30px; border-radius: 12px; border: 1px solid var(--border); text-align: center; width: 320px; }
-    .login-box input { width: 100%; padding: 10px; margin: 15px 0; background: #101012; border: 1px solid var(--border); color: #fff; border-radius: 6px; }
-
-    .grid-container {
-      display: grid; grid-template-columns: 300px 1fr 320px; gap: 20px;
-      max-width: 1400px; width: 100%;
+    .login-box {
+      background: var(--panel-bg); padding: 30px; border-radius: 4px;
+      border: 2px solid var(--border-accent); text-align: center; width: 340px;
+      box-shadow: 0 0 20px #000;
+    }
+    .login-box h2 { color: var(--text-gold); margin-bottom: 10px; font-size: 1.6rem; }
+    .login-box input {
+      width: 100%; padding: 10px; margin: 15px 0; background: #0c0805;
+      border: 1px solid var(--border-color); color: var(--text-bright); border-radius: 3px; outline: none;
     }
 
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
-    .card h3 { color: var(--accent); margin-bottom: 12px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-
-    /* EXP ve İlerleme Çubuğu */
-    .exp-container { margin: 10px 0; }
-    .exp-bar-bg { background: #101012; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); position: relative; }
-    .exp-bar-fill { background: linear-gradient(90deg, #3b82f6, #8b5cf6); height: 100%; width: 0%; transition: width 0.3s; }
-    .exp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
-
-    /* Stat Alanı */
-    .stat-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 0.9rem; }
-    .btn-stat { background: var(--accent); color: #000; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-stat:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    /* Genel Butonlar */
-    button.btn-main {
-      width: 100%; padding: 12px; background: var(--accent); color: #000;
-      border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px;
+    /* Top Status Bar */
+    .top-bar {
+      width: 100%; max-width: 1100px; background: #150e08;
+      border-bottom: 2px solid var(--border-color);
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 16px; font-size: 0.85rem; color: var(--text-bright);
     }
-    button.btn-main:hover { background: var(--accent-hover); }
+    .currencies { display: flex; gap: 20px; align-items: center; }
+    .currency-item { display: flex; align-items: center; gap: 6px; }
+    .currency-item img { width: 16px; height: 16px; }
 
-    /* Mülk Kataloğu */
-    .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-    .prop-item { background: #101012; border: 1px solid var(--border); padding: 10px; border-radius: 8px; font-size: 0.85rem; }
+    .bars-container { display: flex; gap: 15px; align-items: center; }
+    .bar-group { display: flex; flex-direction: column; align-items: flex-end; width: 120px; }
+    .bar-label { font-size: 0.7rem; color: #8a7a6a; margin-bottom: 2px; }
+    .bar-bg { width: 100%; height: 8px; background: #0a0604; border: 1px solid var(--border-color); border-radius: 2px; overflow: hidden; }
+    .bar-hp { background: #388e3c; height: 100%; width: 100%; transition: width 0.3s; }
+    .bar-exp { background: #f57c00; height: 100%; width: 0%; transition: width 0.3s; }
 
-    /* Konsol / Log */
-    #game-logs { height: 180px; overflow-y: auto; background: #101012; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 0.85rem; font-family: monospace; }
-    .log-item { margin-bottom: 4px; color: var(--text-dim); }
+    /* Main Container Layout */
+    .main-wrapper {
+      width: 100%; max-width: 1100px; display: flex; gap: 15px; margin-top: 15px; padding: 0 10px;
+    }
 
-    /* Chat & Online List */
-    #chat-messages { height: 150px; overflow-y: auto; background: #101012; border: 1px solid var(--border); padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; }
-    .chat-input-group { display: flex; gap: 5px; }
-    .chat-input-group input { flex: 1; padding: 6px; background: #101012; border: 1px solid var(--border); color: #fff; border-radius: 4px; }
+    /* Sidebar Navigation */
+    .sidebar { width: 220px; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; }
+    .menu-group { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 2px; overflow: hidden; }
+    .menu-header {
+      background: #120b06; color: var(--text-gold); font-size: 0.75rem;
+      padding: 8px 12px; font-weight: bold; letter-spacing: 1px; border-bottom: 1px solid var(--border-color);
+    }
+    .menu-item {
+      padding: 10px 14px; font-size: 0.85rem; color: var(--text-main); cursor: pointer;
+      border-bottom: 1px solid #241910; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    .menu-item:hover, .menu-item.active { background: #281c12; color: var(--text-bright); border-left: 3px solid var(--text-gold); }
+
+    /* Main Content Area */
+    .content-area { flex: 1; background: var(--panel-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 2px; }
+    .content-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;
+    }
+    .content-title { color: var(--text-gold); font-size: 1.1rem; font-weight: bold; }
+    .user-tag { font-size: 0.9rem; color: var(--text-bright); }
+
+    /* Character View Grid */
+    .character-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    
+    .panel-box {
+      background: var(--panel-card); border: 1px solid var(--border-color); padding: 12px; border-radius: 2px;
+    }
+    .panel-title { font-size: 0.85rem; color: var(--text-bright); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #332216; padding-bottom: 5px; }
+
+    /* Attributes List */
+    .stat-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
+    .btn-add {
+      background: #3b281a; color: var(--text-gold); border: 1px solid var(--border-accent);
+      width: 20px; height: 20px; display: flex; justify-content: center; align-items: center;
+      cursor: pointer; font-weight: bold; font-size: 0.8rem; border-radius: 2px;
+    }
+    .btn-add:hover { background: #543a26; }
+
+    /* Character Image Container */
+    .char-portrait {
+      width: 100%; height: 380px; margin-top: 10px; border: 1px solid var(--border-color);
+      background-image: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop');
+      background-size: cover; background-position: center top; border-radius: 2px;
+    }
+
+    /* Equipment Slots Grid (3x3) */
+    .equipment-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; width: 180px; margin-x: auto; margin: 20px auto 0 auto;
+    }
+    .equip-slot {
+      width: 50px; height: 50px; background: #120b06; border: 1px solid var(--border-color);
+      display: flex; justify-content: center; align-items: center; font-size: 1.2rem; opacity: 0.6; cursor: pointer; transition: 0.2s;
+    }
+    .equip-slot:hover { border-color: var(--text-gold); opacity: 1; }
+
+    /* General Buttons */
+    .btn-action {
+      background: var(--accent-btn); color: var(--text-bright); border: 1px solid var(--border-accent);
+      padding: 10px 15px; cursor: pointer; font-size: 0.85rem; border-radius: 2px; width: 100%; margin-top: 10px;
+    }
+    .btn-action:hover { background: var(--accent-btn-hover); border-color: var(--text-gold); }
+
+    /* Tab content hidden states */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Logs & Chat */
+    .log-box { height: 160px; overflow-y: auto; background: #0c0805; border: 1px solid var(--border-color); padding: 8px; font-size: 0.8rem; margin-top: 10px; }
+    .log-entry { margin-bottom: 4px; color: #a09080; }
+
+    .chat-box { height: 140px; overflow-y: auto; background: #0c0805; border: 1px solid var(--border-color); padding: 8px; font-size: 0.8rem; margin-bottom: 8px; }
+    .chat-input-row { display: flex; gap: 5px; }
+    .chat-input-row input { flex: 1; background: #0c0805; border: 1px solid var(--border-color); color: #fff; padding: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- Giriş Ekranı -->
+  <!-- Login Dialog -->
   <div id="login-screen">
     <div class="login-box">
-      <h2>Taht Savaşı</h2>
-      <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 5px;">Diyara Adım At</p>
-      <input type="text" id="username-input" placeholder="Karakter Adı" maxlength="20">
-      <button class="btn-main" onclick="login()">Oyuna Başla</button>
+      <h2>DİYAR ONLINE</h2>
+      <p style="color: #8a7a6a; font-size: 0.8rem;">Karakter İsminizi Giriniz</p>
+      <input type="text" id="username-input" placeholder="Savaşçı Adı" maxlength="20">
+      <button class="btn-action" onclick="login()">Meydana Adım At</button>
     </div>
   </div>
 
-  <!-- Oyun Alanı -->
-  <div class="grid-container">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="currencies">
+      <div class="currency-item">🪙 <span id="p-gold">0</span> Altın</div>
+      <div class="currency-item">💎 <span id="p-gems">18</span> Yakut</div>
+    </div>
+    <div class="bars-container">
+      <div class="bar-group">
+        <span class="bar-label">Can Puanı</span>
+        <div class="bar-bg"><div class="bar-hp" id="hp-fill"></div></div>
+      </div>
+      <div class="bar-group">
+        <span class="bar-label">Tecrübe</span>
+        <div class="bar-bg"><div class="bar-exp" id="exp-fill"></div></div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Sol Kolon: Karakter Statları -->
-    <div>
-      <div class="card">
-        <h3>⚔️ Karakter Profili</h3>
-        <p><strong>İsim:</strong> <span id="p-name">-</span></p>
-        <p><strong>Meslek:</strong> <span id="p-job">-</span></p>
-        <p><strong>Seviye:</strong> <span id="p-level">1</span></p>
-        <p><strong>Altın:</strong> <span id="p-gold" style="color: var(--accent);">0</span> 🪙</p>
+  <!-- Main Layout -->
+  <div class="main-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="menu-group">
+        <div class="menu-header">İMPARATORLUK</div>
+        <div class="menu-item active" onclick="switchTab('tab-karakter', this)">🛡️ Genel Durum</div>
+        <div class="menu-item" onclick="switchTab('tab-isler', this)">⚔️ İş / Görevler</div>
+        <div class="menu-item" onclick="switchTab('tab-pazar', this)">🏛️ Pazar Yeri</div>
+        <div class="menu-item" onclick="switchTab('tab-demirhane', this)">🔨 Demirhane</div>
+      </div>
 
-        <!-- EXP Bar -->
-        <div class="exp-container">
-          <div style="font-size: 0.8rem; margin-bottom: 4px;">Tecrübe (EXP)</div>
-          <div class="exp-bar-bg">
-            <div id="exp-fill" class="exp-bar-fill"></div>
-            <div id="exp-text" class="exp-text">0 / 100</div>
+      <div class="menu-group">
+        <div class="menu-header">TOPLULUK</div>
+        <div class="menu-item" onclick="switchTab('tab-meclis', this)">📜 Diyar Meclisi</div>
+      </div>
+    </div>
+
+    <!-- Right Content Area -->
+    <div class="content-area">
+      <div class="content-header">
+        <div class="content-title" id="page-title">Genel Durum & Karakter</div>
+        <div class="user-tag"><span id="p-name">Oyuncu</span> (Seviye <span id="p-level">1</span>)</div>
+      </div>
+
+      <!-- Tab 1: Karakter & Genel Durum -->
+      <div id="tab-karakter" class="tab-content active">
+        <div class="character-grid">
+          <!-- Left Column: Nitelikler & Görsel -->
+          <div class="panel-box">
+            <div class="panel-title">Nitelikler (Puan: <span id="p-stat-points" style="color:var(--text-gold);">0</span>)</div>
+            
+            <div class="stat-line">
+              <span>Güç: <strong id="stat-str">5</strong></span>
+              <button class="btn-add" onclick="addStat('str')">+</button>
+            </div>
+            <div class="stat-line">
+              <span>Beceri: <strong id="stat-int">5</strong></span>
+              <button class="btn-add" onclick="addStat('int')">+</button>
+            </div>
+            <div class="stat-line">
+              <span>Çeviklik: <strong id="stat-dex">5</strong></span>
+              <button class="btn-add" onclick="addStat('dex')">+</button>
+            </div>
+            <div class="stat-line">
+              <span>Dayanıklılık: <strong id="stat-vit">10</strong></span>
+              <button class="btn-add" onclick="addStat('vit')">+</button>
+            </div>
+
+            <div class="char-portrait"></div>
+          </div>
+
+          <!-- Right Column: Kuşanılan Ekipmanlar -->
+          <div class="panel-box" style="text-align: center;">
+            <div class="panel-title">Kuşanılan Ekipmanlar</div>
+            
+            <div class="equipment-grid">
+              <div class="equip-slot" title="Miğfer">🪖</div>
+              <div class="equip-slot" title="Kolye">📿</div>
+              <div class="equip-slot" title="Omuzluk">🛡️</div>
+              <div class="equip-slot" title="Silah">⚔️</div>
+              <div class="equip-slot" title="Zırh">🪨</div>
+              <div class="equip-slot" title="Yüzük">💍</div>
+              <div class="equip-slot" title="Eldiven">🥊</div>
+              <div class="equip-slot" title="Çizme">👢</div>
+              <div class="equip-slot" title="Pelerin">🗡️</div>
+            </div>
+
+            <div style="margin-top: 30px;" class="panel-title">Oyun Günlüğü</div>
+            <div class="log-box" id="game-logs"></div>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <h3>✨ Yetenek Puanları (Stat)</h3>
-        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 10px;">
-          Dağıtılabilir Puan: <strong id="p-stat-points" style="color: var(--accent);">0</strong>
-        </p>
-
-        <div class="stat-row">
-          <span>VIT (Canlık): <strong id="stat-vit">0</strong></span>
-          <button class="btn-stat" onclick="addStat('vit')">+</button>
-        </div>
-        <div class="stat-row">
-          <span>INT (Zeka): <strong id="stat-int">0</strong></span>
-          <button class="btn-stat" onclick="addStat('int')">+</button>
-        </div>
-        <div class="stat-row">
-          <span>STR (Güç): <strong id="stat-str">0</strong></span>
-          <button class="btn-stat" onclick="addStat('str')">+</button>
-        </div>
-        <div class="stat-row">
-          <span>DEX (Çeviklik): <strong id="stat-dex">0</strong></span>
-          <button class="btn-stat" onclick="addStat('dex')">+</button>
+      <!-- Tab 2: İş / Görevler -->
+      <div id="tab-isler" class="tab-content">
+        <div class="panel-box">
+          <div class="panel-title">Zanaat Ve Çalışma Nöbeti</div>
+          <p style="font-size: 0.85rem; margin-bottom: 10px;">Mevcut Meslek: <strong id="p-job" style="color:var(--text-gold);">Demirci</strong></p>
+          <button class="btn-action" onclick="workShift()">Mesaiye Başla (Çalış & Altın/EXP Kazan)</button>
         </div>
       </div>
 
-      <div class="card">
-        <h3>📜 Zanaat & Çalışma</h3>
-        <button class="btn-main" id="btn-work" onclick="workShift()">İşe Başla (Çalış)</button>
-        <p id="cooldown-timer" style="font-size: 0.8rem; color: var(--danger); margin-top: 6px; text-align: center;"></p>
+      <!-- Tab 3: Pazar Yeri -->
+      <div id="tab-pazar" class="tab-content">
+        <div class="panel-box">
+          <div class="panel-title">Tımar Ve Mülk Pazarı</div>
+          <div id="pazar-list" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"></div>
+        </div>
       </div>
+
+      <!-- Tab 4: Demirhane -->
+      <div id="tab-demirhane" class="tab-content">
+        <div class="panel-box">
+          <div class="panel-title">Eşya & Silah Geliştirme</div>
+          <p style="font-size: 0.85rem; color:#8a7a6a;">Demirhane usta demirciler tarafından yakında hizmete açılacak...</p>
+        </div>
+      </div>
+
+      <!-- Tab 5: Diyar Meclisi (Sohbet) -->
+      <div id="tab-meclis" class="tab-content">
+        <div class="panel-box">
+          <div class="panel-title">Sohbet Ve Aktif Oyuncular</div>
+          <div class="chat-box" id="chat-messages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Mesajınızı yazın..." onkeypress="if(event.key==='Enter') sendChat()">
+            <button class="btn-action" style="width: auto; margin:0;" onclick="sendChat()">Gönder</button>
+          </div>
+        </div>
+      </div>
+
     </div>
-
-    <!-- Orta Kolon: Tımarlar ve Araziler -->
-    <div>
-      <div class="card">
-        <h3>🏰 Tımar Kataloğu</h3>
-        <div class="catalog-grid" id="catalog-list"></div>
-      </div>
-
-      <div class="card">
-        <h3>📜 Mülklerin ve Gelirler</h3>
-        <div class="catalog-grid" id="my-properties-list"></div>
-      </div>
-    </div>
-
-    <!-- Sağ Kolon: Oyun Logları & Sohbet -->
-    <div>
-      <div class="card">
-        <h3>📢 Oyun Günlüğü</h3>
-        <div id="game-logs"></div>
-      </div>
-
-      <div class="card">
-        <h3>💬 Şehir Meydanı (Sohbet)</h3>
-        <div id="chat-messages"></div>
-        <div class="chat-input-group">
-          <input type="text" id="chat-input" placeholder="Mesaj yaz..." onkeypress="if(event.key==='Enter') sendChat()">
-          <button style="padding: 6px 12px; background: var(--accent); border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="sendChat()">Gönder</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>👥 Aktif Yolcular (<span id="online-count">0</span>)</h3>
-        <ul id="online-users-list" style="list-style: none; font-size: 0.85rem;"></ul>
-      </div>
-    </div>
-
   </div>
 
   <script>
     const socket = io();
     let currentUser = null;
-
-    const JOBS = {
-      'ciftci': 'Çiftçi', 'demirci': 'Demirci', 'muhafiz': 'Muhafız',
-      'hanci': 'Hancı', 'buyucu': 'Büyücü', 'tuccar': 'Tüccar',
-      'hirsiz': 'Hırsız', 'avci': 'Avcı', 'sifaci': 'Şifacı', 'soylu': 'Soylu'
-    };
 
     const CATALOG = {
       'hut': { name: 'Kulübe', cost: 2500, hourly: 35 },
@@ -193,41 +307,50 @@
       document.getElementById('login-screen').style.display = 'none';
     }
 
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      element.classList.add('active');
+
+      const titles = {
+        'tab-karakter': 'Genel Durum & Karakter',
+        'tab-isler': 'İş / Görevler',
+        'tab-pazar': 'Pazar Yeri & Mülkler',
+        'tab-demirhane': 'Demirhane',
+        'tab-meclis': 'Diyar Meclisi'
+      };
+      document.getElementById('page-title').innerText = titles[tabId] || 'Diyar Online';
+    }
+
     socket.on('userData', (user) => {
       currentUser = user;
       
-      // Profil Bilgileri
       document.getElementById('p-name').innerText = user.username;
-      document.getElementById('p-job').innerText = JOBS[user.job] || user.job;
       document.getElementById('p-level').innerText = user.level;
       document.getElementById('p-gold').innerText = user.balance;
+      document.getElementById('p-stat-points').innerText = user.statPoints;
 
-      // EXP Güncellemesi
+      // Nitelikler
+      document.getElementById('stat-str').innerText = user.str;
+      document.getElementById('stat-int').innerText = user.int;
+      document.getElementById('stat-dex').innerText = user.dex;
+      document.getElementById('stat-vit').innerText = user.vit;
+
+      // EXP Bar
       const maxExp = user.level * 100;
       const expPct = Math.min(100, Math.floor((user.exp / maxExp) * 100));
       document.getElementById('exp-fill').style.width = expPct + '%';
-      document.getElementById('exp-text').innerText = `${user.exp} / ${maxExp} EXP`;
 
-      // Stat Bilgileri
-      document.getElementById('p-stat-points').innerText = user.statPoints;
-      document.getElementById('stat-vit').innerText = user.vit;
-      document.getElementById('stat-int').innerText = user.int;
-      document.getElementById('stat-str').innerText = user.str;
-      document.getElementById('stat-dex').innerText = user.dex;
-
-      // Stat Buton Kontrolü
-      const statBtns = document.querySelectorAll('.btn-stat');
-      statBtns.forEach(btn => btn.disabled = user.statPoints <= 0);
-
-      renderCatalog();
-      renderMyProperties();
+      renderPazar();
     });
 
     socket.on('gameLog', (msg) => {
       const logBox = document.getElementById('game-logs');
       const div = document.createElement('div');
-      div.className = 'log-item';
-      div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      div.className = 'log-entry';
+      div.innerText = `• ${msg}`;
       logBox.appendChild(div);
       logBox.scrollTop = logBox.scrollHeight;
     });
@@ -235,25 +358,14 @@
     socket.on('chatMessage', (data) => {
       const chatBox = document.getElementById('chat-messages');
       const div = document.createElement('div');
-      div.innerHTML = `<strong>${data.sender}:</strong> ${data.text}`;
+      div.innerHTML = `<strong style="color:var(--text-gold);">${data.sender}:</strong> ${data.text}`;
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
     });
 
-    socket.on('onlineUsersList', (list) => {
-      document.getElementById('online-count').innerText = list.length;
-      const ul = document.getElementById('online-users-list');
-      ul.innerHTML = list.map(u => `<li>🟢 ${u.username} (${JOBS[u.job] || u.job})</li>`).join('');
-    });
-
-    function workShift() {
-      socket.emit('workShift');
-    }
-
-    function addStat(statName) {
-      socket.emit('distributeStat', statName);
-    }
-
+    function workShift() { socket.emit('workShift'); }
+    function addStat(stat) { socket.emit('distributeStat', stat); }
+    
     function sendChat() {
       const input = document.getElementById('chat-input');
       if (input.value.trim() !== '') {
@@ -262,51 +374,19 @@
       }
     }
 
-    function renderCatalog() {
-      const box = document.getElementById('catalog-list');
+    function renderPazar() {
+      const box = document.getElementById('pazar-list');
       box.innerHTML = '';
-
       Object.keys(CATALOG).forEach(id => {
         const item = CATALOG[id];
-        const div = document.createElement('div');
-        div.className = 'prop-item';
-        div.innerHTML = `
-          <strong>${item.name}</strong><br>
-          Maliyet: ${item.cost} 🪙<br>
-          Gelir: ${item.hourly}/saat<br>
-          <button class="btn-main" style="padding:4px; font-size:0.75rem;" onclick="socket.emit('buyProperty', '${id}')">Satın Al</button>
+        box.innerHTML += `
+          <div style="background:#120b06; padding:10px; border:1px solid var(--border-color); font-size:0.85rem;">
+            <strong style="color:var(--text-gold);">${item.name}</strong><br>
+            Maliyet: ${item.cost} Altın<br>
+            Gelir: ${item.hourly}/saat<br>
+            <button class="btn-action" style="padding:4px; font-size:0.75rem;" onclick="socket.emit('buyProperty', '${id}')">Satın Al</button>
+          </div>
         `;
-        box.appendChild(div);
-      });
-    }
-
-    function renderMyProperties() {
-      const box = document.getElementById('my-properties-list');
-      box.innerHTML = '';
-
-      if (!currentUser || !currentUser.properties) return;
-
-      const props = currentUser.properties;
-      const keys = props instanceof Map ? Array.from(props.keys()) : Object.keys(props);
-
-      if (keys.length === 0) {
-        box.innerHTML = '<span style="font-size:0.8rem; color:var(--text-dim);">Henüz mülkün yok.</span>';
-        return;
-      }
-
-      keys.forEach(id => {
-        const prop = props instanceof Map ? props.get(id) : props[id];
-        const item = CATALOG[id];
-        if (!item) return;
-
-        const div = document.createElement('div');
-        div.className = 'prop-item';
-        div.innerHTML = `
-          <strong>${item.name} (Seviye ${prop.level})</strong><br>
-          <button class="btn-main" style="padding:4px; font-size:0.75rem; background:#4be584;" onclick="socket.emit('collectProperty', '${id}')">Gelir Topla</button>
-          <button class="btn-main" style="padding:4px; font-size:0.75rem; margin-top:4px;" onclick="socket.emit('upgradeProperty', '${id}')">Yükselt</button>
-        `;
-        box.appendChild(div);
       });
     }
   </script>
