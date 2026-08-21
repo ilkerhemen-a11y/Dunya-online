@@ -2,77 +2,334 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>TAHT SAVAŞI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanRise — Empire System</title>
     <style>
-        body { background: #2e003e; color: #ffd700; font-family: 'Georgia', serif; padding: 20px; text-align: center; }
-        .hero-card { background: #1a0024; border: 2px solid #ffd700; border-radius: 20px; padding: 30px; margin: auto; max-width: 600px; }
-        h1 { font-size: 36px; color: #ffd700; text-transform: uppercase; text-shadow: 2px 2px 4px #000; }
-        .stats-bar { display: flex; justify-content: space-around; background: #3d004d; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #ffd700; }
-        .tab-menu { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 20px; }
-        .tab-btn { background: #4b0060; border: 1px solid #ffd700; color: #ffd700; padding: 10px; cursor: pointer; border-radius: 5px; }
-        .tab-btn.active { background: #ffd700; color: #2e003e; font-weight: bold; }
-        .content-area { margin-top: 20px; min-height: 200px; }
-        .btn-action { background: #ffd700; color: #2e003e; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .log-box { background: #000; color: #fff; padding: 10px; font-size: 14px; margin-top: 20px; border-radius: 5px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0b1329; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(11, 19, 41, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        .box { background: #111c38; padding: 30px; border-radius: 16px; border: 1px solid #1e293b; text-align: center; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .box h2 { color: #fff; margin-bottom: 8px; font-size: 24px; }
+        .box p { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+        .box input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #1e293b; background: #0b1329; color: #fff; text-align: center; margin-bottom: 12px; font-size: 15px; }
+        
+        .btn-primary { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: #a3e635; color: #0b1329; font-size: 15px; transition: 0.2s; }
+        .btn-primary:hover { background: #84cc16; }
+
+        .container { width: 100%; max-width: 900px; display: none; flex-direction: column; gap: 20px; }
+        
+        .hero-card { background: linear-gradient(135deg, #111c38 0%, #0b1329 100%); border: 1px solid #1e293b; border-radius: 16px; padding: 30px; }
+        .hero-card h1 { font-size: 32px; font-weight: 900; margin-bottom: 8px; color: #fff; text-transform: uppercase; }
+        .hero-card p { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-box { background: #0b1329; border: 1px solid #1e293b; border-radius: 12px; padding: 12px; }
+        .stat-box span { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px; }
+        .stat-box h3 { font-size: 18px; color: #38bdf8; }
+        .stat-box.cash h3 { color: #a3e635; }
+
+        .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #fff; border-left: 4px solid #a3e635; padding-left: 10px; }
+        
+        .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+        .btn-action { background: #0b1329; border: 1px solid #1e293b; color: #f8fafc; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .btn-action:hover { border-color: #38bdf8; background: #111c38; }
+
+        /* GÖRSELDEKİ MAFIAX SEKME VE KART YAPISI */
+        .tab-menu { display: grid; grid-template-columns: 1fr 1fr; background: #0b1329; border-radius: 12px; padding: 4px; border: 1px solid #1e293b; margin-bottom: 15px; }
+        .tab-btn { background: transparent; border: none; color: #94a3b8; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .tab-btn.active { background: #e11d48; color: #fff; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); }
+
+        .market-card { background: #111c38; border: 1px solid #1e293b; border-radius: 14px; padding: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .market-info h4 { font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .market-info h4 span { background: #1e293b; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 6px; }
+        .market-info p { font-size: 12px; color: #94a3b8; }
+        
+        .market-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-market-buy { background: #38bdf8; color: #0b1329; border: none; padding: 10px 16px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-market-buy:hover { background: #0ea5e9; }
+
+        .pending-badge { text-align: right; }
+        .pending-badge span { font-size: 10px; color: #94a3b8; display: block; }
+        .pending-badge b { color: #a3e635; font-size: 14px; }
+
+        .btn-collect { background: #a3e635; color: #0b1329; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-upgrade { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-upgrade:hover { border-color: #a3e635; }
+
+        .community-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-top: 15px; }
+        .chat-box-wrapper { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; height: 200px; }
+        .chat-messages { flex: 1; overflow-y: auto; font-size: 12px; color: #cbd5e1; display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row input { flex: 1; background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 12px; }
+        .chat-input-row button { background: #38bdf8; border: none; color: #0b1329; font-weight: bold; padding: 0 16px; border-radius: 8px; cursor: pointer; }
+
+        .online-list-wrapper { background: #111c38; border: 1px solid #1e293b; border-radius: 12px; padding: 15px; height: 200px; overflow-y: auto; font-size: 12px; }
+        .online-item { padding: 6px 0; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; color: #94a3b8; }
+        .online-item b { color: #fff; }
+
+        .log-box { background: #111c38; border: 1px dashed #1e293b; border-radius: 10px; padding: 12px; font-size: 13px; color: #a3e635; text-align: center; margin-top: 15px; }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .market-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .market-actions { width: 100%; justify-content: space-between; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="hero-card">
-        <h1>TAHT SAVAŞI</h1>
-        <div class="stats-bar">
-            <div>Altın: <span id="myBalance">0</span></div>
-            <div>Dayanıklılık: <span id="myEnergy">100</span></div>
-            <div>Meslek: <span id="myJob">Çiftçi</span></div>
+    <div id="loginModal" class="modal-overlay">
+        <div class="box">
+            <h2>Şehrine Katıl.</h2>
+            <p>Görseldeki arayüz yapısıyla imparatorluğunu kur.</p>
+            <input type="text" id="usernameInput" placeholder="Oyuncu Adı" maxlength="15">
+            <button class="btn-primary" onclick="login()">ŞEHRE GİRİŞ YAP</button>
+        </div>
+    </div>
+
+    <div id="mainApp" class="container">
+        
+        <div class="hero-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span id="myUsername" style="font-weight: bold; color: #a3e635;">-</span>
+                <span style="font-size: 11px; color: #94a3b8;">MAFIAX STYLE INTERFACE</span>
+            </div>
+            <h1>Empire Control.</h1>
+            <p>Mülklerini yönet, gelirleri topla, gücünü katla.</p>
+
+            <div class="stats-grid">
+                <div class="stat-box cash">
+                    <span>NAKİT AKIŞI</span>
+                    <h3 id="myBalance">0 ₺</h3>
+                </div>
+                <div class="stat-box">
+                    <span>AÇLIK</span>
+                    <h3 id="myHunger">%0</h3>
+                </div>
+                <div class="stat-box">
+                    <span>ENERJİ</span>
+                    <h3 id="myEnergy">%0</h3>
+                </div>
+                <div class="stat-box">
+                    <span>EĞLENCE</span>
+                    <h3 id="myFun">%0</h3>
+                </div>
+                <div class="stat-box">
+                    <span>ŞEHİR SIRALAMASI</span>
+                    <h3 id="myRank">#0</h3>
+                </div>
+            </div>
+
+            <div class="section-title">Temel Eylemler</div>
+            <div class="action-grid">
+                <button class="btn-action" onclick="workShift()">
+                    <span>💼 Vardiya Çalış (+2.840 ₺)</span>
+                    <b id="workTimerText" style="color: #a3e635; font-size: 12px;">HAZIR</b>
+                </button>
+                <button class="btn-action" onclick="sleepTime()">
+                    <span>🛌 Dinlen / Uyu (200 ₺)</span>
+                    <span style="color: #38bdf8;">Enerji Yenile</span>
+                </button>
+                <button class="btn-action" onclick="eatMeal()">
+                    <span>🍲 Öğün Tüket (150 ₺)</span>
+                    <span style="color: #38bdf8;">Açlık Gider</span>
+                </button>
+                <button class="btn-action" onclick="haveFun()">
+                    <span>🎉 Sosyal Yaşam (500 ₺)</span>
+                    <span style="color: #38bdf8;">Eğlence Artır</span>
+                </button>
+            </div>
+
+            <div class="log-box" id="gameLog">İmparatorluk sistemine hoş geldin!</div>
         </div>
 
-        <div class="tab-menu">
-            <button class="tab-btn active" onclick="showTab('zanaat')">Zanaat</button>
-            <button class="tab-btn" onclick="showTab('gorevler')">Görevler</button>
-            <button class="tab-btn" onclick="showTab('diger')">Pazar</button>
+        <!-- GÖRSELDEKİ SEKME YAPISI (Satın Al / Mülklerim) -->
+        <div>
+            <div class="tab-menu">
+                <button class="tab-btn active" id="tabBuyBtn" onclick="switchTab('buy')">Satın Al</button>
+                <button class="tab-btn" id="tabOwnedBtn" onclick="switchTab('owned')">Mülklerim (<span id="ownedCount">0</span>)</button>
+            </div>
+
+            <!-- Satın Al Sekmesi -->
+            <div id="shopCatalogList">
+                <!-- JavaScript ile doldurulacak -->
+            </div>
+
+            <!-- Mülklerim Sekmesi -->
+            <div id="ownedPropertyList" style="display: none;">
+                <!-- JavaScript ile doldurulacak -->
+            </div>
         </div>
 
-        <div id="content" class="content-area">
-            <!-- İçerik buraya dinamik gelecek -->
-            <button class="btn-action" onclick="performCraft()">Zanaat Yap (Çalış)</button>
+        <!-- Canlı İletişim Alanı -->
+        <div>
+            <div class="section-title">Şehir İletişim (<span id="onlineCount">0</span> Online)</div>
+            <div class="community-grid">
+                <div class="chat-box-wrapper">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chatInput" placeholder="Mesaj yaz..." maxlength="250" onkeydown="if(event.key==='Enter') sendChat()">
+                        <button onclick="sendChat()">Gönder</button>
+                    </div>
+                </div>
+                <div class="online-list-wrapper" id="onlineListContainer"></div>
+            </div>
         </div>
 
-        <div id="log" class="log-box">Krallığa hoş geldin, soylu yolcu.</div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let username = prompt("Kullanıcı adın nedir?") || "Yolcu";
+        let globalCooldownUntil = 0;
+        let currentUserData = null;
 
-        socket.emit('userLogin', { username });
+        const catalogData = {
+            'studio_home': { name: 'Stüdyo Daire', cost: 5000, hourly: 450 },
+            'luxury_residence': { name: 'Lüks Rezidans', cost: 15000, hourly: 1250 },
+            'sports_car': { name: 'Spor Otomobil', cost: 10000, hourly: 850 },
+            'super_car': { name: 'Süper Araba', cost: 25000, hourly: 2200 }
+        };
 
-        socket.on('userData', (user) => {
-            document.getElementById('myBalance').innerText = user.balance;
-            document.getElementById('myEnergy').innerText = user.energy;
-            document.getElementById('myJob').innerText = user.job;
+        function login() {
+            const username = document.getElementById('usernameInput').value;
+            socket.emit('userLogin', { username: username });
+        }
+
+        socket.on('userData', (data) => {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            currentUserData = data;
+            updateUI(data);
         });
+
+        function updateUI(data) {
+            document.getElementById('myUsername').innerText = data.username.toUpperCase();
+            document.getElementById('myBalance').innerText = (data.balance || 0).toLocaleString('tr-TR') + ' ₺';
+            document.getElementById('myHunger').innerText = '%' + (data.hunger || 0);
+            document.getElementById('myEnergy').innerText = '%' + (data.energy || 100);
+            document.getElementById('myFun').innerText = '%' + (data.fun || 100);
+            document.getElementById('myRank').innerText = '#' + (data.cityRank || 2841);
+            globalCooldownUntil = data.workCooldownUntil || 0;
+
+            renderLists(data.properties || {});
+        }
+
+        let activeTab = 'buy';
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('tabBuyBtn').className = tab === 'buy' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tabOwnedBtn').className = tab === 'owned' ? 'tab-btn active' : 'tab-btn';
+            
+            document.getElementById('shopCatalogList').style.display = tab === 'buy' ? 'block' : 'none';
+            document.getElementById('ownedPropertyList').style.display = tab === 'owned' ? 'block' : 'none';
+            if(currentUserData) renderLists(currentUserData.properties || {});
+        }
+
+        function renderLists(properties) {
+            const shopContainer = document.getElementById('shopCatalogList');
+            const ownedContainer = document.getElementById('ownedPropertyList');
+            shopContainer.innerHTML = '';
+            ownedContainer.innerHTML = '';
+
+            let ownedCount = 0;
+
+            for (const [id, item] of Object.entries(catalogData)) {
+                const isOwned = properties.hasOwnProperty(id);
+
+                if (isOwned) {
+                    ownedCount++;
+                    const propData = properties[id];
+                    const upgradeCost = Math.floor(item.cost * 0.5 * propData.level);
+                    
+                    // Bekleyen kazanç tahmini
+                    const hoursElapsed = (Date.now() - (propData.lastCollected || Date.now())) / (60 * 1000);
+                    const currentPending = (propData.pendingBalance || 0) + Math.floor(hoursElapsed * (item.hourly * propData.level));
+
+                    ownedContainer.innerHTML += `
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>${item.name} <span>Sv ${propData.level}</span></h4>
+                                <p>Saatlik Kazanç: ₺${(item.hourly * propData.level).toLocaleString('tr-TR')}</p>
+                            </div>
+                            <div class="market-actions">
+                                <div class="pending-badge">
+                                    <span>BEKLEYEN</span>
+                                    <b>₺${currentPending.toLocaleString('tr-TR')}</b>
+                                </div>
+                                <button class="btn-collect" onclick="collectProperty('${id}')">Topla</button>
+                                <button class="btn-upgrade" onclick="upgradeProperty('${id}')">Yükselt ₺${upgradeCost.toLocaleString('tr-TR')}</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    shopContainer.innerHTML += `
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>${item.name}</h4>
+                                <p>Getiri: Saatlik ₺${item.hourly}</p>
+                            </div>
+                            <div class="market-actions">
+                                <b style="color: #a3e635; font-size: 15px;">₺${item.cost.toLocaleString('tr-TR')}</b>
+                                <button class="btn-market-buy" onclick="buyProperty('${id}')">Satın Al</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('ownedCount').innerText = ownedCount;
+        }
+
+        setInterval(() => {
+            const timerEl = document.getElementById('workTimerText');
+            if (!timerEl) return;
+            const now = Date.now();
+            if (now < globalCooldownUntil) {
+                const diff = Math.ceil((globalCooldownUntil - now) / 1000);
+                const m = Math.floor(diff / 60);
+                const s = diff % 60;
+                timerEl.innerText = `${m}d ${s}s`;
+                timerEl.style.color = '#f59e0b';
+            } else {
+                timerEl.innerText = 'HAZIR';
+                timerEl.style.color = '#a3e635';
+            }
+        }, 1000);
 
         socket.on('gameLog', (msg) => {
-            document.getElementById('log').innerText = msg;
+            document.getElementById('gameLog').innerText = msg;
         });
 
-        function performCraft() {
-            socket.emit('performCraft', { username });
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            if (!input.value.trim()) return;
+            socket.emit('sendChat', input.value);
+            input.value = '';
         }
 
-        function showTab(tab) {
-            const content = document.getElementById('content');
-            if(tab === 'zanaat') {
-                content.innerHTML = `<button class="btn-action" onclick="performCraft()">Zanaat Yap (Çalış)</button>`;
-            } else if(tab === 'gorevler') {
-                content.innerHTML = `<h3>Görev Panosu</h3><button class="btn-action" onclick="completeQuest('quest1', 2000, 'Tahta İlk Adım')">Tahta İlk Adım (1000 Altın Biriktir)</button>`;
-            }
-        }
+        socket.on('chatMessage', (data) => {
+            const chatContainer = document.getElementById('chatMessages');
+            chatContainer.innerHTML += `<div><b style="color: #38bdf8;">${data.sender}:</b> ${data.text}</div>`;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
 
-        function completeQuest(id, reward, name) {
-            socket.emit('completeQuest', { username, questId: id, reward, questName: name });
-        }
+        socket.on('onlineUsersList', (users) => {
+            document.getElementById('onlineCount').innerText = users.length;
+            const container = document.getElementById('onlineListContainer');
+            container.innerHTML = '';
+            users.forEach(u => {
+                container.innerHTML += `<div class="online-item"><span><b>${u.username}</b></span><span>Mülk: ${u.propertyCount}</span></div>`;
+            });
+        });
+
+        function workShift() { socket.emit('workShift'); }
+        function sleepTime() { socket.emit('sleepTime'); }
+        function eatMeal() { socket.emit('eatMeal'); }
+        function haveFun() { socket.emit('haveFun'); }
+        function buyProperty(id) { socket.emit('buyProperty', id); }
+        function collectProperty(id) { socket.emit('collectProperty', id); }
+        function upgradeProperty(id) { socket.emit('upgradeProperty', id); }
     </script>
 </body>
 </html>
