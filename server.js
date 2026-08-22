@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,11 +12,14 @@ app.use(express.static(__dirname + '/public'));
 
 // 1. MongoDB Bağlantısı
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
-mongoose.connect(MONGO_URI).then(() => console.log('MongoDB bağlantısı başarılı!')).catch(err => console.error('MongoDB bağlantı hatası:', err));
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB bağlantısı başarılı!'))
+    .catch(err => console.error('MongoDB bağlantı hatası:', err));
 
-// 2. Kullanıcı Veritabanı Şeması (Güncellendi: estates eklendi)
+// 2. Kullanıcı Veritabanı Şeması
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
     balance: { type: Number, default: 100 },
@@ -26,9 +30,18 @@ const userSchema = new mongoose.Schema({
     hp: { type: Number, default: 100 },
     seferLimiti: { type: Number, default: 20 },
     seferNextRefill: { type: Number, default: null },
-    estates: { type: [Number], default: [] }, // Satın alınan tımarların ID'leri
+    estates: { type: [Number], default: [] },
     upgrades: { weapon: { type: Number, default: 0 }, armor: { type: Number, default: 0 }, helmet: { type: Number, default: 0 } },
-    equipped: { helmet: { type: Object, default: null }, necklace: { type: Object, default: null }, armor: { type: Object, default: null }, weapon: { type: Object, default: null }, shield: { type: Object, default: null }, ring: { type: Object, default: null }, gloves: { type: Object, default: null }, boots: { type: Object, default: null } },
+    equipped: { 
+        helmet: { type: Object, default: null }, 
+        necklace: { type: Object, default: null }, 
+        armor: { type: Object, default: null }, 
+        weapon: { type: Object, default: null }, 
+        shield: { type: Object, default: null }, 
+        ring: { type: Object, default: null }, 
+        gloves: { type: Object, default: null }, 
+        boots: { type: Object, default: null } 
+    },
     inventory: { type: Array, default: [] }
 });
 
@@ -44,23 +57,60 @@ const getDefaultInventory = () => [
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Giriş
-    socket.on('userLogin', async (data) => {
-        const username = data.username ? data.username.trim() : 'Gladyatör';
+    // Kayıt Olma İşlemi
+    socket.on('userRegister', async (data) => {
+        const { username, password } = data;
+        if (!username || !password || username.trim() === '' || password.trim() === '') {
+            return socket.emit('authResult', { success: false, message: "Kullanıcı adı ve şifre boş olamaz!" });
+        }
+
         try {
-            let dbUser = await User.findOne({ username });
-            if (!dbUser) {
-                dbUser = new User({ username: username, inventory: getDefaultInventory() });
-                await dbUser.save();
+            const existingUser = await User.findOne({ username });
+            if (existingUser) {
+                return socket.emit('authResult', { success: false, message: "Bu isimde bir gladyatör zaten var!" });
             }
-            users[socket.id] = dbUser;
-            socket.emit('userData', dbUser);
-        } catch (err) { console.error("Giriş hatası:", err); }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const newUser = new User({ 
+                username: username, 
+                password: hashedPassword,
+                inventory: getDefaultInventory() 
+            });
+            await newUser.save();
+            
+            socket.emit('authResult', { success: true, message: "Kayıt başarılı! Şimdi giriş yapabilirsiniz." });
+        } catch (err) { 
+            console.error("Kayıt hatası:", err); 
+            socket.emit('authResult', { success: false, message: "Sunucu hatası oluştu." });
+        }
     });
 
-    // Çıkış
+    // Giriş Yapma İşlemi
+    socket.on('userLogin', async (data) => {
+        const { username, password } = data;
+        try {
+            const dbUser = await User.findOne({ username });
+            if (!dbUser) {
+                return socket.emit('authResult', { success: false, message: "Böyle bir kullanıcı bulunamadı." });
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, dbUser.password);
+            if (!isPasswordValid) {
+                return socket.emit('authResult', { success: false, message: "Hatalı şifre!" });
+            }
+
+            users[socket.id] = dbUser;
+            socket.emit('userData', dbUser);
+        } catch (err) { 
+            console.error("Giriş hatası:", err); 
+            socket.emit('authResult', { success: false, message: "Giriş yapılırken bir hata oluştu." });
+        }
+    });
+
+    // Çıkış Yapma
     socket.on('logout', () => {
         if (users[socket.id]) {
+            console.log('Gladyatör çıkış yaptı:', users[socket.id].username);
             delete users[socket.id];
             socket.emit('logoutSuccess');
             socket.disconnect();
@@ -79,7 +129,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Dinamik Görev (Sefer) Sistemi
+    // Görev (Sefer) Sistemi
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
         if (!user || user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
@@ -96,14 +146,13 @@ io.on('connection', (socket) => {
         user.balance += goldGain;
         user.exp += expGain;
 
-        // Level Atlama Kontrolü
         let maxExp = user.level * 100;
         let levelUpMsg = "";
         if (user.exp >= maxExp) {
             user.level += 1;
             user.exp -= maxExp;
-            user.statPoints += 3; // Her seviyede 3 stat puanı
-            user.hp = user.vit * 20; // Canı fullenir
+            user.statPoints += 3;
+            user.hp = user.vit * 20;
             levelUpMsg = " SEVİYE ATLADIN!";
         }
 
@@ -139,7 +188,7 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user) return;
 
-        const type = data.itemType; // weapon, armor, helmet
+        const type = data.itemType;
         if (user.upgrades[type] !== undefined) {
             const cost = (user.upgrades[type] + 1) * 100;
             if (user.balance >= cost) {
@@ -158,13 +207,14 @@ io.on('connection', (socket) => {
     socket.on('usePotion', async () => {
         const user = users[socket.id];
         if (user && user.balance >= 50) {
-            user.balance -= 50; user.hp = user.vit * 20;
+            user.balance -= 50; 
+            user.hp = user.vit * 20;
             await user.save();
             socket.emit('statUpdated', user);
         }
     });
 
-    // Ekipman İşlemleri
+    // Ekipman Kuşanma/Çıkarma
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
@@ -188,6 +238,7 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
+    // Sohbet
     socket.on('sendChatMessage', (data) => {
         io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
     });
@@ -195,7 +246,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => delete users[socket.id]);
 });
 
-// PASİF GELİR DÖNGÜSÜ (60 Saniyede Bir Tımarlardan Altın Toplar)
+// PASİF GELİR DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
     for (const socketId in users) {
         const user = users[socketId];
@@ -207,7 +258,7 @@ setInterval(async () => {
         if (income > 0) {
             user.balance += income;
             await user.save();
-            io.to(socketId).emit('statUpdated', user); // Altın güncellendiğinde arayüze yansır
+            io.to(socketId).emit('statUpdated', user);
         }
     }
 }, 60000); 
