@@ -9,13 +9,12 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// MongoDB Bağlantısı (Kendi URI adresinizi yazabilirsiniz)
 mongoose.connect('mongodb://localhost:27017/gladyatorDB', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('MongoDB Bağlantısı Başarılı')).catch(err => console.log(err));
 
-// Kullanıcı Şeması
+// Kullanıcı Şeması (Günlük sefer limiti ve eski envanter yapısıyla)
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
@@ -27,6 +26,7 @@ const userSchema = new mongoose.Schema({
     str: { type: Number, default: 10 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
+    seferLimiti: { type: Number, default: 30 }, // 30 Sefer Sınırı
     taktikPuani: { type: Number, default: 0 },
     skills: {
         kritik: { type: Number, default: 0 },
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
         helmet: { type: Number, default: 0 }
     },
     estates: { type: Array, default: [] },
-    inventory: { type: Array, default: [] },
+    inventory: { type: Array, default: [] }, // Eski Envanter Dizisi
     equipped: {
         helmet: { type: Object, default: null },
         necklace: { type: Object, default: null },
@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Pasif Gelir Sistemi (Tımarlar için dakikalık gelir)
+// Pasif Gelir Sistemi
 setInterval(async () => {
     try {
         const users = await User.find({});
@@ -100,7 +100,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Stat Dağıtma
     socket.on('distributeStat', async (stat) => {
         try {
             const user = await User.findById(socket.userId);
@@ -112,14 +111,13 @@ io.on('connection', (socket) => {
             } else if (stat === 'vit') {
                 user.vit += 1;
                 user.statPoints -= 1;
-                user.hp = user.vit * 20; // Canı güncelle
+                user.hp = user.vit * 20;
             }
             await user.save();
             socket.emit('userData', user);
         } catch (err) { console.error(err); }
     });
 
-    // Can İksiri İçme
     socket.on('usePotion', async () => {
         try {
             const user = await User.findById(socket.userId);
@@ -135,11 +133,15 @@ io.on('connection', (socket) => {
         } catch (err) { console.error(err); }
     });
 
-    // Görev / Sefer Sistemi (Limit Yok!)
+    // Görev / Sefer Sistemi (30 Sefer Sınırı Dahil)
     socket.on('doQuest', async ({ questId }) => {
         try {
             const user = await User.findById(socket.userId);
             if (!user) return;
+
+            if (user.seferLimiti <= 0) {
+                return socket.emit('questResult', { message: "Günlük sefer limitiniz doldu!", userData: user });
+            }
 
             let quests = {
                 1: { name: "Karanlık Orman", gold: 45, exp: 20, damage: 15 },
@@ -152,66 +154,85 @@ io.on('connection', (socket) => {
 
             let maxHp = user.vit * 20;
             if (user.hp <= q.damage) {
-                return socket.emit('questResult', { message: "Canınız çok az! İksir içerek canınızı yenileyin." });
+                return socket.emit('questResult', { message: "Canınız çok az! İksir içerek canınızı yenileyin.", userData: user });
             }
 
             user.hp -= q.damage;
+            user.seferLimiti -= 1; // Sefer yapıldıkça 1 azalır
 
-            // Bereket yeteneği etkisini hesapla (%3 altın bonusu / seviye)
             let bonusGoldMultiplier = 1 + (user.skills.bereket * 0.03);
             let finalGold = Math.floor(q.gold * bonusGoldMultiplier);
 
             user.balance += finalGold;
             user.exp += q.exp;
 
-            // %30 ihtimalle Taktik Puanı kazanma şansı
             let gainedTactical = 0;
             if (Math.random() < 0.30) {
                 gainedTactical = 1;
                 user.taktikPuani += 1;
             }
 
-            // Seviye Atlama Kontrolü
             let maxExp = user.level * 100;
             let leveledUp = false;
             if (user.exp >= maxExp) {
                 user.exp -= maxExp;
                 user.level += 1;
                 user.statPoints += 3;
-                user.taktikPuani += 2; // Seviye atlayınca ekstra 2 taktik puanı
-                user.hp = maxHp; // Seviye atlayınca can fulllenir
+                user.taktikPuani += 2;
+                user.hp = maxHp;
                 leveledUp = true;
             }
 
             await user.save();
 
-            let msg = `Sefere çıkıldı: ${q.name}. Kazanılan: 🪙 ${finalGold} Altın, ✨ ${q.exp} EXP. ${gainedTactical > 0 ? '🧠 1 Taktik Puanı kazandınız!' : ''}`;
-            if (leveledUp) msg += ` 🎉 TEBRİKLER! Seviye ${user.level} oldunuz! Canınız tamamen yenilendi.`;
+            let msg = `Sefere çıkıldı: ${q.name}. Kazanılan: 🪙 ${finalGold} Altın, ✨ ${q.exp} EXP. ${gainedTactical > 0 ? '🧠 1 Taktik Puanı!' : ''}`;
+            if (leveledUp) msg += ` 🎉 Seviye ${user.level} oldunuz! Canınız yenilendi.`;
 
             socket.emit('questResult', { message: msg, userData: user });
         } catch (err) { console.error(err); }
     });
 
-    // Taktik Puanı / Yetenek Geliştirme
     socket.on('upgradeSkill', async ({ skillName }) => {
         try {
             const user = await User.findById(socket.userId);
             if (!user) return;
 
             if (user.taktikPuani <= 0) {
-                return socket.emit('skillResult', { message: "Yetersiz Taktik Puanı! Seferlere çıkarak puan toplayın.", userData: user });
+                return socket.emit('skillResult', { message: "Yetersiz Taktik Puanı!", userData: user });
             }
 
             if (user.skills[skillName] !== undefined) {
                 user.taktikPuani -= 1;
                 user.skills[skillName] += 1;
                 await user.save();
-                socket.emit('skillResult', { message: "Savaş yeteneği başarıyla geliştirildi!", userData: user });
+                socket.emit('skillResult', { message: "Yetenek başarıyla geliştirildi!", userData: user });
             }
         } catch (err) { console.error(err); }
     });
 
-    // Tımarlar (Mülk) Satın Alma
+    // Envanter / Ekipman Kuşanma Fonksiyonu (Eski Sistem)
+    socket.on('equipItem', async ({ itemIndex }) => {
+        try {
+            const user = await User.findById(socket.userId);
+            if (!user || !user.inventory[itemIndex]) return;
+
+            let item = user.inventory[itemIndex];
+            let type = item.type; // helmet, armor, weapon, necklace
+
+            let oldEquipped = user.equipped[type];
+            user.equipped[type] = item;
+
+            if (oldEquipped) {
+                user.inventory[itemIndex] = oldEquipped;
+            } else {
+                user.inventory.splice(itemIndex, 1);
+            }
+
+            await user.save();
+            socket.emit('userData', user);
+        } catch (err) { console.error(err); }
+    });
+
     socket.on('buyEstate', async ({ estateId }) => {
         try {
             const user = await User.findById(socket.userId);
@@ -229,7 +250,6 @@ io.on('connection', (socket) => {
         } catch (err) { console.error(err); }
     });
 
-    // Demirhane Geliştirmeleri
     socket.on('upgradeItem', async ({ itemType }) => {
         try {
             const user = await User.findById(socket.userId);
@@ -246,7 +266,6 @@ io.on('connection', (socket) => {
         } catch (err) { console.error(err); }
     });
 
-    // Sohbet Odası
     socket.on('sendChatMessage', async ({ message }) => {
         try {
             const user = await User.findById(socket.userId);
