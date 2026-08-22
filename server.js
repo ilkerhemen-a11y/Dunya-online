@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
@@ -8,10 +9,52 @@ const io = new Server(server);
 
 app.use(express.static(__dirname + '/public'));
 
-const users = {};
+// 1. MongoDB Bağlantısı (Kendi veritabanı adresini buraya yazabilirsin)
+mongoose.connect('mongodb://localhost:27017/throne_war', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('MongoDB bağlantısı başarılı!');
+}).catch(err => {
+    console.error('MongoDB bağlantı hatası:', err);
+});
+
+// 2. Kullanıcı Veritabanı Şeması (Model)
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    level: { type: Number, default: 1 },
+    exp: { type: Number, default: 0 },
+    balance: { type: Number, default: 100 },
+    rubies: { type: Number, default: 10 },
+    str: { type: Number, default: 5 },
+    vit: { type: Number, default: 5 },
+    statPoints: { type: Number, default: 0 },
+    hp: { type: Number, default: 100 },
+    seferLimiti: { type: Number, default: 20 },
+    seferNextRefill: { type: Number, default: null },
+    upgrades: {
+        weapon: { type: Number, default: 0 },
+        armor: { type: Number, default: 0 },
+        helmet: { type: Number, default: 0 }
+    },
+    equipped: {
+        helmet: { type: Object, default: null },
+        necklace: { type: Object, default: null },
+        armor: { type: Object, default: null },
+        weapon: { type: Object, default: null },
+        shield: { type: Object, default: null },
+        ring: { type: Object, default: null },
+        gloves: { type: Object, default: null },
+        boots: { type: Object, default: null }
+    },
+    inventory: { type: Array, default: [] }
+});
+
+const User = mongoose.model('User', userSchema);
+const users = {}; // Aktif socket bağlantıları için
 
 const getDefaultInventory = () => [
-    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'https://i.hizliresim.com/bijxhvw1.jpg', strBonus: 3, vitBonus: 0 },
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
     { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5, isImage: true },
     { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 },
     { id: 'item_4', name: 'Çelik Kask', icon: 'https://i.hizliresim.com/twgkfi5q.jpg', type: 'helmet', strBonus: 1, vitBonus: 3, isImage: true },
@@ -24,42 +67,33 @@ const getDefaultInventory = () => [
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Giriş Yapma
-    socket.on('userLogin', (data) => {
+    // Giriş Yapma / Kayıt Yükleme
+    socket.on('userLogin', async (data) => {
         const username = data.username ? data.username.trim() : 'Gladyatör';
         
-        users[socket.id] = {
-            id: socket.id,
-            username: username,
-            level: 1,
-            exp: 0,
-            balance: 100,
-            rubies: 10,
-            str: 5,
-            vit: 5,
-            statPoints: 0,
-            hp: 100,                 // Mevcut Can
-            seferLimiti: 20,         // Sefer Sayısı
-            seferNextRefill: null,   // Süre Zamanlayıcısı
-            upgrades: { weapon: 0, armor: 0, helmet: 0 },
-            equipped: {
-                helmet: null,
-                necklace: null,
-                armor: null,
-                weapon: null,
-                shield: null,
-                ring: null,
-                gloves: null,
-                boots: null
-            },
-            inventory: getDefaultInventory()
-        };
+        try {
+            // Veritabanında bu isimle kullanıcı var mı bak
+            let dbUser = await User.findOne({ username });
 
-        socket.emit('userData', users[socket.id]);
+            if (!dbUser) {
+                // Yoksa sıfırdan oluştur ve kaydet
+                dbUser = new User({
+                    username: username,
+                    inventory: getDefaultInventory()
+                });
+                await dbUser.save();
+            }
+
+            // Aktif kullanıcılar listesine ekle
+            users[socket.id] = dbUser;
+            socket.emit('userData', dbUser);
+        } catch (err) {
+            console.error("Giriş hatası:", err);
+        }
     });
 
     // Eşya Kuşanma
-    socket.on('equipItem', (data) => {
+    socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
@@ -77,11 +111,13 @@ io.on('connection', (socket) => {
         }
 
         user.equipped[slotType] = itemToEquip;
+        
+        await user.save(); // Anlık kaydet
         socket.emit('statUpdated', user);
     });
 
     // Eşya Çıkarma
-    socket.on('unequipItem', (data) => {
+    socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
@@ -92,24 +128,23 @@ io.on('connection', (socket) => {
         user.equipped[slot] = null;
         user.inventory.push(unequippedItem);
 
+        await user.save(); // Anlık kaydet
         socket.emit('statUpdated', user);
     });
 
     // Sefer / Görev Yapma
-    socket.on('doQuest', (data) => {
+    socket.on('doQuest', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
         const now = Date.now();
         const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat
 
-        // Zamanlayıcı süresi dolduysa sefer hakkını yenile ve süreyi sıfırla
         if (user.seferNextRefill && now >= user.seferNextRefill) {
             user.seferLimiti = 20;
             user.seferNextRefill = null;
         }
 
-        // Can Kontrolü
         if (user.hp <= 0) {
             return socket.emit('questResult', {
                 success: false,
@@ -118,7 +153,6 @@ io.on('connection', (socket) => {
             });
         }
 
-        // Sefer Hak Kontrolü
         if (user.seferLimiti <= 0) {
             return socket.emit('questResult', {
                 success: false,
@@ -127,31 +161,29 @@ io.on('connection', (socket) => {
             });
         }
 
-        // Limit düşür ve ilk kullanımda geri sayımı başlat
         user.seferLimiti -= 1;
         if (!user.seferNextRefill) {
             user.seferNextRefill = now + COOLDOWN_TIME;
         }
 
-        // Dövüş Hesaplaması (Can Düşüşü)
         const questId = data.questId || 1;
         const hpLost = Math.floor(Math.random() * (questId * 12)) + 5;
         user.hp = Math.max(0, user.hp - hpLost);
 
-        // Ödül Hesaplama
         const goldEarned = questId * 45 + Math.floor(Math.random() * 15);
         const expEarned = questId * 25;
 
         user.balance += goldEarned;
         user.exp += expEarned;
 
-        // Seviye Atlama (Level Up)
         const maxExp = user.level * 100;
         if (user.exp >= maxExp) {
             user.level += 1;
             user.exp -= maxExp;
             user.statPoints += 3;
         }
+
+        await user.save(); // Anlık kaydet
 
         socket.emit('questResult', {
             success: true,
@@ -164,7 +196,7 @@ io.on('connection', (socket) => {
     });
 
     // Nitelik Dağıtma
-    socket.on('distributeStat', (statName) => {
+    socket.on('distributeStat', async (statName) => {
         const user = users[socket.id];
         if (!user || user.statPoints <= 0) return;
 
@@ -177,11 +209,12 @@ io.on('connection', (socket) => {
             user.hp = user.vit * 20;
         }
 
+        await user.save(); // Anlık kaydet
         socket.emit('statUpdated', user);
     });
 
-    // Can İksiri İçme (Sefer haklarına ve süreye dokunmaz, sadece canı tazeler)
-    socket.on('usePotion', () => {
+    // Can İksiri İçme
+    socket.on('usePotion', async () => {
         const user = users[socket.id];
         if (!user) return;
 
@@ -197,6 +230,7 @@ io.on('connection', (socket) => {
         user.balance -= potionCost;
         user.hp = user.vit * 20;
 
+        await user.save(); // Anlık kaydet
         socket.emit('questResult', {
             success: true,
             message: "Can iksiri içildi! Canınız tamamen tazelendi.",
@@ -208,7 +242,7 @@ io.on('connection', (socket) => {
     });
 
     // Demirhane (+ Basma)
-    socket.on('upgradeItem', (data) => {
+    socket.on('upgradeItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
@@ -226,6 +260,9 @@ io.on('connection', (socket) => {
 
         user.balance -= cost;
         user.upgrades[itemType] = currentLvl + 1;
+        user.markModified('upgrades'); // Mongoose iç içe nesne güncellemeleri için şart
+
+        await user.save(); // Anlık kaydet
 
         socket.emit('forgeResult', {
             success: true,
@@ -247,33 +284,12 @@ io.on('connection', (socket) => {
         });
     });
 
-// Bağlantı Kopması
-    socket.on('disconnect', async () => {
+    // Bağlantı Kopması
+    socket.on('disconnect', () => {
         console.log('Gladyatör ayrıldı:', socket.id);
-        
-        const player = users[socket.id];
-        
-        if (player) {
-            try {
-                // Eğer player bir Mongoose nesnesiyse doğrudan kaydedebilirsin:
-                // await player.save();
-                
-                // Veya veritabanındaki ID ile bulup güncelleyebilirsin:
-                await User.findByIdAndUpdate(player.userId, {
-                    gold: player.gold,
-                    level: player.level,
-                    stats: player.stats
-                    // Oyunda güncel tuttuğun diğer veriler...
-                });
-                
-                console.log("Gladyatör verileri başarıyla kaydedildi.");
-            } catch (err) {
-                console.error("Kayıt hatası:", err);
-            }
-        }
-
         delete users[socket.id];
     });
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
