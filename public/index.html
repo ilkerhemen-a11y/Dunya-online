@@ -277,6 +277,27 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+
+
+const QUESTS = {
+    1:  { name: "Karanlık Orman", reqLevel: 1, gold: 45, exp: 20, hpLoss: 15 },
+    2:  { name: "Unutulmuş Tapınak", reqLevel: 3, gold: 120, exp: 55, hpLoss: 35 },
+    3:  { name: "Ejderha Dağı", reqLevel: 5, gold: 300, exp: 140, hpLoss: 70 },
+    4:  { name: "Kanlı Vadi", reqLevel: 10, gold: 650, exp: 300, hpLoss: 120 },
+    5:  { name: "Yeraltı Zindanları", reqLevel: 15, gold: 1200, exp: 550, hpLoss: 180 },
+    6:  { name: "Buzul Geçidi", reqLevel: 20, gold: 2100, exp: 950, hpLoss: 250 },
+    7:  { name: "Gölge Kalesi", reqLevel: 25, gold: 3500, exp: 1500, hpLoss: 330 },
+    8:  { name: "Alev Havzası", reqLevel: 30, gold: 5500, exp: 2300, hpLoss: 420 },
+    9:  { name: "Kadim Harabeler", reqLevel: 35, gold: 8200, exp: 3400, hpLoss: 520 },
+    10: { name: "Kabus Diyarı", reqLevel: 40, gold: 12000, exp: 4800, hpLoss: 630 },
+    11: { name: "Devler Yuvası", reqLevel: 45, gold: 17000, exp: 6700, hpLoss: 750 },
+    12: { name: "Ölümcül Bataklık", reqLevel: 50, gold: 23500, exp: 9000, hpLoss: 880 },
+    13: { name: "Kutsal Taht Salonu", reqLevel: 55, gold: 32000, exp: 12000, hpLoss: 1000 }
+};
+
+
+        
+        
         const socket = io();
         let currentUserData = null;
         let activeTab = 'overview';
@@ -449,35 +470,32 @@
                     </div>
                 `;
             } else if(activeTab === 'work') {
-                body.innerHTML = `
-                    <div class="quest-list">
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Karanlık Orman Seferi</h4>
-                                <p>Ormandaki gölgelerle savaş ve ganimet topla.</p>
-                                <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Unutulmuş Tapınak</h4>
-                                <p>Antik tapınaktakı tehlikeli mahlukları alt et.</p>
-                                <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Ejderha Dağı</h4>
-                                <p>Zirvedeki ejderhanın yuvasını yağmala.</p>
-                                <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
-                        </div>
+                    let questsHTML = '<div class="quest-list">';
+    
+    for (const [id, q] of Object.entries(QUESTS)) {
+        const isUnlocked = currentUser.level >= q.reqLevel;
+        
+        questsHTML += `
+            <div class="quest-card" style="${!isUnlocked ? 'opacity: 0.6;' : ''}">
+                <div class="quest-info">
+                    <h4>${q.name} ${!isUnlocked ? `<span style="color:#ef4444; font-size:0.8em;">(Lvl ${q.reqLevel})</span>` : ''}</h4>
+                    <div class="quest-rewards">
+                        <span>+${q.gold} Altın</span>
+                        <span>+${q.exp} Tecrübe</span>
+                        <span style="color:#ef4444;">-${q.hpLoss} HP</span>
                     </div>
-                    <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
-                `;
+                </div>
+                <button class="btn-quest" 
+                        ${!isUnlocked ? 'disabled style="cursor:not-allowed; background-color:#7f8c8d;"' : ''} 
+                        onclick="socket.emit('doQuest', { questId: ${id} })">
+                    ${isUnlocked ? 'Sefer Et' : 'Kilitli'}
+                </button>
+            </div>
+        `;
+    }
+    
+    questsHTML += `</div><div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>`;
+    body.innerHTML = questsHTML;
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
@@ -648,53 +666,6 @@
 
 
 
-
-
-
-
-// index.html içindeki JavaScript alanına QUESTS tanımını ekleyin
-const QUESTS = {
-    1:  { name: "Karanlık Orman", reqLevel: 1, gold: 45, exp: 20, hpLoss: 15 },
-    2:  { name: "Unutulmuş Tapınak", reqLevel: 3, gold: 120, exp: 55, hpLoss: 35 },
-    3:  { name: "Ejderha Dağı", reqLevel: 5, gold: 300, exp: 140, hpLoss: 70 },
-    4:  { name: "Kanlı Vadi", reqLevel: 10, gold: 650, exp: 300, hpLoss: 120 },
-    5:  { name: "Yeraltı Zindanları", reqLevel: 15, gold: 1200, exp: 550, hpLoss: 180 },
-    6:  { name: "Buzul Geçidi", reqLevel: 20, gold: 2100, exp: 950, hpLoss: 250 },
-    7:  { name: "Gölge Kalesi", reqLevel: 25, gold: 3500, exp: 1500, hpLoss: 330 },
-    8:  { name: "Alev Havzası", reqLevel: 30, gold: 5500, exp: 2300, hpLoss: 420 },
-    9:  { name: "Kadim Harabeler", reqLevel: 35, gold: 8200, exp: 3400, hpLoss: 520 },
-    10: { name: "Kabus Diyarı", reqLevel: 40, gold: 12000, exp: 4800, hpLoss: 630 },
-    11: { name: "Devler Yuvası", reqLevel: 45, gold: 17000, exp: 6700, hpLoss: 750 },
-    12: { name: "Ölümcül Bataklık", reqLevel: 50, gold: 23500, exp: 9000, hpLoss: 880 },
-    13: { name: "Kutsal Taht Salonu", reqLevel: 55, gold: 32000, exp: 12000, hpLoss: 1000 }
-};
-
-// Sekme çizim fonksiyonundaki Görevler (Seferler) kısmı
-if (activeTab === 'quests') {
-    let questsHTML = '<div class="quest-list">';
-    
-    for (const [id, q] of Object.entries(QUESTS)) {
-        // Kullanıcının seviyesi göreve yetiyor mu kontrol et
-        const isUnlocked = currentUser.level >= q.reqLevel;
-        
-        questsHTML += `
-            <div class="quest-card" style="${!isUnlocked ? 'opacity: 0.6;' : ''}">
-                <div class="quest-info">
-                    <h4>${q.name} ${!isUnlocked ? `<span style="color:#e74c3c; font-size:0.8em;">(Lvl ${q.reqLevel} Gereklidir)</span>` : ''}</h4>
-                    <p>Ödül: 🪙 ${q.gold} Altın | ✨ ${q.exp} EXP | ❤️ -${q.hpLoss} HP</p>
-                </div>
-                <button class="btn-quest" 
-                        ${!isUnlocked ? 'disabled style="cursor:not-allowed; background-color:#7f8c8d;"' : ''} 
-                        onclick="socket.emit('doQuest', { questId: ${id} })">
-                    ${isUnlocked ? 'Sefer Et' : 'Kilitli'}
-                </button>
-            </div>
-        `;
-    }
-    
-    questsHTML += '</div>';
-    body.innerHTML = questsHTML;
-}
 
 
 
