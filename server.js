@@ -247,12 +247,33 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Bağlantı Kopması
-    socket.on('disconnect', () => {
+// Bağlantı Kopması
+    socket.on('disconnect', async () => {
         console.log('Gladyatör ayrıldı:', socket.id);
+        
+        const player = users[socket.id];
+        
+        if (player) {
+            try {
+                // Eğer player bir Mongoose nesnesiyse doğrudan kaydedebilirsin:
+                // await player.save();
+                
+                // Veya veritabanındaki ID ile bulup güncelleyebilirsin:
+                await User.findByIdAndUpdate(player.userId, {
+                    gold: player.gold,
+                    level: player.level,
+                    stats: player.stats
+                    // Oyunda güncel tuttuğun diğer veriler...
+                });
+                
+                console.log("Gladyatör verileri başarıyla kaydedildi.");
+            } catch (err) {
+                console.error("Kayıt hatası:", err);
+            }
+        }
+
         delete users[socket.id];
     });
-});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
