@@ -224,6 +224,47 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
+    // EKİPMAN DÜKKANI / PAZAR YERİNDEN EŞYA SATIN ALMA
+    // ============================================
+    socket.on('buyShopItem', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        // Mağazada satılan eşyaların kataloğu
+        const shopCatalog = {
+            'shield_1': { id: 'shop_shield_1', name: 'Demir Kalkan', icon: '🛡️', type: 'shield', strBonus: 1, vitBonus: 3, level: 0, cost: 300 },
+            'helmet_1': { id: 'shop_helmet_1', name: 'Demir Miğfer', icon: '🪖', type: 'helmet', strBonus: 2, vitBonus: 2, level: 0, cost: 400 },
+            'boots_1': { id: 'shop_boots_1', name: 'Savaş Çizmeleri', icon: '👢', type: 'boots', strBonus: 0, vitBonus: 4, level: 0, cost: 350 },
+            'gloves_1': { id: 'shop_gloves_1', name: 'Deri Eldiven', icon: '🧤', type: 'gloves', strBonus: 2, vitBonus: 1, level: 0, cost: 250 }
+        };
+
+        const itemTemplate = shopCatalog[data.itemId];
+        if (!itemTemplate) {
+            return socket.emit('marketResult', { userData: user, message: "Böyle bir eşya bulunamadı!" });
+        }
+
+        if (user.balance < itemTemplate.cost) {
+            return socket.emit('marketResult', { userData: user, message: "Bu eşyayı satın almak için yeterli altınınız yok!" });
+        }
+
+        // Altını düş ve eşyanın kopyasını envantere ekle
+        user.balance -= itemTemplate.cost;
+        const newItem = { ...itemTemplate };
+        delete newItem.cost; // Maliyet bilgisini envanter objesinde tutmaya gerek yok
+
+        user.inventory.push(newItem);
+        user.markModified('inventory');
+        await user.save();
+
+        socket.emit('marketResult', { 
+            userData: user, 
+            message: `${newItem.name} başarıyla satın alındı ve çantanıza eklendi!` 
+        });
+    });
+
+
+    
+    // ============================================
     // DEMİRCİ (+ BASMA) - YENİ DİNAMİK EŞYA SİSTEMİ
     // ============================================
     socket.on('upgradeItem', async (data) => {
