@@ -1,6 +1,3 @@
-const User = require('./models/User');
-const { quests, estates, defaultInventory } = require('./config/gameConfig');
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -19,6 +16,36 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('MongoDB bağlantısı başarılı!'))
     .catch(err => console.error('MongoDB bağlantı hatası:', err));
 
+// 2. Kullanıcı Veritabanı Şeması
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    level: { type: Number, default: 1 },
+    exp: { type: Number, default: 0 },
+    balance: { type: Number, default: 100 },
+    rubies: { type: Number, default: 10 },
+    str: { type: Number, default: 5 },
+    vit: { type: Number, default: 5 },
+    statPoints: { type: Number, default: 0 },
+    hp: { type: Number, default: 100 },
+    seferLimiti: { type: Number, default: 20 },
+    seferNextRefill: { type: Number, default: null },
+    estates: { type: [Number], default: [] },
+    upgrades: { weapon: { type: Number, default: 0 }, armor: { type: Number, default: 0 }, helmet: { type: Number, default: 0 } },
+    equipped: { 
+        helmet: { type: Object, default: null }, 
+        necklace: { type: Object, default: null }, 
+        armor: { type: Object, default: null }, 
+        weapon: { type: Object, default: null }, 
+        shield: { type: Object, default: null }, 
+        ring: { type: Object, default: null }, 
+        gloves: { type: Object, default: null }, 
+        boots: { type: Object, default: null } 
+    },
+    inventory: { type: Array, default: [] }
+});
+
+const User = mongoose.model('User', userSchema);
 const users = {}; 
 
 const getDefaultInventory = () => [
@@ -58,7 +85,7 @@ io.on('connection', (socket) => {
         }
     });
 
-        // Giriş Yapma İşlemi
+    // Giriş Yapma İşlemi
     socket.on('userLogin', async (data) => {
         const { username, password } = data;
         try {
@@ -73,8 +100,6 @@ io.on('connection', (socket) => {
             }
 
             users[socket.id] = dbUser;
-            // Hem authResult hem userData göndererek ön yüzün hangisini beklediğini garantiye alıyoruz
-            socket.emit('authResult', { success: true, message: "Giriş başarılı!" });
             socket.emit('userData', dbUser);
         } catch (err) { 
             console.error("Giriş hatası:", err); 
@@ -107,21 +132,19 @@ io.on('connection', (socket) => {
     // Görev (Sefer) Sistemi
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
-        if (!user || user.hp <= 0 || user.seferLimiti <= 0) {
-            return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
-        }
+        if (!user || user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
         
         const questId = data.questId || 1;
-        const quest = quests[questId]; 
+        let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
 
-        if (!quest) {
-            return socket.emit('questResult', { success: false, message: "Böyle bir sefer bulunamadı!" });
-        }
+        if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
+        else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
+        else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
 
         user.seferLimiti -= 1;
-        user.hp = Math.max(0, user.hp - quest.hpLoss);
-        user.balance += quest.gold;
-        user.exp += quest.exp;
+        user.hp = Math.max(0, user.hp - hpLoss);
+        user.balance += goldGain;
+        user.exp += expGain;
 
         let maxExp = user.level * 100;
         let levelUpMsg = "";
@@ -135,12 +158,9 @@ io.on('connection', (socket) => {
 
         await user.save();
         socket.emit('questResult', { 
-            success: true, 
-            userData: user, 
-            message: `${quest.name} seferi başarılı!${levelUpMsg}`, 
-            goldEarned: quest.gold, 
-            expEarned: quest.exp, 
-            hpLost: quest.hpLoss 
+            success: true, userData: user, 
+            message: `${questName} seferi başarılı!${levelUpMsg}`, 
+            goldEarned: goldGain, expEarned: expGain, hpLost: hpLoss 
         });
     });
 
@@ -149,22 +169,16 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user) return;
         
-        const estateId = data.estateId;
-        const estate = estates[estateId]; 
+        let cost = 0;
+        if (data.estateId === 1) cost = 500;
+        if (data.estateId === 2) cost = 2000;
+        if (data.estateId === 3) cost = 7500;
 
-        if (!estate) {
-            return socket.emit('marketResult', { userData: user, message: "Böyle bir mülk bulunamadı!" });
-        }
+        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
+        if (user.balance < cost) return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
 
-        if (user.estates.includes(estateId)) {
-            return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
-        }
-        if (user.balance < estate.cost) {
-            return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
-        }
-
-        user.balance -= estate.cost;
-        user.estates.push(estateId);
+        user.balance -= cost;
+        user.estates.push(data.estateId);
         await user.save();
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
@@ -224,53 +238,6 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // Eşya Satma
-    socket.on('sellItem', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-
-        const index = data.itemIndex;
-        if (index < 0 || index >= user.inventory.length) {
-            return socket.emit('inventoryResult', { success: false, message: "Geçersiz eşya!" });
-        }
-
-        const item = user.inventory[index];
-        const sellPrice = item.sellPrice || 25; 
-
-        user.balance += sellPrice;
-        user.inventory.splice(index, 1); 
-        await user.save();
-
-        socket.emit('inventoryResult', { success: true, userData: user, message: `${item.name} satıldı, +${sellPrice} altın kazandın!` });
-    });
-
-    // Demirhane Geliştirme
-    socket.on('upgradeGear', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-
-        const gearType = data.gearType; 
-        if (!user.upgrades || user.upgrades[gearType] === undefined) {
-            return socket.emit('upgradeResult', { success: false, message: "Geçersiz ekipman türü!" });
-        }
-
-        const currentLevel = user.upgrades[gearType];
-        const upgradeCost = (currentLevel + 1) * 150; 
-
-        if (user.balance < upgradeCost) {
-            return socket.emit('upgradeResult', { success: false, message: `Yetersiz altın! Gerekli: ${upgradeCost} altın.` });
-        }
-
-        user.balance -= upgradeCost;
-        user.upgrades[gearType] += 1;
-        
-        if (gearType === 'weapon') user.str += 2;
-        if (gearType === 'armor' || gearType === 'helmet') user.vit += 2;
-
-        await user.save();
-        socket.emit('upgradeResult', { success: true, userData: user, message: `${gearType.toUpperCase()} başarıyla +${user.upgrades[gearType]} seviyesine yükseltildi!` });
-    });
-
     // Sohbet
     socket.on('sendChatMessage', (data) => {
         io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
@@ -284,12 +251,9 @@ setInterval(async () => {
     for (const socketId in users) {
         const user = users[socketId];
         let income = 0;
-
-        user.estates.forEach(estateId => {
-            if (estates[estateId]) {
-                income += estates[estateId].income;
-            }
-        });
+        if (user.estates.includes(1)) income += 10;
+        if (user.estates.includes(2)) income += 45;
+        if (user.estates.includes(3)) income += 180;
 
         if (income > 0) {
             user.balance += income;
@@ -300,6 +264,4 @@ setInterval(async () => {
 }, 60000); 
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda çalışıyor.`);
-});
+server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
