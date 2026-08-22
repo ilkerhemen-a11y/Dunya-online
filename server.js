@@ -38,7 +38,6 @@ const userSchema = new mongoose.Schema({
     exp: { type: Number, default: 0 },
     balance: { type: Number, default: 100 },
     rubies: { type: Number, default: 10 },
-    
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
@@ -264,9 +263,6 @@ io.on('connection', (socket) => {
     });
 
 
-
-
-    
     
     // ============================================
     // DEMİRCİ (+ BASMA) - YENİ DİNAMİK EŞYA SİSTEMİ
