@@ -406,7 +406,7 @@
     </style>
 </head>
 <body>
-
+<button onclick="logout()">Çıkış Yap</button>
     <!-- Giriş Ekranı -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
@@ -904,6 +904,19 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
         });
+
+
+function logout() {
+    // Sunucuya çıkış isteği gönder
+    socket.emit('logout');
+    
+    // Çıkış başarılı olduğunda yapılacaklar (örn: giriş ekranına dön)
+    socket.on('logoutSuccess', () => {
+        localStorage.removeItem('username'); // Varsa kayıtlı ismi sil
+        window.location.reload(); // Sayfayı yenile veya giriş ekranına yönlendir
+    });
+}
+        
     </script>
 </body>
 </html>
