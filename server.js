@@ -267,9 +267,13 @@ setInterval(async () => {
     for (const socketId in users) {
         const user = users[socketId];
         let income = 0;
-        if (user.estates.includes(1)) income += 10;
-        if (user.estates.includes(2)) income += 45;
-        if (user.estates.includes(3)) income += 180;
+
+        // Kullanıcının sahip olduğu tımarların gelirini gameConfig'den toplar
+        user.estates.forEach(estateId => {
+            if (estates[estateId]) {
+                income += estates[estateId].income;
+            }
+        });
 
         if (income > 0) {
             user.balance += income;
