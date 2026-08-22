@@ -489,6 +489,20 @@
                             </div>
                             <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
                         </div>
+
+
+<!-- index.html veya render Market fonksiyonun içindeki HTML yapısı -->
+<div class="market-card">
+    <div class="market-info">
+        <h4>Sefer İksiri (Hak Yenileme)</h4>
+        <p>Sefer limitinizi anında 20/20 yapar.</p>
+        <span class="cost">Maliyet: 50 Altın</span>
+    </div>
+    <button onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
+</div>
+
+
+                        
                     </div>
                 `;
             } else if(activeTab === 'timar') {
