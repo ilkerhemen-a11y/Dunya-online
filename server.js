@@ -11,7 +11,7 @@ const io = new Server(server, {
 
 app.use(express.static(__dirname + '/public'));
 
-// 1. MongoDB Bağlantısı (Render için MONGODB_URI/MONGO_URI, yerel için localhost)
+// 1. MongoDB Bağlantısı
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/throne_war';
 
 mongoose.connect(MONGO_URI)
@@ -21,7 +21,7 @@ mongoose.connect(MONGO_URI)
     console.error('MongoDB bağlantı hatası:', err);
 });
 
-// 2. Kullanıcı Veritabanı Şeması (Model)
+// 2. Kullanıcı Veritabanı Şeması
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     level: { type: Number, default: 1 },
@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
-const users = {}; // Aktif socket bağlantıları için bellek cache'i
+const users = {}; 
 
 const getDefaultInventory = () => [
     { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
@@ -69,7 +69,7 @@ const getDefaultInventory = () => [
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Giriş Yapma / Kayıt Yükleme
+    // Giriş Yapma / Kayıt Yükleme (Envanter Kontrollü)
     socket.on('userLogin', async (data) => {
         const username = data.username ? data.username.trim() : 'Gladyatör';
         
@@ -77,11 +77,15 @@ io.on('connection', (socket) => {
             let dbUser = await User.findOne({ username });
 
             if (!dbUser) {
-                // Yeni kullanıcı: Envanter ve başlangıç değerleri ile oluştur
+                // Hiç kayıt yoksa yeni oluştur
                 dbUser = new User({
                     username: username,
                     inventory: getDefaultInventory()
                 });
+                await dbUser.save();
+            } else if (!dbUser.inventory || dbUser.inventory.length === 0) {
+                // Kayıt var ama envanter boşsa doldur
+                dbUser.inventory = getDefaultInventory();
                 await dbUser.save();
             }
 
@@ -142,160 +146,78 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         const now = Date.now();
-        const COOLDOWN_TIME = 60 * 60 * 1000; // 1 Saat
+        const COOLDOWN_TIME = 60 * 60 * 1000;
 
         if (user.seferNextRefill && now >= user.seferNextRefill) {
             user.seferLimiti = 20;
             user.seferNextRefill = null;
         }
 
-        if (user.hp <= 0) {
+        if (user.hp <= 0 || user.seferLimiti <= 0) {
             return socket.emit('questResult', {
                 success: false,
-                message: "Canınız (HP) tükenmiş! Sefer düzenlemek için can iksiri içmelisiniz.",
-                userData: user
-            });
-        }
-
-        if (user.seferLimiti <= 0) {
-            return socket.emit('questResult', {
-                success: false,
-                message: "Sefer limitiniz dolmuştur! Yenilenmesi için geri sayımın tamamlanmasını bekleyin.",
+                message: user.hp <= 0 ? "Canınız tükenmiş!" : "Sefer limitiniz dolmuş!",
                 userData: user
             });
         }
 
         user.seferLimiti -= 1;
-        if (!user.seferNextRefill) {
-            user.seferNextRefill = now + COOLDOWN_TIME;
-        }
+        if (!user.seferNextRefill) user.seferNextRefill = now + COOLDOWN_TIME;
 
         const questId = data.questId || 1;
         const hpLost = Math.floor(Math.random() * (questId * 12)) + 5;
         user.hp = Math.max(0, user.hp - hpLost);
+        user.balance += (questId * 45 + Math.floor(Math.random() * 15));
+        user.exp += (questId * 25);
 
-        const goldEarned = questId * 45 + Math.floor(Math.random() * 15);
-        const expEarned = questId * 25;
-
-        user.balance += goldEarned;
-        user.exp += expEarned;
-
-        const maxExp = user.level * 100;
-        if (user.exp >= maxExp) {
+        if (user.exp >= (user.level * 100)) {
             user.level += 1;
-            user.exp -= maxExp;
+            user.exp -= (user.level * 100);
             user.statPoints += 3;
         }
 
         await user.save();
-
-        socket.emit('questResult', {
-            success: true,
-            message: "Sefer başarıyla tamamlandı!",
-            goldEarned: goldEarned,
-            expEarned: expEarned,
-            hpLost: hpLost,
-            userData: user
-        });
+        socket.emit('questResult', { success: true, message: "Sefer tamamlandı!", userData: user });
     });
 
-    // Nitelik Dağıtma
+    // Nitelik Dağıtma, İksir, Demirhane ve Chat işlemleri aynı...
     socket.on('distributeStat', async (statName) => {
         const user = users[socket.id];
         if (!user || user.statPoints <= 0) return;
-
-        if (statName === 'str') {
-            user.str += 1;
-            user.statPoints -= 1;
-        } else if (statName === 'vit') {
-            user.vit += 1;
-            user.statPoints -= 1;
-            user.hp = user.vit * 20;
-        }
-
+        if (statName === 'str') user.str += 1;
+        else if (statName === 'vit') { user.vit += 1; user.hp = user.vit * 20; }
+        user.statPoints -= 1;
         await user.save();
         socket.emit('statUpdated', user);
     });
 
-    // Can İksiri İçme
     socket.on('usePotion', async () => {
         const user = users[socket.id];
-        if (!user) return;
-
-        const potionCost = 50;
-        if (user.balance < potionCost) {
-            return socket.emit('questResult', {
-                success: false,
-                message: "İksir satın almak için yeterli altınınız yok!",
-                userData: user
-            });
-        }
-
-        user.balance -= potionCost;
+        if (!user || user.balance < 50) return;
+        user.balance -= 50;
         user.hp = user.vit * 20;
-
         await user.save();
-        socket.emit('questResult', {
-            success: true,
-            message: "Can iksiri içildi! Canınız tamamen tazelendi.",
-            goldEarned: 0,
-            expEarned: 0,
-            hpLost: 0,
-            userData: user
-        });
+        socket.emit('questResult', { success: true, message: "Can yenilendi.", userData: user });
     });
 
-    // Demirhane (+ Basma)
     socket.on('upgradeItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
-
-        const itemType = data.itemType;
-        const currentLvl = user.upgrades[itemType] || 0;
-        const cost = (currentLvl + 1) * 100;
-
-        if (user.balance < cost) {
-            return socket.emit('marketResult', {
-                success: false,
-                message: "Geliştirme için yeterli altınınız bulunmuyor!",
-                userData: user
-            });
-        }
-
+        const cost = (user.upgrades[data.itemType] + 1) * 100;
+        if (user.balance < cost) return;
         user.balance -= cost;
-        user.upgrades[itemType] = currentLvl + 1;
+        user.upgrades[data.itemType] += 1;
         user.markModified('upgrades');
-
         await user.save();
-
-        socket.emit('forgeResult', {
-            success: true,
-            itemType: itemType,
-            newLevel: user.upgrades[itemType],
-            message: `${itemType.toUpperCase()} başarıyla +${user.upgrades[itemType]} seviyesine yükseltildi!`,
-            userData: user
-        });
+        socket.emit('forgeResult', { success: true, newLevel: user.upgrades[data.itemType], userData: user });
     });
 
-    // Sohbet Mesajı
     socket.on('sendChatMessage', (data) => {
-        const user = users[socket.id];
-        if (!user || !data.message) return;
-
-        io.emit('receiveChatMessage', {
-            username: user.username,
-            message: data.message
-        });
+        io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
     });
 
-    // Bağlantı Kopması
-    socket.on('disconnect', () => {
-        console.log('Gladyatör ayrıldı:', socket.id);
-        delete users[socket.id];
-    });
+    socket.on('disconnect', () => delete users[socket.id]);
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Sunucu http://localhost:${PORT} üzerinde aktif.`);
-});
+server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
