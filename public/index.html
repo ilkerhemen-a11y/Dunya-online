@@ -469,36 +469,36 @@ const QUESTS = {
                         </div>
                     </div>
                 `;
-    } else if (activeTab === 'quests') {
-    let questsHTML = '<div class="quest-list">';
-    
-    // Oyuncunun mevcut seviyesini al (Veri henüz yüklenmediyse varsayılan 1)
-    const userLevel = currentUserData ? currentUserData.level : 1;
-    
-    for (const [id, q] of Object.entries(QUESTS)) {
-        const isUnlocked = userLevel >= q.reqLevel;
-        
-        questsHTML += `
-            <div class="quest-card" style="${!isUnlocked ? 'opacity: 0.6;' : ''}">
-                <div class="quest-info">
-                    <h4>${q.name} ${!isUnlocked ? `<span style="color:#ef4444; font-size:0.8em;">(Lvl ${q.reqLevel})</span>` : ''}</h4>
-                    <div class="quest-rewards">
-                        <span>+${q.gold} Altın</span>
-                        <span>+${q.exp} Tecrübe</span>
-                        <span style="color:#ef4444;">-${q.hpLoss} HP</span>
+     } else if(activeTab === 'work') {
+                body.innerHTML = `
+                    <div class="quest-list">
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Karanlık Orman Seferi</h4>
+                                <p>Ormandaki gölgelerle savaş ve ganimet topla.</p>
+                                <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Unutulmuş Tapınak</h4>
+                                <p>Antik tapınaktakı tehlikeli mahlukları alt et.</p>
+                                <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Ejderha Dağı</h4>
+                                <p>Zirvedeki ejderhanın yuvasını yağmala.</p>
+                                <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
+                        </div>
                     </div>
-                </div>
-                <button class="btn-quest" 
-                        ${!isUnlocked ? 'disabled style="cursor:not-allowed; background-color:#7f8c8d;"' : ''} 
-                        onclick="socket.emit('doQuest', { questId: ${id} })">
-                    ${isUnlocked ? 'Sefer Et' : 'Kilitli'}
-                </button>
-            </div>
-        `;
-    }
-    
-    questsHTML += `</div><div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>`;
-    body.innerHTML = questsHTML;
+                    <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
+                `;
 }
             } else if(activeTab === 'market') {
                 body.innerHTML = `
