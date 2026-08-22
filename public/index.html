@@ -536,30 +536,47 @@
                         </div>
                     </div>
                 `;
+            // YENİ KOD - SİLDİĞİN YERE BUNU YAPIŞTIR
             } else if(activeTab === 'blacksmith') {
+                // Kuşanılan bir silah varsa adını al, yoksa varsayılan olarak "Tahta Kılıç" yaz.
+                const weaponName = u.equipped?.weapon?.name || "Tahta Kılıç";
+                const weaponLvl = u.upgrades?.weapon || 0;
+                const weaponCost = (weaponLvl + 1) * 100;
+
+                const armorLvl = u.upgrades?.armor || 0;
+                const armorCost = (armorLvl + 1) * 100;
+
+                const helmetLvl = u.upgrades?.helmet || 0;
+                const helmetCost = (helmetLvl + 1) * 100;
+
                 body.innerHTML = `
                     <div class="forge-list">
+                        <!-- DİNAMİK SİLAH / TAHTA KILIÇ GELİŞTİRME -->
                         <div class="forge-card">
                             <div class="forge-info">
-                                <h4>Silah Geliştirme (Seviye: +${u.upgrades?.weapon || 0})</h4>
-                                <p>Saldırı gücünüzü artırır.</p>
-                                <span class="forge-cost">Maliyet: ${((u.upgrades?.weapon || 0) + 1) * 100} Altın</span>
+                                <h4>${weaponName} Geliştirme (Seviye: +${weaponLvl})</h4>
+                                <p>Silahınızın saldırı gücünü artırır.</p>
+                                <span class="forge-cost">Maliyet: ${weaponCost} Altın</span>
                             </div>
                             <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'weapon' })">Geliştir (+1)</button>
                         </div>
+                        
+                        <!-- ZIRH GELİŞTİRME -->
                         <div class="forge-card">
                             <div class="forge-info">
-                                <h4>Zırh Geliştirme (Seviye: +${u.upgrades?.armor || 0})</h4>
+                                <h4>Zırh Geliştirme (Seviye: +${armorLvl})</h4>
                                 <p>Savunmanızı güçlendirir.</p>
-                                <span class="forge-cost">Maliyet: ${((u.upgrades?.armor || 0) + 1) * 100} Altın</span>
+                                <span class="forge-cost">Maliyet: ${armorCost} Altın</span>
                             </div>
                             <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'armor' })">Geliştir (+1)</button>
                         </div>
+
+                        <!-- MİĞFER GELİŞTİRME -->
                         <div class="forge-card">
                             <div class="forge-info">
-                                <h4>Miğfer Geliştirme (Seviye: +${u.upgrades?.helmet || 0})</h4>
+                                <h4>Miğfer Geliştirme (Seviye: +${helmetLvl})</h4>
                                 <p>Kritik direnç sağlar.</p>
-                                <span class="forge-cost">Maliyet: ${((u.upgrades?.helmet || 0) + 1) * 100} Altın</span>
+                                <span class="forge-cost">Maliyet: ${helmetCost} Altın</span>
                             </div>
                             <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'helmet' })">Geliştir (+1)</button>
                         </div>
