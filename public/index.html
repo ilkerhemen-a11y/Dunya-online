@@ -194,6 +194,61 @@
             .character-screen { grid-template-columns: 1fr; }
             .game-header { flex-direction: column; gap: 8px; padding: 10px; }
         }
+
+
+
+
+/* Karakter ve Çerçeveli Kahraman Konteyneri */
+.character-profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(145deg, #18120d, #0d0907);
+    border: 2px solid #d4af37;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* Çerçeveli Kahraman Görsel Alanı */
+.hero-avatar-frame {
+    width: 100px;
+    height: 100px;
+    border: 3px solid #f3cf7a;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 12px;
+    background-color: #221a14;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hero-avatar-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Genel Durum Bilgileri */
+.general-status-box {
+    width: 100%;
+    border-top: 1px solid rgba(212, 175, 55, 0.3);
+    padding-top: 10px;
+    margin-top: 5px;
+    color: #f3cf7a;
+    font-size: 13px;
+    text-align: left;
+}
+
+
+
+
+
+        
     </style>
 </head>
 <body>
