@@ -10,6 +10,21 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname + '/public'));
 
+// Sabitler ve Yardımcı Fonksiyonlar
+const MAX_SEFER_LIMITI = 20;
+const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
+
+function checkSeferRefill(user) {
+    const now = Date.now();
+    // Limit tükenmişse ve 30 dakikalık bekleme süresi dolmuşsa yenile
+    if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
+        user.seferLimiti = MAX_SEFER_LIMITI;
+        user.seferNextRefill = null;
+        return true;
+    }
+    return false;
+}
+
 // 1. MongoDB Bağlantısı
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
 mongoose.connect(MONGO_URI)
@@ -99,6 +114,11 @@ io.on('connection', (socket) => {
                 return socket.emit('authResult', { success: false, message: "Hatalı şifre!" });
             }
 
+            // Çevrimdışıyken 30 dakikalık süre dolmuşsa yenile
+            if (checkSeferRefill(dbUser)) {
+                await dbUser.save();
+            }
+
             users[socket.id] = dbUser;
             socket.emit('userData', dbUser);
         } catch (err) { 
@@ -132,8 +152,31 @@ io.on('connection', (socket) => {
     // Görev (Sefer) Sistemi
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
-        if (!user || user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
-        
+        if (!user) return;
+
+        // Dolum zamanı kontrolü
+        checkSeferRefill(user);
+
+        if (user.hp <= 0) {
+            return socket.emit('questResult', { success: false, message: "Canınız yetersiz!" });
+        }
+
+        if (user.seferLimiti <= 0) {
+            const kalanDakika = Math.ceil((user.seferNextRefill - Date.now()) / (1000 * 60));
+            return socket.emit('questResult', { 
+                success: false, 
+                message: `Sefer hakkınız bitti! Yenilenmeye kalan süre: ${kalanDakika} dakika.` 
+            });
+        }
+
+        // Sefer hakkını düş
+        user.seferLimiti -= 1;
+
+        // Haklar tamamen tükendiğinde 30 dakikalık sayacı başlat
+        if (user.seferLimiti === 0) {
+            user.seferNextRefill = Date.now() + REFILL_INTERVAL;
+        }
+
         const questId = data.questId || 1;
         let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
 
@@ -141,7 +184,6 @@ io.on('connection', (socket) => {
         else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
         else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
 
-        user.seferLimiti -= 1;
         user.hp = Math.max(0, user.hp - hpLoss);
         user.balance += goldGain;
         user.exp += expGain;
@@ -158,9 +200,12 @@ io.on('connection', (socket) => {
 
         await user.save();
         socket.emit('questResult', { 
-            success: true, userData: user, 
+            success: true, 
+            userData: user, 
             message: `${questName} seferi başarılı!${levelUpMsg}`, 
-            goldEarned: goldGain, expEarned: expGain, hpLost: hpLoss 
+            goldEarned: goldGain, 
+            expEarned: expGain, 
+            hpLost: hpLoss 
         });
     });
 
@@ -217,13 +262,15 @@ io.on('connection', (socket) => {
     // Ekipman Kuşanma/Çıkarma
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
-        if (!user) return;
+        if (!user || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
+        
         const item = user.inventory[data.itemIndex];
         const old = user.equipped[item.type];
         user.inventory.splice(data.itemIndex, 1);
         if (old) user.inventory.push(old);
         user.equipped[item.type] = item;
-        user.markModified('equipped'); user.markModified('inventory');
+        user.markModified('equipped'); 
+        user.markModified('inventory');
         await user.save();
         socket.emit('statUpdated', user);
     });
@@ -233,7 +280,8 @@ io.on('connection', (socket) => {
         if (!user || !user.equipped[data.slot]) return;
         user.inventory.push(user.equipped[data.slot]);
         user.equipped[data.slot] = null;
-        user.markModified('equipped'); user.markModified('inventory');
+        user.markModified('equipped'); 
+        user.markModified('inventory');
         await user.save();
         socket.emit('statUpdated', user);
     });
