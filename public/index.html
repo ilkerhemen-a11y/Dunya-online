@@ -33,10 +33,10 @@
             font-size: 12px;
         }
 
-        .header-section { display: flex; align-items: center; gap: 15px; }
-        .resource-item { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #f3cf7a; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .header-section { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .resource-item { display: flex; align-items: center; gap: 5px; font-weight: bold; color: #f3cf7a; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .bar-container { display: flex; flex-direction: column; gap: 2px; }
-        .stat-bar-mini { width: 110px; height: 12px; background: #080605; border: 1px solid #33241b; border-radius: 3px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
+        .stat-bar-mini { width: 100px; height: 12px; background: #080605; border: 1px solid #33241b; border-radius: 3px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
         .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #15803d); width: 100%; transition: width 0.3s ease; }
         .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #a16207); width: 0%; }
 
@@ -71,7 +71,6 @@
             border-radius: 4px;
             margin-bottom: 4px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .menu-btn {
@@ -113,37 +112,40 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            letter-spacing: 0.5px;
         }
 
         .character-screen { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .char-stats-box { background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
+        .char-stats-box { background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; }
         .char-stats-box h3 { font-size: 13px; color: #f3cf7a; margin-bottom: 12px; border-bottom: 1px solid #221912; padding-bottom: 6px; }
         .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed #1e150f; }
         .stat-row span:first-child { color: #9c8e7b; }
         .stat-row span:nth-child(2) { color: #f3cf7a; font-weight: bold; }
 
-        .btn-stat { background: linear-gradient(to bottom, #d4af37, #997415); border: 1px solid #ffdf73; color: #0b0908; padding: 2px 7px; font-size: 11px; font-weight: bold; border-radius: 3px; cursor: pointer; transition: 0.1s; }
+        .btn-stat { background: linear-gradient(to bottom, #d4af37, #997415); border: 1px solid #ffdf73; color: #0b0908; padding: 2px 7px; font-size: 11px; font-weight: bold; border-radius: 3px; cursor: pointer; }
         .btn-stat:hover { filter: brightness(1.15); }
 
-        .char-portrait { width: 100%; margin-top: 15px; border: 1px solid #433222; border-radius: 6px; overflow: hidden; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+        .char-portrait { width: 100%; margin-top: 15px; border: 1px solid #433222; border-radius: 6px; overflow: hidden; background: #000; }
         .char-portrait img { width: 100%; display: block; filter: brightness(0.9) contrast(1.1); }
 
         .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
-        .quest-card, .market-card, .forge-card { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1a130f; }
-        
+        .quest-card, .market-card, .forge-card { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
         .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 13px; margin-bottom: 3px; }
         .quest-info p, .market-info p, .forge-info p { color: #9c8e7b; font-size: 11px; margin-bottom: 6px; }
         .quest-rewards { font-size: 11px; color: #22c55e; display: flex; gap: 10px; font-weight: bold; }
         .market-income { font-size: 11px; color: #38bdf8; font-weight: bold; }
         .forge-cost { font-size: 11px; color: #ef4444; font-weight: bold; }
 
-        .btn-quest { background: linear-gradient(135deg, #d4af37 0%, #997415 100%); border: 1px solid #ffdf73; color: #0b0908; padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: 0.1s; white-space: nowrap; }
+        .btn-quest { background: linear-gradient(135deg, #d4af37 0%, #997415 100%); border: 1px solid #ffdf73; color: #0b0908; padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; white-space: nowrap; }
         .btn-quest:hover:not(:disabled) { filter: brightness(1.1); }
         .btn-quest:disabled { background: #231b14; color: #594738; border-color: #2e231b; cursor: not-allowed; }
         
         .quest-log { margin-top: 15px; background: #0d0a08; border: 1px solid #2d2017; padding: 10px; border-radius: 6px; font-size: 12px; color: #9c8e7b; min-height: 40px; }
+        
+        /* Eski Envanter Grid Stili */
+        .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
+        .inv-slot { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; font-size: 11px; text-align: center; cursor: pointer; }
+        .inv-slot:hover { border-color: #d4af37; background: #1b1410; }
+
         .chat-container { display: flex; flex-direction: column; gap: 10px; height: 420px; }
         .chat-messages { flex: 1; background: #0d0a08; border: 1px solid #2d2017; border-radius: 6px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
         .chat-msg { border-bottom: 1px dashed #1e150f; padding-bottom: 4px; }
@@ -175,7 +177,6 @@
 </head>
 <body>
 
-    <!-- GİRİŞ VE KAYIT EKRANI -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Antik Diyara Adım At</h2>
@@ -199,30 +200,30 @@
         </div>
     </div>
 
-    <!-- Üst Bilgi Çubuğu -->
+    <!-- Üst Bilgi Çubuğu (Sefer Limiti Geri Eklendi) -->
     <header class="game-header">
         <div class="header-section">
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
-            <div class="resource-item" style="color: #38bdf8;">🧠 <span id="headerTactical">0</span> Taktik P.</div>
+            <div class="resource-item" style="color: #38bdf8;">⚡ Sefer: <span id="headerSefer">30</span>/30</div>
+            <div class="resource-item" style="color: #a855f7;">🧠 <span id="headerTactical">0</span> Taktik</div>
         </div>
         <div class="header-section">
             <div class="bar-container">
-                <span id="hpLabel" style="font-size: 10px; color: #9c8e7b;">Can Puanı</span>
+                <span id="hpLabel" style="font-size: 10px; color: #9c8e7b;">Can</span>
                 <div class="stat-bar-mini"><div id="hpBarFill" class="stat-bar-fill" style="width: 100%;"></div></div>
             </div>
             <div class="bar-container">
-                <span id="expLabel" style="font-size: 10px; color: #9c8e7b;">Tecrübe</span>
+                <span id="expLabel" style="font-size: 10px; color: #9c8e7b;">EXP</span>
                 <div class="stat-bar-mini"><div id="expBarFill" class="stat-bar-fill exp" style="width: 0%;"></div></div>
             </div>
         </div>
     </header>
 
-    <!-- Ana Oyun Çerçevesi -->
     <div class="main-wrapper" id="mainApp" style="display: none;">
         <nav class="sidebar-menu">
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
-            <button class="menu-btn" onclick="switchTab('work')">⚔️ Seferler</button>
+            <button class="menu-btn" onclick="switchTab('work')">⚔️ Seferler (30 Hak)</button>
             <button class="menu-btn" onclick="switchTab('tactics')">🧠 Savaş Taktikleri</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
@@ -296,16 +297,12 @@
             switchTab('overview');
         });
 
-        socket.on('statUpdated', (data) => {
-            updateHeader(data);
-            if (activeTab === 'overview') renderOverview();
-        });
-
         function updateHeader(data) {
             if(!data) return;
             currentUserData = data;
             
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
+            document.getElementById('headerSefer').innerText = data.seferLimiti !== undefined ? data.seferLimiti : 30;
             document.getElementById('headerTactical').innerText = data.taktikPuani || 0;
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
@@ -318,7 +315,7 @@
             const maxExp = (data.level || 1) * 100;
             const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
             document.getElementById('expBarFill').style.width = `${expPercent}%`;
-            document.getElementById('expLabel').innerText = `Tecrübe (${data.exp || 0}/${maxExp})`;
+            document.getElementById('expLabel').innerText = `EXP (${data.exp || 0}/${maxExp})`;
         }
 
         function switchTab(tabName) {
@@ -326,10 +323,10 @@
             const titleEl = document.getElementById('panelHeaderTitle');
             
             if (tabName === 'overview') {
-                titleEl.innerText = "Genel Durum & Karakter";
+                titleEl.innerText = "Genel Durum & Envanter";
                 renderOverview();
             } else if (tabName === 'work') {
-                titleEl.innerText = "Sınırsız Seferler";
+                titleEl.innerText = "Günlük Seferler (30 Hak)";
                 renderQuests();
             } else if (tabName === 'tactics') {
                 titleEl.innerText = "Savaş Yetenekleri & Taktik Ağacı";
@@ -349,7 +346,17 @@
         function renderOverview() {
             if(!currentUserData) return;
             const d = currentUserData;
+            const inv = d.inventory || [];
             
+            let invSlotsHTML = '';
+            for(let i = 0; i < 8; i++) {
+                if(inv[i]) {
+                    invSlotsHTML += `<div class="inv-slot" onclick="equipItem(${i})"><span style="color:#f3cf7a; font-weight:bold;">${inv[i].name}</span><span style="font-size:10px; color:#22c55e;">Kuşan</span></div>`;
+                } else {
+                    invSlotsHTML += `<div class="inv-slot" style="color:#433222;">Boş Yuva</div>`;
+                }
+            }
+
             document.getElementById('panelContentBody').innerHTML = `
                 <div class="character-screen">
                     <div class="char-stats-box">
@@ -366,11 +373,16 @@
                         <img src="https://i.hizliresim.com/hnneaa5l.jpg" alt="Gladyatör">
                     </div>
                 </div>
+                <div style="margin-top:20px;">
+                    <h3 style="font-size:13px; color:#f3cf7a; margin-bottom:8px;">Eski Envanter & Çanta</h3>
+                    <div class="inventory-grid">${invSlotsHTML}</div>
+                </div>
             `;
         }
 
         function distribute(stat) { socket.emit('distributeStat', stat); }
         function usePotion() { socket.emit('usePotion'); }
+        function equipItem(index) { socket.emit('equipItem', { itemIndex: index }); }
 
         function renderQuests() {
             document.getElementById('panelContentBody').innerHTML = `
@@ -378,16 +390,16 @@
                     <div class="quest-card">
                         <div class="quest-info">
                             <h4>Karanlık Orman</h4>
-                            <p>Ormandaki eşkiyaları temizle ve bölgeyi güvenli hale getir.</p>
-                            <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 EXP</span><span>❤️ 15 Can Kaybı</span></div>
+                            <p>Ormandaki eşkiyaları temizle.</p>
+                            <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 EXP</span><span>❤️ 15 Can</span></div>
                         </div>
                         <button class="btn-quest" onclick="doQuest(1)">Sefere Çık</button>
                     </div>
                     <div class="quest-card">
                         <div class="quest-info">
                             <h4>Unutulmuş Tapınak</h4>
-                            <p>Antik tapınaktakilerin sırlarını çöz ve hazineyi ele geçir.</p>
-                            <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 EXP</span><span>❤️ 35 Can Kaybı</span></div>
+                            <p>Antik tapınaktakilerin sırlarını çöz.</p>
+                            <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 EXP</span><span>❤️ 35 Can</span></div>
                         </div>
                         <button class="btn-quest" onclick="doQuest(2)">Sefere Çık</button>
                     </div>
@@ -395,12 +407,12 @@
                         <div class="quest-info">
                             <h4>Ejderha Dağı</h4>
                             <p>Zirvedeki ejderha yuvasına meydan oku!</p>
-                            <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 EXP</span><span>❤️ 70 Can Kaybı</span></div>
+                            <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 EXP</span><span>❤️ 70 Can</span></div>
                         </div>
                         <button class="btn-quest" onclick="doQuest(3)">Sefere Çık</button>
                     </div>
                 </div>
-                <div id="questLog" class="quest-log">Sefer sonuçları burada raporlanacak... (Sınırsız sefer yapabilirsiniz)</div>
+                <div id="questLog" class="quest-log">Sefer sonuçları burada raporlanacak...</div>
             `;
         }
 
@@ -417,14 +429,14 @@
 
             document.getElementById('panelContentBody').innerHTML = `
                 <div style="font-size: 12px; color: #9c8e7b; margin-bottom: 15px;">
-                    Seferlerde şans eseri kazandığınız Taktik Puanlarını harcayarak gladyatörünüzü güçlendirin.<br>
+                    Seferlerde kazandığınız Taktik Puanları ile yeteneklerinizi açın.<br>
                     Mevcut Taktik Puanınız: <span style="color:#38bdf8; font-weight:bold;">${d.taktikPuani || 0}</span>
                 </div>
                 <div class="forge-list">
                     <div class="forge-card">
                         <div class="forge-info">
                             <h4>Kritik Vuruş (Seviye ${skills.kritik})</h4>
-                            <p>Savaşlarda ölümcül darbe şansını artırır.</p>
+                            <p>Ölümcül darbe şansını artırır.</p>
                             <div class="forge-cost" style="color:#38bdf8;">Maliyet: 1 Taktik Puanı</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeSkill('kritik')">Geliştir</button>
@@ -432,7 +444,7 @@
                     <div class="forge-card">
                         <div class="forge-info">
                             <h4>Vampirizm (Seviye ${skills.vampir})</h4>
-                            <p>Karakterin savaş yeteneği direncini artırır.</p>
+                            <p>Savaş yeteneği direncini artırır.</p>
                             <div class="forge-cost" style="color:#38bdf8;">Maliyet: 1 Taktik Puanı</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeSkill('vampir')">Geliştir</button>
@@ -440,7 +452,7 @@
                     <div class="forge-card">
                         <div class="forge-info">
                             <h4>Bereket (Seviye ${skills.bereket})</h4>
-                            <p>Seferlerden elde edilen altın miktarını her seviyede %3 artırır.</p>
+                            <p>Sefer altınlarını %3 artırır.</p>
                             <div class="forge-cost" style="color:#38bdf8;">Maliyet: 1 Taktik Puanı</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeSkill('bereket')">Geliştir</button>
@@ -467,7 +479,7 @@
                     <div class="market-card">
                         <div class="market-info">
                             <h4>Küçük Tarla</h4>
-                            <p>Mütevazı bir tarla. Düzenli olarak pasif gelir getirir.</p>
+                            <p>Pasif gelir getirir.</p>
                             <div class="market-income">Pasif Gelir: +10 Altın / dk</div>
                         </div>
                         <button class="btn-quest" ${has1 ? 'disabled':''} onclick="buyEstate(1)">${has1 ? 'Sahipsiniz' : '500 Altın - Satın Al'}</button>
@@ -475,7 +487,7 @@
                     <div class="market-card">
                         <div class="market-info">
                             <h4>Zeytinlik</h4>
-                            <p>Geniş zeytin ağaçlarıyla dolu verimli mülk.</p>
+                            <p>Geniş zeytin ağaçlarıyla dolu mülk.</p>
                             <div class="market-income">Pasif Gelir: +45 Altın / dk</div>
                         </div>
                         <button class="btn-quest" ${has2 ? 'disabled':''} onclick="buyEstate(2)">${has2 ? 'Sahipsiniz' : '2000 Altın - Satın Al'}</button>
@@ -483,13 +495,13 @@
                     <div class="market-card">
                         <div class="market-info">
                             <h4>Altın Madeni</h4>
-                            <p>İmparatorluğun en değerli maden yataklarından biri.</p>
+                            <p>İmparatorluğun en değerli madeni.</p>
                             <div class="market-income">Pasif Gelir: +180 Altın / dk</div>
                         </div>
                         <button class="btn-quest" ${has3 ? 'disabled':''} onclick="buyEstate(3)">${has3 ? 'Sahipsiniz' : '7500 Altın - Satın Al'}</button>
                     </div>
                 </div>
-                <div id="estateLog" class="quest-log" style="margin-top:15px;">Mülk alım durumları burada görünecektir.</div>
+                <div id="estateLog" class="quest-log" style="margin-top:15px;">Mülk durumu hazır...</div>
             `;
         }
 
@@ -506,23 +518,23 @@
                 <div class="forge-list">
                     <div class="forge-card">
                         <div class="forge-info">
-                            <h4>Silah Geliştirme (Mevcut: +${up.weapon})</h4>
-                            <p>Vuruş gücünüzü artırır.</p>
+                            <h4>Silah Geliştirme (+${up.weapon})</h4>
+                            <p>Vuruş gücünü artırır.</p>
                             <div class="forge-cost">Maliyet: ${(up.weapon + 1) * 100} Altın</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeItem('weapon')">Geliştir</button>
                     </div>
                     <div class="forge-card">
                         <div class="forge-info">
-                            <h4>Zırh Geliştirme (Mevcut: +${up.armor})</h4>
-                            <p>Hasar direncinizi artırır.</p>
+                            <h4>Zırh Geliştirme (+${up.armor})</h4>
+                            <p>Hasar direncini artırır.</p>
                             <div class="forge-cost">Maliyet: ${(up.armor + 1) * 100} Altın</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeItem('armor')">Geliştir</button>
                     </div>
                     <div class="forge-card">
                         <div class="forge-info">
-                            <h4>Miğfer Geliştirme (Mevcut: +${up.helmet})</h4>
+                            <h4>Miğfer Geliştirme (+${up.helmet})</h4>
                             <p>Kritik savunma sağlar.</p>
                             <div class="forge-cost">Maliyet: ${(up.helmet + 1) * 100} Altın</div>
                         </div>
