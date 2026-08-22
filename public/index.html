@@ -516,33 +516,85 @@
                     </div>
                     <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
                 `;
+
+
+
+
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
-    <!-- Can İksiri -->
-    <div class="market-card">
-        <div class="market-info">
-            <h4>Can İksiri (Sağlık Yenileme)</h4>
-            <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
-            <span class="forge-cost">Maliyet: 50 Altın</span>
-        </div>
-        <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
-    </div>
+                        <!-- Can İksiri -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>Can İksiri (Sağlık Yenileme)</h4>
+                                <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
+                                <span class="forge-cost">Maliyet: 50 Altın</span>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
+                        </div>
 
-    <!-- Sefer İksiri -->
-    <div class="market-card">
-        <div class="market-info">
-            <h4>Sefer İksiri (Hak Yenileme)</h4>
-            <p>Sefer limitinizi anında 20/20 yapar.</p>
-            <span class="forge-cost">Maliyet: 50 Altın</span>
-        </div>
-        <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
-    </div>
-</div>
-                        
+                        <!-- Sefer İksiri -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>Sefer İksiri (Hak Yenileme)</h4>
+                                <p>Sefer limitinizi anında 20/20 yapar.</p>
+                                <span class="forge-cost">Maliyet: 50 Altın</span>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
+                        </div>
+
+                        <!-- YENİ: EKİPMAN DÜKKANI BAŞLIĞI -->
+                        <div style="margin: 15px 0 5px 0; color: #f3cf7a; font-weight: bold; font-size: 13px; border-bottom: 1px solid #33241b; padding-bottom: 5px;">
+                            🛡️ Ekipman ve Silah Dükkanı
+                        </div>
+
+                        <!-- Demir Kalkan -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>🛡️ Demir Kalkan</h4>
+                                <p>Güç: +1 | Dayanıklılık: +3 bonus sağlar.</p>
+                                <span class="forge-cost">Maliyet: 300 Altın</span>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'shield_1' })">Satın Al</button>
+                        </div>
+
+                        <!-- Demir Miğfer -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>🪖 Demir Miğfer</h4>
+                                <p>Güç: +2 | Dayanıklılık: +2 bonus sağlar.</p>
+                                <span class="forge-cost">Maliyet: 400 Altın</span>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'helmet_1' })">Satın Al</button>
+                        </div>
+
+                        <!-- Savaş Çizmeleri -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>👢 Savaş Çizmeleri</h4>
+                                <p>Güç: +0 | Dayanıklılık: +4 bonus sağlar.</p>
+                                <span class="forge-cost">Maliyet: 350 Altın</span>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'boots_1' })">Satın Al</button>
+                        </div>
+
+                        <!-- Deri Eldiven -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>🧤 Deri Eldiven</h4>
+                                <p>Güç: +2 | Dayanıklılık: +1 bonus sağlar.</p>
+                                <span class="forge-cost">Maliyet: 250 Altın</span>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'gloves_1' })">Satın Al</button>
+                        </div>
                     </div>
                 `;
-            } else if(activeTab === 'timar') {
+            }
+                            
+                        
+                        
+                        
+                        else if(activeTab === 'timar') {
                 body.innerHTML = `
                     <div class="market-list">
                         <div class="market-card">
