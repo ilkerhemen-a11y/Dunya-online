@@ -5,23 +5,15 @@ const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }
-});
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname + '/public'));
 
 // 1. MongoDB Bağlantısı
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/throne_war';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
+mongoose.connect(MONGO_URI).then(() => console.log('MongoDB bağlantısı başarılı!')).catch(err => console.error('MongoDB bağlantı hatası:', err));
 
-mongoose.connect(MONGO_URI)
-.then(() => {
-    console.log('MongoDB bağlantısı başarılı!');
-}).catch(err => {
-    console.error('MongoDB bağlantı hatası:', err);
-});
-
-// 2. Kullanıcı Veritabanı Şeması
+// 2. Kullanıcı Veritabanı Şeması (Güncellendi: estates eklendi)
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     level: { type: Number, default: 1 },
@@ -34,21 +26,9 @@ const userSchema = new mongoose.Schema({
     hp: { type: Number, default: 100 },
     seferLimiti: { type: Number, default: 20 },
     seferNextRefill: { type: Number, default: null },
-    upgrades: {
-        weapon: { type: Number, default: 0 },
-        armor: { type: Number, default: 0 },
-        helmet: { type: Number, default: 0 }
-    },
-    equipped: {
-        helmet: { type: Object, default: null },
-        necklace: { type: Object, default: null },
-        armor: { type: Object, default: null },
-        weapon: { type: Object, default: null },
-        shield: { type: Object, default: null },
-        ring: { type: Object, default: null },
-        gloves: { type: Object, default: null },
-        boots: { type: Object, default: null }
-    },
+    estates: { type: [Number], default: [] }, // Satın alınan tımarların ID'leri
+    upgrades: { weapon: { type: Number, default: 0 }, armor: { type: Number, default: 0 }, helmet: { type: Number, default: 0 } },
+    equipped: { helmet: { type: Object, default: null }, necklace: { type: Object, default: null }, armor: { type: Object, default: null }, weapon: { type: Object, default: null }, shield: { type: Object, default: null }, ring: { type: Object, default: null }, gloves: { type: Object, default: null }, boots: { type: Object, default: null } },
     inventory: { type: Array, default: [] }
 });
 
@@ -57,19 +37,14 @@ const users = {};
 
 const getDefaultInventory = () => [
     { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
-    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5, isImage: true },
-    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 },
-    { id: 'item_4', name: 'Çelik Kask', icon: 'https://i.hizliresim.com/twgkfi5q.jpg', type: 'helmet', strBonus: 1, vitBonus: 3, isImage: true },
-    { id: 'item_5', name: 'Tahta Kalkan', icon: '🪵', type: 'shield', strBonus: 0, vitBonus: 4 },
-    { id: 'item_6', name: 'Bronz Yüzük', icon: '💍', type: 'ring', strBonus: 2, vitBonus: 1 },
-    { id: 'item_7', name: 'Kumaş Eldiven', icon: '🧤', type: 'gloves', strBonus: 1, vitBonus: 1 },
-    { id: 'item_8', name: 'Eski Çizme', icon: '🥾', type: 'boots', strBonus: 0, vitBonus: 2 }
+    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5 },
+    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 }
 ];
 
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Giriş Yapma
+    // Giriş
     socket.on('userLogin', async (data) => {
         const username = data.username ? data.username.trim() : 'Gladyatör';
         try {
@@ -77,26 +52,119 @@ io.on('connection', (socket) => {
             if (!dbUser) {
                 dbUser = new User({ username: username, inventory: getDefaultInventory() });
                 await dbUser.save();
-            } else if (!dbUser.inventory || dbUser.inventory.length === 0) {
-                dbUser.inventory = getDefaultInventory();
-                await dbUser.save();
             }
             users[socket.id] = dbUser;
             socket.emit('userData', dbUser);
         } catch (err) { console.error("Giriş hatası:", err); }
     });
 
-    // Çıkış Yapma
-    socket.on('logout', async () => {
+    // Çıkış
+    socket.on('logout', () => {
         if (users[socket.id]) {
-            console.log('Gladyatör çıkış yaptı:', users[socket.id].username);
             delete users[socket.id];
             socket.emit('logoutSuccess');
             socket.disconnect();
         }
     });
 
-    // Eşya İşlemleri
+    // Stat Puanı Dağıtımı
+    socket.on('distributeStat', async (statName) => {
+        const user = users[socket.id];
+        if (user && user.statPoints > 0) {
+            if (statName === 'str') user.str += 1;
+            if (statName === 'vit') { user.vit += 1; user.hp += 20; }
+            user.statPoints -= 1;
+            await user.save();
+            socket.emit('statUpdated', user);
+        }
+    });
+
+    // Dinamik Görev (Sefer) Sistemi
+    socket.on('doQuest', async (data) => {
+        const user = users[socket.id];
+        if (!user || user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
+        
+        const questId = data.questId || 1;
+        let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
+
+        if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
+        else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
+        else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
+
+        user.seferLimiti -= 1;
+        user.hp = Math.max(0, user.hp - hpLoss);
+        user.balance += goldGain;
+        user.exp += expGain;
+
+        // Level Atlama Kontrolü
+        let maxExp = user.level * 100;
+        let levelUpMsg = "";
+        if (user.exp >= maxExp) {
+            user.level += 1;
+            user.exp -= maxExp;
+            user.statPoints += 3; // Her seviyede 3 stat puanı
+            user.hp = user.vit * 20; // Canı fullenir
+            levelUpMsg = " SEVİYE ATLADIN!";
+        }
+
+        await user.save();
+        socket.emit('questResult', { 
+            success: true, userData: user, 
+            message: `${questName} seferi başarılı!${levelUpMsg}`, 
+            goldEarned: goldGain, expEarned: expGain, hpLost: hpLoss 
+        });
+    });
+
+    // Tımar Satın Alma
+    socket.on('buyEstate', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+        
+        let cost = 0;
+        if (data.estateId === 1) cost = 500;
+        if (data.estateId === 2) cost = 2000;
+        if (data.estateId === 3) cost = 7500;
+
+        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
+        if (user.balance < cost) return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+
+        user.balance -= cost;
+        user.estates.push(data.estateId);
+        await user.save();
+        socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
+    });
+
+    // Demirci (+ Basma)
+    socket.on('upgradeItem', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const type = data.itemType; // weapon, armor, helmet
+        if (user.upgrades[type] !== undefined) {
+            const cost = (user.upgrades[type] + 1) * 100;
+            if (user.balance >= cost) {
+                user.balance -= cost;
+                user.upgrades[type] += 1;
+                user.markModified('upgrades');
+                await user.save();
+                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: `${type.toUpperCase()} başarıyla +${user.upgrades[type]} seviyesine yükseltildi!` });
+            } else {
+                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: "Geliştirme için yeterli altınınız yok!" });
+            }
+        }
+    });
+
+    // Can İksiri
+    socket.on('usePotion', async () => {
+        const user = users[socket.id];
+        if (user && user.balance >= 50) {
+            user.balance -= 50; user.hp = user.vit * 20;
+            await user.save();
+            socket.emit('statUpdated', user);
+        }
+    });
+
+    // Ekipman İşlemleri
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
@@ -120,34 +188,29 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // Sefer ve Diğer İşlemler
-    socket.on('doQuest', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-        if (user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
-        
-        user.seferLimiti -= 1;
-        user.hp = Math.max(0, user.hp - Math.floor(Math.random() * 10 + 5));
-        user.balance += 50;
-        await user.save();
-        socket.emit('questResult', { success: true, userData: user });
-    });
-
-    socket.on('usePotion', async () => {
-        const user = users[socket.id];
-        if (user && user.balance >= 50) {
-            user.balance -= 50; user.hp = user.vit * 20;
-            await user.save();
-            socket.emit('questResult', { success: true, userData: user });
-        }
-    });
-
     socket.on('sendChatMessage', (data) => {
         io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
     });
 
     socket.on('disconnect', () => delete users[socket.id]);
 });
+
+// PASİF GELİR DÖNGÜSÜ (60 Saniyede Bir Tımarlardan Altın Toplar)
+setInterval(async () => {
+    for (const socketId in users) {
+        const user = users[socketId];
+        let income = 0;
+        if (user.estates.includes(1)) income += 10;
+        if (user.estates.includes(2)) income += 45;
+        if (user.estates.includes(3)) income += 180;
+
+        if (income > 0) {
+            user.balance += income;
+            await user.save();
+            io.to(socketId).emit('statUpdated', user); // Altın güncellendiğinde arayüze yansır
+        }
+    }
+}, 60000); 
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
