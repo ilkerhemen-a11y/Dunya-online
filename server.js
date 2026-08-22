@@ -69,147 +69,77 @@ const getDefaultInventory = () => [
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Giriş Yapma / Kayıt Yükleme (Envanter Kontrollü)
+    // Giriş Yapma
     socket.on('userLogin', async (data) => {
         const username = data.username ? data.username.trim() : 'Gladyatör';
-        
         try {
             let dbUser = await User.findOne({ username });
-
             if (!dbUser) {
-                // Hiç kayıt yoksa yeni oluştur
-                dbUser = new User({
-                    username: username,
-                    inventory: getDefaultInventory()
-                });
+                dbUser = new User({ username: username, inventory: getDefaultInventory() });
                 await dbUser.save();
             } else if (!dbUser.inventory || dbUser.inventory.length === 0) {
-                // Kayıt var ama envanter boşsa doldur
                 dbUser.inventory = getDefaultInventory();
                 await dbUser.save();
             }
-
             users[socket.id] = dbUser;
             socket.emit('userData', dbUser);
-        } catch (err) {
-            console.error("Giriş hatası:", err);
+        } catch (err) { console.error("Giriş hatası:", err); }
+    });
+
+    // Çıkış Yapma
+    socket.on('logout', async () => {
+        if (users[socket.id]) {
+            console.log('Gladyatör çıkış yaptı:', users[socket.id].username);
+            delete users[socket.id];
+            socket.emit('logoutSuccess');
+            socket.disconnect();
         }
     });
 
-    // Eşya Kuşanma
+    // Eşya İşlemleri
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
-
-        const { itemIndex } = data;
-        if (itemIndex === undefined || !user.inventory[itemIndex]) return;
-
-        const itemToEquip = user.inventory[itemIndex];
-        const slotType = itemToEquip.type;
-
-        const currentlyEquipped = user.equipped[slotType];
-        user.inventory.splice(itemIndex, 1);
-
-        if (currentlyEquipped) {
-            user.inventory.push(currentlyEquipped);
-        }
-
-        user.equipped[slotType] = itemToEquip;
-        user.markModified('equipped');
-        user.markModified('inventory');
-
+        const item = user.inventory[data.itemIndex];
+        const old = user.equipped[item.type];
+        user.inventory.splice(data.itemIndex, 1);
+        if (old) user.inventory.push(old);
+        user.equipped[item.type] = item;
+        user.markModified('equipped'); user.markModified('inventory');
         await user.save();
         socket.emit('statUpdated', user);
     });
 
-    // Eşya Çıkarma
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
-        if (!user) return;
-
-        const { slot } = data;
-        if (!slot || !user.equipped[slot]) return;
-
-        const unequippedItem = user.equipped[slot];
-        user.equipped[slot] = null;
-        user.inventory.push(unequippedItem);
-        user.markModified('equipped');
-        user.markModified('inventory');
-
+        if (!user || !user.equipped[data.slot]) return;
+        user.inventory.push(user.equipped[data.slot]);
+        user.equipped[data.slot] = null;
+        user.markModified('equipped'); user.markModified('inventory');
         await user.save();
         socket.emit('statUpdated', user);
     });
 
-    // Sefer / Görev Yapma
+    // Sefer ve Diğer İşlemler
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
         if (!user) return;
-
-        const now = Date.now();
-        const COOLDOWN_TIME = 60 * 60 * 1000;
-
-        if (user.seferNextRefill && now >= user.seferNextRefill) {
-            user.seferLimiti = 20;
-            user.seferNextRefill = null;
-        }
-
-        if (user.hp <= 0 || user.seferLimiti <= 0) {
-            return socket.emit('questResult', {
-                success: false,
-                message: user.hp <= 0 ? "Canınız tükenmiş!" : "Sefer limitiniz dolmuş!",
-                userData: user
-            });
-        }
-
+        if (user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
+        
         user.seferLimiti -= 1;
-        if (!user.seferNextRefill) user.seferNextRefill = now + COOLDOWN_TIME;
-
-        const questId = data.questId || 1;
-        const hpLost = Math.floor(Math.random() * (questId * 12)) + 5;
-        user.hp = Math.max(0, user.hp - hpLost);
-        user.balance += (questId * 45 + Math.floor(Math.random() * 15));
-        user.exp += (questId * 25);
-
-        if (user.exp >= (user.level * 100)) {
-            user.level += 1;
-            user.exp -= (user.level * 100);
-            user.statPoints += 3;
-        }
-
+        user.hp = Math.max(0, user.hp - Math.floor(Math.random() * 10 + 5));
+        user.balance += 50;
         await user.save();
-        socket.emit('questResult', { success: true, message: "Sefer tamamlandı!", userData: user });
-    });
-
-    // Nitelik Dağıtma, İksir, Demirhane ve Chat işlemleri aynı...
-    socket.on('distributeStat', async (statName) => {
-        const user = users[socket.id];
-        if (!user || user.statPoints <= 0) return;
-        if (statName === 'str') user.str += 1;
-        else if (statName === 'vit') { user.vit += 1; user.hp = user.vit * 20; }
-        user.statPoints -= 1;
-        await user.save();
-        socket.emit('statUpdated', user);
+        socket.emit('questResult', { success: true, userData: user });
     });
 
     socket.on('usePotion', async () => {
         const user = users[socket.id];
-        if (!user || user.balance < 50) return;
-        user.balance -= 50;
-        user.hp = user.vit * 20;
-        await user.save();
-        socket.emit('questResult', { success: true, message: "Can yenilendi.", userData: user });
-    });
-
-    socket.on('upgradeItem', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-        const cost = (user.upgrades[data.itemType] + 1) * 100;
-        if (user.balance < cost) return;
-        user.balance -= cost;
-        user.upgrades[data.itemType] += 1;
-        user.markModified('upgrades');
-        await user.save();
-        socket.emit('forgeResult', { success: true, newLevel: user.upgrades[data.itemType], userData: user });
+        if (user && user.balance >= 50) {
+            user.balance -= 50; user.hp = user.vit * 20;
+            await user.save();
+            socket.emit('questResult', { success: true, userData: user });
+        }
     });
 
     socket.on('sendChatMessage', (data) => {
