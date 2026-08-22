@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Giriş Yapma İşlemi
+        // Giriş Yapma İşlemi
     socket.on('userLogin', async (data) => {
         const { username, password } = data;
         try {
@@ -73,6 +73,8 @@ io.on('connection', (socket) => {
             }
 
             users[socket.id] = dbUser;
+            // Hem authResult hem userData göndererek ön yüzün hangisini beklediğini garantiye alıyoruz
+            socket.emit('authResult', { success: true, message: "Giriş başarılı!" });
             socket.emit('userData', dbUser);
         } catch (err) { 
             console.error("Giriş hatası:", err); 
