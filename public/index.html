@@ -277,12 +277,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-
-
-
-
-        
-        
         const socket = io();
         let currentUserData = null;
         let activeTab = 'overview';
@@ -454,104 +448,36 @@
                         </div>
                     </div>
                 `;
-     } else if(activeTab === 'work') {
-    body.innerHTML = `
-        <div class="quest-list">
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Karanlık Orman</h4>
-                    <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Unutulmuş Tapınak</h4>
-                    <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Ejderha Dağı</h4>
-                    <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Kanlı Vadi</h4>
-                    <div class="quest-rewards"><span>+650 Altın</span><span>+300 Tecrübe</span><span style="color:#ef4444;">-120 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 4 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Yeraltı Zindanları</h4>
-                    <div class="quest-rewards"><span>+1200 Altın</span><span>+550 Tecrübe</span><span style="color:#ef4444;">-180 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 5 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Buzul Geçidi</h4>
-                    <div class="quest-rewards"><span>+2100 Altın</span><span>+950 Tecrübe</span><span style="color:#ef4444;">-250 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 6 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Gölge Kalesi</h4>
-                    <div class="quest-rewards"><span>+3500 Altın</span><span>+1500 Tecrübe</span><span style="color:#ef4444;">-330 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 7 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Alev Havzası</h4>
-                    <div class="quest-rewards"><span>+5500 Altın</span><span>+2300 Tecrübe</span><span style="color:#ef4444;">-420 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 8 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Kadim Harabeler</h4>
-                    <div class="quest-rewards"><span>+8200 Altın</span><span>+3400 Tecrübe</span><span style="color:#ef4444;">-520 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 9 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Kabus Diyarı</h4>
-                    <div class="quest-rewards"><span>+12000 Altın</span><span>+4800 Tecrübe</span><span style="color:#ef4444;">-630 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 10 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Devler Yuvası</h4>
-                    <div class="quest-rewards"><span>+17000 Altın</span><span>+6700 Tecrübe</span><span style="color:#ef4444;">-750 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 11 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Ölümcül Bataklık</h4>
-                    <div class="quest-rewards"><span>+23500 Altın</span><span>+9000 Tecrübe</span><span style="color:#ef4444;">-880 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 12 })">Sefer Et</button>
-            </div>
-            <div class="quest-card">
-                <div class="quest-info">
-                    <h4>Kutsal Taht Salonu</h4>
-                    <div class="quest-rewards"><span>+32000 Altın</span><span>+12000 Tecrübe</span><span style="color:#ef4444;">-1000 HP</span></div>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 13 })">Sefer Et</button>
-            </div>
-        </div>
-        <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
-    `;
-}
+            } else if(activeTab === 'work') {
+                body.innerHTML = `
+                    <div class="quest-list">
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Karanlık Orman Seferi</h4>
+                                <p>Ormandaki gölgelerle savaş ve ganimet topla.</p>
+                                <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Unutulmuş Tapınak</h4>
+                                <p>Antik tapınaktakı tehlikeli mahlukları alt et.</p>
+                                <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Ejderha Dağı</h4>
+                                <p>Zirvedeki ejderhanın yuvasını yağmala.</p>
+                                <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
+                        </div>
+                    </div>
+                    <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
+                `;
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
@@ -719,16 +645,6 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
-
-
-
-
-
-
-
-
-
-        
     </script>
 </body>
 </html>
