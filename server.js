@@ -1,8 +1,6 @@
 const User = require('./models/User');
 const { quests, estates, defaultInventory } = require('./config/gameConfig');
 
-
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -20,36 +18,6 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war
 mongoose.connect(MONGO_URI)
     .then(() => console.log('MongoDB bağlantısı başarılı!'))
     .catch(err => console.error('MongoDB bağlantı hatası:', err));
-
-// 2. Kullanıcı Veritabanı Şeması
-const userSchema = new mongoose.Schema({
-    username: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    level: { type: Number, default: 1 },
-    exp: { type: Number, default: 0 },
-    balance: { type: Number, default: 100 },
-    rubies: { type: Number, default: 10 },
-    str: { type: Number, default: 5 },
-    vit: { type: Number, default: 5 },
-    statPoints: { type: Number, default: 0 },
-    hp: { type: Number, default: 100 },
-    seferLimiti: { type: Number, default: 20 },
-    seferNextRefill: { type: Number, default: null },
-    estates: { type: [Number], default: [] },
-    upgrades: { weapon: { type: Number, default: 0 }, armor: { type: Number, default: 0 }, helmet: { type: Number, default: 0 } },
-    equipped: { 
-        helmet: { type: Object, default: null }, 
-        necklace: { type: Object, default: null }, 
-        armor: { type: Object, default: null }, 
-        weapon: { type: Object, default: null }, 
-        shield: { type: Object, default: null }, 
-        ring: { type: Object, default: null }, 
-        gloves: { type: Object, default: null }, 
-        boots: { type: Object, default: null } 
-    },
-    inventory: { type: Array, default: [] }
-});
-
 
 const users = {}; 
 
@@ -134,7 +102,7 @@ io.on('connection', (socket) => {
         }
     });
 
-        // Görev (Sefer) Sistemi
+    // Görev (Sefer) Sistemi
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
         if (!user || user.hp <= 0 || user.seferLimiti <= 0) {
@@ -142,7 +110,7 @@ io.on('connection', (socket) => {
         }
         
         const questId = data.questId || 1;
-        const quest = quests[questId]; // config/gameConfig.js dosyasından ilgili görevi alır
+        const quest = quests[questId]; 
 
         if (!quest) {
             return socket.emit('questResult', { success: false, message: "Böyle bir sefer bulunamadı!" });
@@ -174,13 +142,13 @@ io.on('connection', (socket) => {
         });
     });
 
-      // Tımar Satın Alma
+    // Tımar Satın Alma
     socket.on('buyEstate', async (data) => {
         const user = users[socket.id];
         if (!user) return;
         
         const estateId = data.estateId;
-        const estate = estates[estateId]; // gameConfig.js dosyasından mülk bilgilerini alır
+        const estate = estates[estateId]; 
 
         if (!estate) {
             return socket.emit('marketResult', { userData: user, message: "Böyle bir mülk bulunamadı!" });
@@ -254,16 +222,6 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-    // Sohbet
-    socket.on('sendChatMessage', (data) => {
-        io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
-    });
-
-    socket.on('disconnect', () => delete users[socket.id]);
-});
-
-
-
     // Eşya Satma
     socket.on('sellItem', async (data) => {
         const user = users[socket.id];
@@ -275,28 +233,27 @@ io.on('connection', (socket) => {
         }
 
         const item = user.inventory[index];
-        const sellPrice = item.sellPrice || 25; // Eşyanın satılık fiyatı yoksa varsayılan 
+        const sellPrice = item.sellPrice || 25; 
 
         user.balance += sellPrice;
-        user.inventory.splice(index, 1); // Envanterden sil
+        user.inventory.splice(index, 1); 
         await user.save();
 
         socket.emit('inventoryResult', { success: true, userData: user, message: `${item.name} satıldı, +${sellPrice} altın kazandın!` });
     });
-
 
     // Demirhane Geliştirme
     socket.on('upgradeGear', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
-        const gearType = data.gearType; // 'weapon', 'armor', 'helmet'
+        const gearType = data.gearType; 
         if (!user.upgrades || user.upgrades[gearType] === undefined) {
             return socket.emit('upgradeResult', { success: false, message: "Geçersiz ekipman türü!" });
         }
 
         const currentLevel = user.upgrades[gearType];
-        const upgradeCost = (currentLevel + 1) * 150; // Seviye başına artan maliyet
+        const upgradeCost = (currentLevel + 1) * 150; 
 
         if (user.balance < upgradeCost) {
             return socket.emit('upgradeResult', { success: false, message: `Yetersiz altın! Gerekli: ${upgradeCost} altın.` });
@@ -305,7 +262,6 @@ io.on('connection', (socket) => {
         user.balance -= upgradeCost;
         user.upgrades[gearType] += 1;
         
-        // Gelişmeye göre str veya vit bonusu yansıtılabilir
         if (gearType === 'weapon') user.str += 2;
         if (gearType === 'armor' || gearType === 'helmet') user.vit += 2;
 
@@ -313,9 +269,13 @@ io.on('connection', (socket) => {
         socket.emit('upgradeResult', { success: true, userData: user, message: `${gearType.toUpperCase()} başarıyla +${user.upgrades[gearType]} seviyesine yükseltildi!` });
     });
 
+    // Sohbet
+    socket.on('sendChatMessage', (data) => {
+        io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
+    });
 
-
-
+    socket.on('disconnect', () => delete users[socket.id]);
+});
 
 // PASİF GELİR DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
@@ -323,7 +283,6 @@ setInterval(async () => {
         const user = users[socketId];
         let income = 0;
 
-        // Kullanıcının sahip olduğu tımarların gelirini gameConfig'den toplar
         user.estates.forEach(estateId => {
             if (estates[estateId]) {
                 income += estates[estateId].income;
