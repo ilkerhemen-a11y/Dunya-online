@@ -194,61 +194,6 @@
             .character-screen { grid-template-columns: 1fr; }
             .game-header { flex-direction: column; gap: 8px; padding: 10px; }
         }
-
-
-
-
-/* Karakter ve Çerçeveli Kahraman Konteyneri */
-.character-profile-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: linear-gradient(145deg, #18120d, #0d0907);
-    border: 2px solid #d4af37;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.7);
-    max-width: 320px;
-    margin: 0 auto;
-}
-
-/* Çerçeveli Kahraman Görsel Alanı */
-.hero-avatar-frame {
-    width: 100px;
-    height: 100px;
-    border: 3px solid #f3cf7a;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-bottom: 12px;
-    background-color: #221a14;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.hero-avatar-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Genel Durum Bilgileri */
-.general-status-box {
-    width: 100%;
-    border-top: 1px solid rgba(212, 175, 55, 0.3);
-    padding-top: 10px;
-    margin-top: 5px;
-    color: #f3cf7a;
-    font-size: 13px;
-    text-align: left;
-}
-
-
-
-
-
-        
     </style>
 </head>
 <body>
@@ -421,7 +366,7 @@
             if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferLimit}/20)`;
         }
 
-                // Sekme Değiştirme ve Arayüz Çizme
+        // Sekme Değiştirme ve Arayüz Çizme
         function switchTab(tab) {
             activeTab = tab;
             const titles = {
@@ -445,42 +390,25 @@
                 const maxHp = (u.vit || 5) * 20;
                 const maxExp = (u.level || 1) * 100;
                 
-                // DİKKAT: document.body DEĞİL, sadece panelin içine basıyoruz (body.innerHTML)
                 body.innerHTML = `
-                <div class="character-screen">
-                    <div class="character-profile-container">
-                        <div class="hero-avatar-frame">
-                            <img src="${u.avatar || 'https://i.hizliresim.com/hnneaa5l.jpg'}" alt="Kahraman">
+                    <div class="character-screen">
+                        <div class="char-stats-box">
+                            <h3>Nitelikler</h3>
+                            <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
+                            <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
+                            <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
+                            <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
+                            <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
+                            <div class="stat-row"><span>Güç (STR):</span><span>${u.str} ${u.statPoints > u.str - u.str ? '' : ''}</span></div>
+                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${u.vit}</span></div>
+                            <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
+                            ${u.statPoints > 0 ? `
+                                <div style="display:flex; gap:10px; margin-top:10px;">
+                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
+                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
+                                </div>
+                            ` : ''}
                         </div>
-                        <div class="general-status-box" style="text-align:center;">
-                            <strong>${u.username.toUpperCase()}</strong> (Seviye ${u.level})
-                        </div>
-                    </div>
-
-                    <div class="char-stats-box">
-                        <h3>Nitelikler</h3>
-                        <div class="stat-row"><span>Seviye:</span> <span>${u.level}</span></div>
-                        <div class="stat-row"><span>Tecrübe:</span> <span>${u.exp} / ${maxExp}</span></div>
-                        <div class="stat-row"><span>Can Puanı (HP):</span> <span>${u.hp} / ${maxHp}</span></div>
-                        <div class="stat-row"><span>Altın:</span> <span>${u.balance} 🪙</span></div>
-                        <div class="stat-row"><span>Yakut:</span> <span>${u.rubies} 💎</span></div>
-                        <div class="stat-row"><span>Güç (STR):</span> <span>${u.str}</span></div>
-                        <div class="stat-row"><span>Dayanıklılık (VIT):</span> <span>${u.vit}</span></div>
-                        <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span> <span>${u.statPoints}</span></div>
-                        ${u.statPoints > 0 ? `
-                            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                                <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç</button>
-                                <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık</button>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-                `;
-            } else {
-                // Diğer sekmeler tıklandığında boş kalıp hata vermemesi için
-                body.innerHTML = `<div style="text-align: center; padding: 40px; color: #9c8e7b;">Bu sekme yakında aktif olacaktır.</div>`;
-            }
-        }
 
                         <div class="equipment-wrapper">
                             <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
