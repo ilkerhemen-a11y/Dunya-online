@@ -444,26 +444,34 @@
             if(activeTab === 'overview') {
                 const maxHp = (u.vit || 5) * 20;
                 const maxExp = (u.level || 1) * 100;
-                
-                body.innerHTML = `
-                    <div class="character-screen">
-                        <div class="char-stats-box">
-                            <h3>Nitelikler</h3>
-                            <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
-                            <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
-                            <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
-                            <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
-                            <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
-                            <div class="stat-row"><span>Güç (STR):</span><span>${u.str} ${u.statPoints > u.str - u.str ? '' : ''}</span></div>
-                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${u.vit}</span></div>
-                            <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
-                            ${u.statPoints > 0 ? `
-                                <div style="display:flex; gap:10px; margin-top:10px;">
-                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
-                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
-                                </div>
-                            ` : ''}
-                        </div>
+                    document.body.innerHTML = `
+    <div class="character-screen">
+        <!-- Karakter Profil ve Çerçeve Alanı -->
+        <div class="character-profile-container" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;">
+            <div class="hero-avatar-frame" style="width: 90px; height: 90px; border: 3px solid #f3cf7a; border-radius: 50%; overflow: hidden; background: #221a14; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                <img src="${u.avatar || 'varsayilan-avatar.png'}" alt="Kahraman" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+        </div>
+
+        <!-- Nitelikler / Genel Durum Kutusu -->
+        <div class="char-stats-box">
+            <h3>Nitelikler</h3>
+            <div class="stat-row"><span>Seviye:</span> <strong>${u.level}</strong></div>
+            <div class="stat-row"><span>Tecrübe:</span> <strong>${u.exp} / ${u.level * 100}</strong></div>
+            <div class="stat-row"><span>Can Puanı (HP):</span> <strong>${u.hp}</strong></div>
+            <div class="stat-row"><span>Altın:</span> <strong>${u.balance}</strong></div>
+            <div class="stat-row"><span>Güç (STR):</span> <strong>${u.str}</strong></div>
+            <div class="stat-row"><span>Dayanıklılık (VIT):</span> <strong>${u.vit}</strong></div>
+            <div class="stat-row"><span>Dağıtılabilir Puan:</span> <strong>${u.statPoints}</strong></div>
+            ${u.statPoints > 0 ? `
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-stat" onclick="addStat('str')">+ Güç</button>
+                    <button class="btn-stat" onclick="addStat('vit')">+ Dayanıklılık</button>
+                </div>
+            ` : ''}
+        </div>
+    </div>
+    `;
 
                         <div class="equipment-wrapper">
                             <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
