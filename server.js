@@ -262,6 +262,61 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => delete users[socket.id]);
 });
 
+
+
+    // Eşya Satma
+    socket.on('sellItem', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const index = data.itemIndex;
+        if (index < 0 || index >= user.inventory.length) {
+            return socket.emit('inventoryResult', { success: false, message: "Geçersiz eşya!" });
+        }
+
+        const item = user.inventory[index];
+        const sellPrice = item.sellPrice || 25; // Eşyanın satılık fiyatı yoksa varsayılan 
+
+        user.balance += sellPrice;
+        user.inventory.splice(index, 1); // Envanterden sil
+        await user.save();
+
+        socket.emit('inventoryResult', { success: true, userData: user, message: `${item.name} satıldı, +${sellPrice} altın kazandın!` });
+    });
+
+
+    // Demirhane Geliştirme
+    socket.on('upgradeGear', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        const gearType = data.gearType; // 'weapon', 'armor', 'helmet'
+        if (!user.upgrades || user.upgrades[gearType] === undefined) {
+            return socket.emit('upgradeResult', { success: false, message: "Geçersiz ekipman türü!" });
+        }
+
+        const currentLevel = user.upgrades[gearType];
+        const upgradeCost = (currentLevel + 1) * 150; // Seviye başına artan maliyet
+
+        if (user.balance < upgradeCost) {
+            return socket.emit('upgradeResult', { success: false, message: `Yetersiz altın! Gerekli: ${upgradeCost} altın.` });
+        }
+
+        user.balance -= upgradeCost;
+        user.upgrades[gearType] += 1;
+        
+        // Gelişmeye göre str veya vit bonusu yansıtılabilir
+        if (gearType === 'weapon') user.str += 2;
+        if (gearType === 'armor' || gearType === 'helmet') user.vit += 2;
+
+        await user.save();
+        socket.emit('upgradeResult', { success: true, userData: user, message: `${gearType.toUpperCase()} başarıyla +${user.upgrades[gearType]} seviyesine yükseltildi!` });
+    });
+
+
+
+
+
 // PASİF GELİR DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
     for (const socketId in users) {
