@@ -312,10 +312,13 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => delete users[socket.id]);
 });
 
-// PASİF GELİR DÖNGÜSÜ (60 Saniyede Bir)
+// PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
     for (const socketId in users) {
         const user = users[socketId];
+        let isUpdated = false;
+
+        // 1. Pasif Gelir Hesabı
         let income = 0;
         if (user.estates.includes(1)) income += 10;
         if (user.estates.includes(2)) income += 45;
@@ -323,11 +326,23 @@ setInterval(async () => {
 
         if (income > 0) {
             user.balance += income;
+            isUpdated = true;
+        }
+
+        // 2. Otomatik Can Yenileme (Maksimum Can: Dayanıklılık * 20)
+        const maxHp = user.vit * 20;
+        if (user.hp < maxHp) {
+            user.hp = Math.min(maxHp, user.hp + 10);
+            isUpdated = true;
+        }
+
+        // Herhangi bir değişiklik gerçekleştiyse kaydet ve istemciyi güncelle
+        if (isUpdated) {
             await user.save();
             io.to(socketId).emit('statUpdated', user);
         }
     }
-}, 60000); 
+}, 60000);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
