@@ -469,11 +469,14 @@ const QUESTS = {
                         </div>
                     </div>
                 `;
-            } else if(activeTab === 'work') {
-                    let questsHTML = '<div class="quest-list">';
+    } else if (activeTab === 'quests') {
+    let questsHTML = '<div class="quest-list">';
+    
+    // Oyuncunun mevcut seviyesini al (Veri henüz yüklenmediyse varsayılan 1)
+    const userLevel = currentUserData ? currentUserData.level : 1;
     
     for (const [id, q] of Object.entries(QUESTS)) {
-        const isUnlocked = currentUser.level >= q.reqLevel;
+        const isUnlocked = userLevel >= q.reqLevel;
         
         questsHTML += `
             <div class="quest-card" style="${!isUnlocked ? 'opacity: 0.6;' : ''}">
@@ -496,6 +499,7 @@ const QUESTS = {
     
     questsHTML += `</div><div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>`;
     body.innerHTML = questsHTML;
+}
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
