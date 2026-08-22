@@ -10,9 +10,25 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname + '/public'));
 
-// Sabitler ve Yardımcı Fonksiyonlar
+// Sabitler ve Görev Listesi
 const MAX_SEFER_LIMITI = 20;
 const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
+
+const QUESTS = {
+    1:  { name: "Karanlık Orman", reqLevel: 1, gold: 45, exp: 20, hpLoss: 15 },
+    2:  { name: "Unutulmuş Tapınak", reqLevel: 3, gold: 120, exp: 55, hpLoss: 35 },
+    3:  { name: "Ejderha Dağı", reqLevel: 5, gold: 300, exp: 140, hpLoss: 70 },
+    4:  { name: "Kanlı Vadi", reqLevel: 10, gold: 650, exp: 300, hpLoss: 120 },
+    5:  { name: "Yeraltı Zindanları", reqLevel: 15, gold: 1200, exp: 550, hpLoss: 180 },
+    6:  { name: "Buzul Geçidi", reqLevel: 20, gold: 2100, exp: 950, hpLoss: 250 },
+    7:  { name: "Gölge Kalesi", reqLevel: 25, gold: 3500, exp: 1500, hpLoss: 330 },
+    8:  { name: "Alev Havzası", reqLevel: 30, gold: 5500, exp: 2300, hpLoss: 420 },
+    9:  { name: "Kadim Harabeler", reqLevel: 35, gold: 8200, exp: 3400, hpLoss: 520 },
+    10: { name: "Kabus Diyarı", reqLevel: 40, gold: 12000, exp: 4800, hpLoss: 630 },
+    11: { name: "Devler Yuvası", reqLevel: 45, gold: 17000, exp: 6700, hpLoss: 750 },
+    12: { name: "Ölümcül Bataklık", reqLevel: 50, gold: 23500, exp: 9000, hpLoss: 880 },
+    13: { name: "Kutsal Taht Salonu", reqLevel: 55, gold: 32000, exp: 12000, hpLoss: 1000 }
+};
 
 function checkSeferRefill(user) {
     const now = Date.now();
@@ -148,14 +164,33 @@ io.on('connection', (socket) => {
     });
 
     // Görev (Sefer) Sistemi
-    socket.on('doQuest', async (data) => {
+    socket.on('doQuest', async (data = {}) => {
         const user = users[socket.id];
-        if (!user) return;
+        if (!user) {
+            return socket.emit('questResult', { 
+                success: false, 
+                message: "Oturum zaman aşımına uğradı, lütfen sayfayı yenileyip tekrar giriş yapın." 
+            });
+        }
 
         checkSeferRefill(user);
 
+        const questId = (data && data.questId) ? data.questId : 1;
+        const quest = QUESTS[questId];
+
+        if (!quest) {
+            return socket.emit('questResult', { success: false, message: "Geçersiz sefer seçimi!" });
+        }
+
+        if (user.level < quest.reqLevel) {
+            return socket.emit('questResult', { 
+                success: false, 
+                message: `Bu sefere katılabilmek için en az Level ${quest.reqLevel} olmalısınız!` 
+            });
+        }
+
         if (user.hp <= 0) {
-            return socket.emit('questResult', { success: false, message: "Canınız yetersiz!" });
+            return socket.emit('questResult', { success: false, message: "Canınız yetersiz! Pazar yerinden iksir alabilirsiniz." });
         }
 
         if (user.seferLimiti <= 0) {
@@ -167,40 +202,34 @@ io.on('connection', (socket) => {
         }
 
         user.seferLimiti -= 1;
-
         if (user.seferLimiti === 0) {
             user.seferNextRefill = Date.now() + REFILL_INTERVAL;
         }
 
-        const questId = data.questId || 1;
-        let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
-
-        if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
-        else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
-        else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
-
-        user.hp = Math.max(0, user.hp - hpLoss);
-        user.balance += goldGain;
-        user.exp += expGain;
+        user.hp = Math.max(0, user.hp - quest.hpLoss);
+        user.balance += quest.gold;
+        user.exp += quest.exp;
 
         let maxExp = user.level * 100;
         let levelUpMsg = "";
-        if (user.exp >= maxExp) {
+        while (user.exp >= maxExp) {
             user.level += 1;
             user.exp -= maxExp;
             user.statPoints += 3;
             user.hp = user.vit * 20;
+            maxExp = user.level * 100;
             levelUpMsg = " SEVİYE ATLADIN!";
         }
 
         await user.save();
+        socket.emit('statUpdated', user);
         socket.emit('questResult', { 
             success: true, 
             userData: user, 
-            message: `${questName} seferi başarılı!${levelUpMsg}`, 
-            goldEarned: goldGain, 
-            expEarned: expGain, 
-            hpLost: hpLoss 
+            message: `${quest.name} seferi başarılı!${levelUpMsg}`, 
+            goldEarned: quest.gold, 
+            expEarned: quest.exp, 
+            hpLost: quest.hpLoss 
         });
     });
 
@@ -318,7 +347,6 @@ setInterval(async () => {
         const user = users[socketId];
         let isUpdated = false;
 
-        // 1. Pasif Gelir Hesabı
         let income = 0;
         if (user.estates.includes(1)) income += 10;
         if (user.estates.includes(2)) income += 45;
@@ -329,20 +357,18 @@ setInterval(async () => {
             isUpdated = true;
         }
 
-        // 2. Otomatik Can Yenileme (Maksimum Can: Dayanıklılık * 20)
         const maxHp = user.vit * 20;
         if (user.hp < maxHp) {
             user.hp = Math.min(maxHp, user.hp + 10);
             isUpdated = true;
         }
 
-        // Herhangi bir değişiklik gerçekleştiyse kaydet ve istemciyi güncelle
         if (isUpdated) {
             await user.save();
             io.to(socketId).emit('statUpdated', user);
         }
     }
-}, 60000);
+}, 60000); 
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
