@@ -97,6 +97,17 @@
             transform: translateX(2px);
         }
 
+        .menu-btn.logout-btn {
+            border-color: #5b2828;
+            color: #e57373;
+        }
+
+        .menu-btn.logout-btn:hover {
+            background: #2a1515;
+            border-color: #ef5350;
+            color: #ff8a80;
+        }
+
         .content-panel {
             background: linear-gradient(135deg, #1b1410 0%, #0d0a08 100%);
             border: 1px solid #433222;
@@ -406,7 +417,7 @@
     </style>
 </head>
 <body>
-<button onclick="logout()">Çıkış Yap</button>
+
     <!-- Giriş Ekranı -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
@@ -453,6 +464,8 @@
             
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
+            <!-- Çıkış Yap Butonu Diyar Meclisi'nin Altına Taşındı -->
+            <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
         </nav>
 
         <!-- Sağ İçerik Paneli -->
@@ -905,18 +918,13 @@
             }
         });
 
-
-function logout() {
-    // Sunucuya çıkış isteği gönder
-    socket.emit('logout');
-    
-    // Çıkış başarılı olduğunda yapılacaklar (örn: giriş ekranına dön)
-    socket.on('logoutSuccess', () => {
-        localStorage.removeItem('username'); // Varsa kayıtlı ismi sil
-        window.location.reload(); // Sayfayı yenile veya giriş ekranına yönlendir
-    });
-}
-        
+        function logout() {
+            socket.emit('logout');
+            socket.on('logoutSuccess', () => {
+                localStorage.removeItem('username');
+                window.location.reload();
+            });
+        }
     </script>
 </body>
 </html>
