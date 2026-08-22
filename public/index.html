@@ -90,23 +90,9 @@
             gap: 8px;
         }
 
-        .menu-btn:hover {
-            background: #241c15;
-            border-color: #d4af37;
-            color: #f3cf7a;
-            transform: translateX(2px);
-        }
-
-        .menu-btn.logout-btn {
-            border-color: #5b2828;
-            color: #e57373;
-        }
-
-        .menu-btn.logout-btn:hover {
-            background: #2a1515;
-            border-color: #ef5350;
-            color: #ff8a80;
-        }
+        .menu-btn:hover { background: #241c15; border-color: #d4af37; color: #f3cf7a; transform: translateX(2px); }
+        .menu-btn.logout-btn { border-color: #5b2828; color: #e57373; }
+        .menu-btn.logout-btn:hover { background: #2a1515; border-color: #ef5350; color: #ff8a80; }
 
         .content-panel {
             background: linear-gradient(135deg, #1b1410 0%, #0d0a08 100%);
@@ -131,211 +117,42 @@
             letter-spacing: 0.5px;
         }
 
-        .character-screen {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .char-stats-box {
-            background: #120e0c;
-            border: 1px solid #33241b;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
-        }
-
-        .char-stats-box h3 {
-            font-size: 13px;
-            color: #f3cf7a;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #221912;
-            padding-bottom: 6px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            padding: 6px 0;
-            border-bottom: 1px dashed #1e150f;
-        }
-
+        .character-screen { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .char-stats-box { background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
+        .char-stats-box h3 { font-size: 13px; color: #f3cf7a; margin-bottom: 12px; border-bottom: 1px solid #221912; padding-bottom: 6px; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed #1e150f; }
         .stat-row span:first-child { color: #9c8e7b; }
         .stat-row span:nth-child(2) { color: #f3cf7a; font-weight: bold; }
 
-        .btn-stat {
-            background: linear-gradient(to bottom, #d4af37, #997415);
-            border: 1px solid #ffdf73;
-            color: #0b0908;
-            padding: 2px 7px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 3px;
-            cursor: pointer;
-            transition: 0.1s;
-        }
+        .btn-stat { background: linear-gradient(to bottom, #d4af37, #997415); border: 1px solid #ffdf73; color: #0b0908; padding: 2px 7px; font-size: 11px; font-weight: bold; border-radius: 3px; cursor: pointer; transition: 0.1s; }
         .btn-stat:hover { filter: brightness(1.15); }
 
-        .char-portrait {
-            width: 100%;
-            margin-top: 15px;
-            border: 1px solid #433222;
-            border-radius: 6px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-        }
-        .char-portrait img {
-            width: 100%;
-            display: block;
-            filter: brightness(0.9) contrast(1.1);
-        }
+        .char-portrait { width: 100%; margin-top: 15px; border: 1px solid #433222; border-radius: 6px; overflow: hidden; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+        .char-portrait img { width: 100%; display: block; filter: brightness(0.9) contrast(1.1); }
 
-        .equipment-wrapper {
-            background: #120e0c;
-            border: 1px solid #33241b;
-            padding: 15px;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
-        }
+        .equipment-wrapper { background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
+        .eq-slots-grid { display: grid; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(2, 52px); gap: 10px; justify-content: center; margin-top: 10px; }
+        .eq-slot { width: 52px; height: 52px; background: radial-gradient(circle, #19120e 0%, #0d0a08 100%); border: 2px solid #3d2f23; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4a3a2b; cursor: pointer; position: relative; overflow: hidden; box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.3); transition: all 0.25s ease; }
+        .eq-slot:hover { border-color: #d4af37; transform: scale(1.05); box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 10px rgba(212, 175, 55, 0.3); }
+        .eq-slot.filled { border-color: #8c6d36; background: radial-gradient(circle, #2a2016 0%, #120d09 100%); }
+        .eq-slot img { width: 100%; height: 100%; object-fit: cover; }
 
-        .eq-slots-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 52px);
-            grid-template-rows: repeat(2, 52px);
-            gap: 10px;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .eq-slot {
-            width: 52px;
-            height: 52px;
-            background: radial-gradient(circle, #19120e 0%, #0d0a08 100%);
-            border: 2px solid #3d2f23;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            color: #4a3a2b;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.3);
-            transition: all 0.25s ease;
-        }
-
-        .eq-slot:hover {
-            border-color: #d4af37;
-            transform: scale(1.05);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 10px rgba(212, 175, 55, 0.3);
-        }
-
-        .eq-slot.filled {
-            border-color: #8c6d36;
-            background: radial-gradient(circle, #2a2016 0%, #120d09 100%);
-        }
-
-        .eq-slot img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .inventory-container {
-            margin-top: 20px;
-            background: #120e0c;
-            border: 1px solid #33241b;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
-        }
-
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .inventory-item-card {
-            background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%);
-            border: 1px solid #38291e;
-            border-radius: 6px;
-            padding: 8px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-        }
-
-        .inventory-item-card:hover {
-            border-color: #b38b4d;
-            background: linear-gradient(135deg, #221a14 0%, #140f0c 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-        }
-
+        .inventory-container { margin-top: 20px; background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+        .inventory-item-card { background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%); border: 1px solid #38291e; border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+        .inventory-item-card:hover { border-color: #b38b4d; background: linear-gradient(135deg, #221a14 0%, #140f0c 100%); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.7); }
         .item-info-area { display: flex; align-items: center; gap: 8px; }
-        .item-icon-box {
-            width: 36px;
-            height: 36px;
-            background: #0b0806;
-            border: 1px solid #2d2017;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            overflow: hidden;
-        }
-
-        .item-icon-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
+        .item-icon-box { width: 36px; height: 36px; background: #0b0806; border: 1px solid #2d2017; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; }
+        .item-icon-box img { width: 100%; height: 100%; object-fit: cover; }
         .item-details { display: flex; flex-direction: column; gap: 2px; }
         .item-name { font-size: 12px; font-weight: bold; color: #e6d5c3; }
         .item-bonus { font-size: 10px; color: #22c55e; font-weight: 600; }
 
-        .btn-equip {
-            background: linear-gradient(to bottom, #3b2e23, #221912);
-            border: 1px solid #544131;
-            color: #d4c5b9;
-            padding: 5px 10px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-equip:hover {
-            background: linear-gradient(to bottom, #d4af37, #997415);
-            border-color: #ffdf73;
-            color: #0b0908;
-        }
+        .btn-equip { background: linear-gradient(to bottom, #3b2e23, #221912); border: 1px solid #544131; color: #d4c5b9; padding: 5px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+        .btn-equip:hover { background: linear-gradient(to bottom, #d4af37, #997415); border-color: #ffdf73; color: #0b0908; }
 
         .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
-        .quest-card, .market-card, .forge-card {
-            background: #120e0c;
-            border: 1px solid #33241b;
-            border-radius: 6px;
-            padding: 12px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: 0.2s;
-        }
+        .quest-card, .market-card, .forge-card { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
         .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1a130f; }
         
         .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 13px; margin-bottom: 3px; }
@@ -344,69 +161,32 @@
         .market-income { font-size: 11px; color: #38bdf8; font-weight: bold; }
         .forge-cost { font-size: 11px; color: #ef4444; font-weight: bold; }
 
-        .btn-quest {
-            background: linear-gradient(135deg, #d4af37 0%, #997415 100%);
-            border: 1px solid #ffdf73;
-            color: #0b0908;
-            padding: 8px 14px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: 0.1s;
-            white-space: nowrap;
-        }
+        .btn-quest { background: linear-gradient(135deg, #d4af37 0%, #997415 100%); border: 1px solid #ffdf73; color: #0b0908; padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: 0.1s; white-space: nowrap; }
         .btn-quest:hover:not(:disabled) { filter: brightness(1.1); }
-        .btn-quest:disabled {
-            background: #231b14;
-            color: #594738;
-            border-color: #2e231b;
-            cursor: not-allowed;
-        }
+        .btn-quest:disabled { background: #231b14; color: #594738; border-color: #2e231b; cursor: not-allowed; }
         
-        .quest-log {
-            margin-top: 15px;
-            background: #0d0a08;
-            border: 1px solid #2d2017;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            color: #9c8e7b;
-            min-height: 40px;
-        }
-
+        .quest-log { margin-top: 15px; background: #0d0a08; border: 1px solid #2d2017; padding: 10px; border-radius: 6px; font-size: 12px; color: #9c8e7b; min-height: 40px; }
         .chat-container { display: flex; flex-direction: column; gap: 10px; height: 420px; }
-        .chat-messages {
-            flex: 1;
-            background: #0d0a08;
-            border: 1px solid #2d2017;
-            border-radius: 6px;
-            padding: 10px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 12px;
-        }
+        .chat-messages { flex: 1; background: #0d0a08; border: 1px solid #2d2017; border-radius: 6px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
         .chat-msg { border-bottom: 1px dashed #1e150f; padding-bottom: 4px; }
         .chat-msg span { color: #f3cf7a; font-weight: bold; }
         .chat-input-area { display: flex; gap: 8px; }
-        .chat-input-area input {
-            flex: 1;
-            background: #0d0a08;
-            border: 1px solid #3d2f23;
-            border-radius: 4px;
-            padding: 8px;
-            color: #d4c5b9;
-            font-size: 12px;
-        }
+        .chat-input-area input { flex: 1; background: #0d0a08; border: 1px solid #3d2f23; border-radius: 4px; padding: 8px; color: #d4c5b9; font-size: 12px; }
         .chat-input-area input:focus { outline: none; border-color: #d4af37; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(8, 6, 5, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        .box { background: #140f0c; padding: 30px; border-radius: 6px; border: 2px solid #b38b4d; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
-        .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 20px; }
-        .box p { color: #9c8e7b; font-size: 12px; margin-bottom: 20px; }
+        .box { background: #140f0c; padding: 30px; border-radius: 6px; border: 2px solid #b38b4d; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
+        .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 20px; text-align: center;}
+        
+        /* AUTH TABS CSS */
+        .auth-tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid #3d2f23; }
+        .auth-tab { flex: 1; padding: 10px; text-align: center; color: #9c8e7b; cursor: pointer; font-size: 14px; font-weight: bold; border-bottom: 2px solid transparent; }
+        .auth-tab.active { color: #f3cf7a; border-bottom-color: #d4af37; }
+        .auth-form { display: none; text-align: center; }
+        .auth-form.active { display: block; }
+        .auth-form p { color: #9c8e7b; font-size: 12px; margin-bottom: 20px; }
         .box input { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #3d2f23; background: #080605; color: #f3cf7a; text-align: center; margin-bottom: 12px; font-size: 14px; }
+        #authMessage { margin-bottom: 10px; font-size: 12px; font-weight: bold; min-height: 15px; text-align: center; }
         .btn-primary { width: 100%; padding: 10px; border: 1px solid #ffdf73; border-radius: 4px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #d4af37 0%, #997415 100%); color: #0b0908; font-size: 14px; }
 
         @media (max-width: 768px) {
@@ -418,13 +198,33 @@
 </head>
 <body>
 
-    <!-- Giriş Ekranı -->
+    <!-- GİRİŞ VE KAYIT EKRANI -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Antik Diyara Adım At</h2>
-            <p>Mücadelene başlamak için kahramanının adını gir.</p>
-            <input type="text" id="usernameInput" placeholder="Gladyatör / Lord Adı" maxlength="15">
-            <button class="btn-primary" onclick="login()">MEYDANA İN</button>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchAuthTab('login')">Giriş Yap</div>
+                <div class="auth-tab" onclick="switchAuthTab('register')">Kayıt Ol</div>
+            </div>
+
+            <div id="authMessage"></div>
+
+            <!-- Giriş Formu -->
+            <div id="loginForm" class="auth-form active">
+                <p>Savaşa geri dön lordum.</p>
+                <input type="text" id="loginUsername" placeholder="Gladyatör Adı" maxlength="15">
+                <input type="password" id="loginPassword" placeholder="Şifreniz">
+                <button class="btn-primary" onclick="login()">MEYDANA İN</button>
+            </div>
+
+            <!-- Kayıt Formu -->
+            <div id="registerForm" class="auth-form">
+                <p>Yeni bir efsane doğuyor...</p>
+                <input type="text" id="regUsername" placeholder="Yeni Gladyatör Adı" maxlength="15">
+                <input type="password" id="regPassword" placeholder="Bir Şifre Belirle">
+                <button class="btn-primary" onclick="register()">KAYIT OL</button>
+            </div>
         </div>
     </div>
 
@@ -453,7 +253,6 @@
     <!-- Ana Oyun Çerçevesi -->
     <div class="main-wrapper" id="mainApp" style="display: none;">
         
-        <!-- Sol Dikey Menü -->
         <nav class="sidebar-menu">
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
@@ -464,22 +263,16 @@
             
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
-            <!-- Çıkış Yap Butonu Diyar Meclisi'nin Altına Taşındı -->
             <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
         </nav>
 
-        <!-- Sağ İçerik Paneli -->
         <main class="content-panel">
             <div class="panel-title">
                 <span id="panelHeaderTitle">Genel Durum & Karakter</span>
                 <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
             </div>
-            
-            <div id="panelContentBody">
-                <!-- Dinamik içerik -->
-            </div>
+            <div id="panelContentBody"></div>
         </main>
-
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -489,12 +282,49 @@
         let activeTab = 'overview';
         let seferTimerInterval = null;
 
-        function login() {
-            const username = document.getElementById('usernameInput').value;
-            if(!username) return;
-            socket.emit('userLogin', { username: username });
+        // AUTH FONKSİYONLARI
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
+            document.getElementById('authMessage').innerText = "";
+            
+            if(tab === 'login') {
+                document.querySelector('.auth-tab:nth-child(1)').classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelector('.auth-tab:nth-child(2)').classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
         }
 
+        function showAuthError(msg, isSuccess = false) {
+            const msgEl = document.getElementById('authMessage');
+            msgEl.innerText = msg;
+            msgEl.style.color = isSuccess ? '#22c55e' : '#ef4444';
+        }
+
+        function login() {
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+            if(!u || !p) return showAuthError("Bilgileri eksiksiz giriniz.");
+            socket.emit('userLogin', { username: u, password: p });
+        }
+
+        function register() {
+            const u = document.getElementById('regUsername').value;
+            const p = document.getElementById('regPassword').value;
+            if(!u || !p) return showAuthError("Bilgileri eksiksiz giriniz.");
+            socket.emit('userRegister', { username: u, password: p });
+        }
+
+        socket.on('authResult', (data) => {
+            showAuthError(data.message, data.success);
+            if(data.success && document.getElementById('registerForm').classList.contains('active')) {
+                setTimeout(() => switchAuthTab('login'), 2000);
+            }
+        });
+
+        // OYUN İÇİ FONKSİYONLAR
         socket.on('userData', (data) => {
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
@@ -553,7 +383,6 @@
                     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
                     const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                     if(seferLabel) seferLabel.innerText = `Sefer (${seferCount}/20) - ${formattedTime}`;
-
                     const cdEl = document.getElementById('seferCooldownText');
                     if(cdEl) cdEl.innerText = `Kalan Süre: ${formattedTime}`;
                 } else {
@@ -602,13 +431,9 @@
             const eq = d.equipped || {};
             const inv = d.inventory || [];
 
-            let bonusStr = 0;
-            let bonusVit = 0;
+            let bonusStr = 0, bonusVit = 0;
             Object.values(eq).forEach(item => {
-                if(item) {
-                    bonusStr += item.strBonus || 0;
-                    bonusVit += item.vitBonus || 0;
-                }
+                if(item) { bonusStr += item.strBonus || 0; bonusVit += item.vitBonus || 0; }
             });
 
             const slotList = [
@@ -636,10 +461,7 @@
                                 <div><b>${d.vit || 5} <span style="color:#22c55e;">(+${bonusVit})</span></b> <button class="btn-stat" onclick="addStat('vit')">+</button></div>
                             </div>
                         </div>
-                        
-                        <div class="char-portrait">
-                            <img src="https://i.hizliresim.com/swvsuo4s.jpg" alt="Karakterim">
-                        </div>
+                        <div class="char-portrait"><img src="https://i.hizliresim.com/swvsuo4s.jpg" alt="Karakterim"></div>
                     </div>
 
                     <div class="equipment-wrapper">
@@ -656,7 +478,6 @@
                                 `;
                             }).join('')}
                         </div>
-                        <span style="font-size: 10px; color: #594738; margin-top: 10px; text-align: center;">Ekipmanı çıkarmak için üzerine tıklayın</span>
                     </div>
                 </div>
 
@@ -697,40 +518,40 @@
                             ${seferCount < 20 ? 'Sefer Limiti Süresi Devam Ediyor...' : 'Sefer Limiti Hazır!'}
                         </div>
                     </div>
-                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171; color:#fff;" onclick="socket.emit('usePotion')">🧪 Can İksiri İç (50 Altın)</button>
+                    <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171; color:#fff;" onclick="socket.emit('usePotion')">🧪 Can İksiri (50 Altın)</button>
                 </div>
                 
                 <div class="quest-list">
                     <div class="quest-card">
                         <div class="quest-info">
-                            <h4>🌲 Karanlık Orman Bandidoları</h4>
+                            <h4>🌲 Karanlık Orman</h4>
                             <p>Orman yollarını kesen haydutların kampına baskın düzenle.</p>
-                            <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 XP</span></div>
+                            <div class="quest-rewards"><span>🪙 45 Altın</span><span>✨ 20 XP</span><span style="color:#ef4444;">🩸 -15 HP</span></div>
                         </div>
                         <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(1)">
-                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)')}
+                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Saldır')}
                         </button>
                     </div>
 
                     <div class="quest-card">
                         <div class="quest-info">
-                            <h4>🏛️ Unutulmuş Tapınak Harabeleri</h4>
+                            <h4>🏛️ Unutulmuş Tapınak</h4>
                             <p>Lanetli kalıntıların arasındaki antik koruyucularla dövüş.</p>
-                            <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 XP</span></div>
+                            <div class="quest-rewards"><span>🪙 120 Altın</span><span>✨ 55 XP</span><span style="color:#ef4444;">🩸 -35 HP</span></div>
                         </div>
                         <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(2)">
-                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)')}
+                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Saldır')}
                         </button>
                     </div>
 
                     <div class="quest-card">
                         <div class="quest-info">
-                            <h4>🐉 Ejderha Dağı Etekleri</h4>
+                            <h4>🐉 Ejderha Dağı</h4>
                             <p>Zirvedeki vahşi yaratıklarla yüzleş ve imparatorluk hazinesini ele geçir.</p>
-                            <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 XP</span></div>
+                            <div class="quest-rewards"><span>🪙 300 Altın</span><span>✨ 140 XP</span><span style="color:#ef4444;">🩸 -70 HP</span></div>
                         </div>
                         <button class="btn-quest" ${isDisabled ? 'disabled' : ''} onclick="startQuest(3)">
-                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Sefer Düzenle (-1 Hak)')}
+                            ${hpCount <= 0 ? 'Can Yetersiz' : (seferCount <= 0 ? 'Limit Doldu' : 'Saldır')}
                         </button>
                     </div>
                 </div>
@@ -743,41 +564,40 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px 10px; color: #9c8e7b;">
                     <h3 style="font-size: 18px; color: #f3cf7a; margin-bottom: 10px;">🛒 Pazar Yeri Yakında Hizmetinizde</h3>
-                    <p style="font-size: 13px;">Tüccarlar kervanlarını hazırlıyor. Oyuncular arası ticaret ve pazaryeri tezgahları yakında buraya eklenecektir.</p>
+                    <p style="font-size: 13px;">Oyuncular arası ticaret yakında buraya eklenecektir.</p>
                 </div>
             `;
         }
 
         function renderTimarTab(container) {
+            const hasEstate = (id) => currentUserData && currentUserData.estates && currentUserData.estates.includes(id);
+
             container.innerHTML = `
-                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">İmparatorluk sınırları içerisinde tımarlar ve mülkler satın alarak düzenli pasif gelir elde et.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">Tımarlar satın alarak 60 saniyede bir pasif gelir elde et.</p>
                 
                 <div class="market-list">
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🌾 Küçük Buğday Çiftliği</h4>
-                            <p>Verimli ovalarda küçük bir tarım arazisi.</p>
-                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk Pasif Gelir</div>
+                            <h4>🌾 Küçük Buğday Çiftliği ${hasEstate(1) ? '(Sende Var)' : ''}</h4>
+                            <div class="market-income">Maliyet: 500 Altın | +10 Altın/dk Gelir</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(1)">Satın Al</button>
+                        <button class="btn-quest" ${hasEstate(1) ? 'disabled' : ''} onclick="buyEstate(1)">Satın Al</button>
                     </div>
 
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🍷 Üzüm Bağı ve Şaraphane</h4>
-                            <p>Diyar genelinde değerli şaraplar üreten tesis.</p>
-                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk Pasif Gelir</div>
+                            <h4>🍷 Üzüm Bağı ve Şaraphane ${hasEstate(2) ? '(Sende Var)' : ''}</h4>
+                            <div class="market-income">Maliyet: 2.000 Altın | +45 Altın/dk Gelir</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(2)">Satın Al</button>
+                        <button class="btn-quest" ${hasEstate(2) ? 'disabled' : ''} onclick="buyEstate(2)">Satın Al</button>
                     </div>
 
                     <div class="market-card">
                         <div class="market-info">
-                            <h4>🏰 Sınır Kalesi ve Ticaret Noktası</h4>
-                            <p>Kervanlardan geçiş vergisi toplayan stratejik kale.</p>
-                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk Pasif Gelir</div>
+                            <h4>🏰 Sınır Kalesi ${hasEstate(3) ? '(Sende Var)' : ''}</h4>
+                            <div class="market-income">Maliyet: 7.500 Altın | +180 Altın/dk Gelir</div>
                         </div>
-                        <button class="btn-quest" onclick="buyEstate(3)">Satın Al</button>
+                        <button class="btn-quest" ${hasEstate(3) ? 'disabled' : ''} onclick="buyEstate(3)">Satın Al</button>
                     </div>
                 </div>
 
@@ -789,13 +609,12 @@
             const upgrades = currentUserData && currentUserData.upgrades ? currentUserData.upgrades : { weapon: 0, armor: 0, helmet: 0 };
             
             container.innerHTML = `
-                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">Usta demircinin örsünde teçhizatlarını güçlendirerek (+ basarak) savaş gücünü katla.</p>
+                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 15px;">Örsünde teçhizatlarını güçlendir.</p>
                 
                 <div class="forge-list">
                     <div class="forge-card">
                         <div class="forge-info">
-                            <h4>⚔️ Gladyatör Kılıcı (+<span id="lvlWeapon">${upgrades.weapon}</span>)</h4>
-                            <p>Saldırı gücünü artırır.</p>
+                            <h4>⚔️ Silah Yükseltme (+<span id="lvlWeapon">${upgrades.weapon}</span>)</h4>
                             <div class="forge-cost">Yükseltme Bedeli: <span id="costWeapon">${(upgrades.weapon + 1) * 100}</span> Altın</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeItem('weapon')">+ Bas</button>
@@ -803,8 +622,7 @@
 
                     <div class="forge-card">
                         <div class="forge-info">
-                            <h4>🛡️ Savaş Zırhı (+<span id="lvlArmor">${upgrades.armor}</span>)</h4>
-                            <p>Savunma ve dayanıklılığı artırır.</p>
+                            <h4>🛡️ Zırh Yükseltme (+<span id="lvlArmor">${upgrades.armor}</span>)</h4>
                             <div class="forge-cost">Yükseltme Bedeli: <span id="costArmor">${(upgrades.armor + 1) * 100}</span> Altın</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeItem('armor')">+ Bas</button>
@@ -812,25 +630,22 @@
 
                     <div class="forge-card">
                         <div class="forge-info">
-                            <h4>🪖 Çelik Kask (+<span id="lvlHelmet">${upgrades.helmet}</span>)</h4>
-                            <p>Kritik direnci ve zihinsel gücü artırır.</p>
+                            <h4>🪖 Kask Yükseltme (+<span id="lvlHelmet">${upgrades.helmet}</span>)</h4>
                             <div class="forge-cost">Yükseltme Bedeli: <span id="costHelmet">${(upgrades.helmet + 1) * 100}</span> Altın</div>
                         </div>
                         <button class="btn-quest" onclick="upgradeItem('helmet')">+ Bas</button>
                     </div>
                 </div>
 
-                <div id="forgeLog" class="quest-log">Örsün ateşi harlı, demirci geliştirmeler için hazır bekliyor...</div>
+                <div id="forgeLog" class="quest-log">Örsün ateşi harlı...</div>
             `;
         }
 
         function renderChatTab(container) {
             container.innerHTML = `
-                <p style="color: #9c8e7b; font-size: 12px; margin-bottom: 10px;">Diyar Meclisi'nde diğer hanedanlıklarla fikir alışverişi yap ve fısıldaş.</p>
-                
                 <div class="chat-container">
                     <div id="chatMessages" class="chat-messages">
-                        <div class="chat-msg"><span>Sistem:</span> Diyar Meclisi'ne hoş geldiniz, lordlar.</div>
+                        <div class="chat-msg"><span>Sistem:</span> Diyar Meclisi'ne hoş geldiniz.</div>
                     </div>
                     <div class="chat-input-area">
                         <input type="text" id="chatInput" placeholder="Meclise bir söz söyle..." maxlength="120" onkeypress="handleChatKey(event)">
@@ -840,37 +655,26 @@
             `;
         }
 
-        function addStat(statName) {
-            socket.emit('distributeStat', statName);
-        }
-
-        function startQuest(questId) {
-            socket.emit('doQuest', { questId: questId });
-        }
-
-        function buyEstate(estateId) {
-            socket.emit('buyEstate', { estateId: estateId });
-        }
-
-        function upgradeItem(itemType) {
-            socket.emit('upgradeItem', { itemType: itemType });
-        }
-
+        // İŞLEMLER
+        function addStat(statName) { socket.emit('distributeStat', statName); }
+        function startQuest(questId) { socket.emit('doQuest', { questId: questId }); }
+        function buyEstate(estateId) { socket.emit('buyEstate', { estateId: estateId }); }
+        function upgradeItem(itemType) { socket.emit('upgradeItem', { itemType: itemType }); }
+        
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             if(!input || !input.value.trim()) return;
             socket.emit('sendChatMessage', { message: input.value.trim() });
             input.value = '';
         }
+        function handleChatKey(e) { if(e.key === 'Enter') sendChatMessage(); }
 
-        function handleChatKey(e) {
-            if(e.key === 'Enter') sendChatMessage();
-        }
-
+        // SUNUCUDAN GELEN DİNLENENLER
         socket.on('statUpdated', (data) => {
             currentUserData = data;
             updateHeader(data);
             if(activeTab === 'overview') renderOverviewTab(document.getElementById('panelContentBody'));
+            if(activeTab === 'timar') renderTimarTab(document.getElementById('panelContentBody'));
         });
 
         socket.on('questResult', (data) => {
@@ -891,6 +695,7 @@
         socket.on('marketResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
+            if(activeTab === 'timar') renderTimarTab(document.getElementById('panelContentBody'));
             const logEl = document.getElementById('marketLog');
             if(logEl) logEl.innerHTML = `<b style="color: #f3cf7a;">${data.message}</b>`;
         });
@@ -898,11 +703,7 @@
         socket.on('forgeResult', (data) => {
             currentUserData = data.userData;
             updateHeader(currentUserData);
-            const lvlEl = document.getElementById(`lvl${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
-            const costEl = document.getElementById(`cost${data.itemType.charAt(0).toUpperCase() + data.itemType.slice(1)}`);
-            if(lvlEl) lvlEl.innerText = data.newLevel;
-            if(costEl) costEl.innerText = (data.newLevel + 1) * 100;
-
+            if(activeTab === 'blacksmith') renderBlacksmithTab(document.getElementById('panelContentBody'));
             const logEl = document.getElementById('forgeLog');
             if(logEl) logEl.innerHTML = `<b style="color: #22c55e;">${data.message}</b>`;
         });
@@ -920,10 +721,7 @@
 
         function logout() {
             socket.emit('logout');
-            socket.on('logoutSuccess', () => {
-                localStorage.removeItem('username');
-                window.location.reload();
-            });
+            window.location.reload();
         }
     </script>
 </body>
