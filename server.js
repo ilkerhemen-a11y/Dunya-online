@@ -14,30 +14,6 @@ app.use(express.static(__dirname + '/public'));
 const MAX_SEFER_LIMITI = 20;
 const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
 
-
-const ALL_QUESTS = [
-  { id: 1, name: "Karanlık Orman Seferi", gold: 45, exp: 20, hpLoss: 15 },
-  { id: 2, name: "Unutulmuş Tapınak", gold: 120, exp: 55, hpLoss: 35 },
-  { id: 3, name: "Ejderha Dağı", gold: 300, exp: 140, hpLoss: 70 },
-  { id: 4, name: "Kayıp Şehir", gold: 500, exp: 220, hpLoss: 100 },
-  { id: 5, name: "Eski Harabeler", gold: 650, exp: 280, hpLoss: 130 },
-  { id: 6, name: "Buz Mağarası", gold: 800, exp: 350, hpLoss: 160 },
-  { id: 7, name: "Lanetli Orman", gold: 950, exp: 420, hpLoss: 190 },
-  { id: 8, name: "Deniz Canavarı Avı", gold: 1100, exp: 500, hpLoss: 220 },
-  { id: 9, name: "Zindan", gold: 1300, exp: 580, hpLoss: 250 },
-  { id: 10, name: "Kraliyet Kütüphanesi", gold: 1500, exp: 660, hpLoss: 280 },
-  { id: 11, name: "Volkanik Ada", gold: 1700, exp: 750, hpLoss: 310 },
-  { id: 12, name: "Gölge Kalesi", gold: 1900, exp: 840, hpLoss: 340 },
-  { id: 13, name: "Zaman Sığınağı", gold: 2100, exp: 930, hpLoss: 370 },
-  { id: 14, name: "Ejderha İni", gold: 2400, exp: 1050, hpLoss: 400 },
-  { id: 15, name: "Cennet Bahçeleri", gold: 2700, exp: 1180, hpLoss: 430 },
-  { id: 16, name: "Işık Tapınağı", gold: 3000, exp: 1320, hpLoss: 460 },
-  { id: 17, name: "Karanlık Boyut", gold: 3400, exp: 1480, hpLoss: 500 },
-  { id: 18, name: "Sonsuzluk Kulesi", gold: 3800, exp: 1650, hpLoss: 550 },
-  { id: 19, name: "Dünyanın Sonu", gold: 4300, exp: 1850, hpLoss: 600 },
-  { id: 20, name: "Tanrılar Salonu", gold: 5000, exp: 2100, hpLoss: 700 }
-];
-
 function checkSeferRefill(user) {
     const now = Date.now();
     if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
