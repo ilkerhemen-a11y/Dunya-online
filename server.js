@@ -16,7 +16,6 @@ const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
 
 function checkSeferRefill(user) {
     const now = Date.now();
-    // Limit tükenmişse ve 30 dakikalık bekleme süresi dolmuşsa yenile
     if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
         user.seferLimiti = MAX_SEFER_LIMITI;
         user.seferNextRefill = null;
@@ -114,7 +113,6 @@ io.on('connection', (socket) => {
                 return socket.emit('authResult', { success: false, message: "Hatalı şifre!" });
             }
 
-            // Çevrimdışıyken 30 dakikalık süre dolmuşsa yenile
             if (checkSeferRefill(dbUser)) {
                 await dbUser.save();
             }
@@ -154,7 +152,6 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user) return;
 
-        // Dolum zamanı kontrolü
         checkSeferRefill(user);
 
         if (user.hp <= 0) {
@@ -169,10 +166,8 @@ io.on('connection', (socket) => {
             });
         }
 
-        // Sefer hakkını düş
         user.seferLimiti -= 1;
 
-        // Haklar tamamen tükendiğinde 30 dakikalık sayacı başlat
         if (user.seferLimiti === 0) {
             user.seferNextRefill = Date.now() + REFILL_INTERVAL;
         }
@@ -256,7 +251,30 @@ io.on('connection', (socket) => {
             user.hp = user.vit * 20;
             await user.save();
             socket.emit('statUpdated', user);
+            socket.emit('marketResult', { userData: user, message: "Canınız yenilendi!" });
         }
+    });
+
+    // Sefer Limiti Yenileme İksiri (50 Altın)
+    socket.on('refillSefer', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        if (user.seferLimiti >= MAX_SEFER_LIMITI) {
+            return socket.emit('marketResult', { userData: user, message: "Sefer hakkınız zaten maksimum seviyede!" });
+        }
+
+        if (user.balance < 50) {
+            return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+        }
+
+        user.balance -= 50;
+        user.seferLimiti = MAX_SEFER_LIMITI;
+        user.seferNextRefill = null;
+        await user.save();
+
+        socket.emit('statUpdated', user);
+        socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
     });
 
     // Ekipman Kuşanma/Çıkarma
