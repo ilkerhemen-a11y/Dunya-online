@@ -11,7 +11,7 @@ const io = new Server(server, {
 
 app.use(express.static(__dirname + '/public'));
 
-// 1. MongoDB Bağlantısı (Render için MONGODB_URI veya MONGO_URI, yerel için localhost)
+// 1. MongoDB Bağlantısı (Render için MONGODB_URI/MONGO_URI, yerel için localhost)
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/throne_war';
 
 mongoose.connect(MONGO_URI)
@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
-const users = {}; // Aktif socket bağlantıları için
+const users = {}; // Aktif socket bağlantıları için bellek cache'i
 
 const getDefaultInventory = () => [
     { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
@@ -74,11 +74,10 @@ io.on('connection', (socket) => {
         const username = data.username ? data.username.trim() : 'Gladyatör';
         
         try {
-            // Veritabanında bu isimle kullanıcı var mı bak
             let dbUser = await User.findOne({ username });
 
             if (!dbUser) {
-                // Yoksa sıfırdan oluştur ve kaydet
+                // Yeni kullanıcı: Envanter ve başlangıç değerleri ile oluştur
                 dbUser = new User({
                     username: username,
                     inventory: getDefaultInventory()
@@ -86,7 +85,6 @@ io.on('connection', (socket) => {
                 await dbUser.save();
             }
 
-            // Aktif kullanıcılar listesine ekle
             users[socket.id] = dbUser;
             socket.emit('userData', dbUser);
         } catch (err) {
@@ -115,8 +113,8 @@ io.on('connection', (socket) => {
         user.equipped[slotType] = itemToEquip;
         user.markModified('equipped');
         user.markModified('inventory');
-        
-        await user.save(); // Anlık kaydet
+
+        await user.save();
         socket.emit('statUpdated', user);
     });
 
@@ -134,7 +132,7 @@ io.on('connection', (socket) => {
         user.markModified('equipped');
         user.markModified('inventory');
 
-        await user.save(); // Anlık kaydet
+        await user.save();
         socket.emit('statUpdated', user);
     });
 
@@ -189,7 +187,7 @@ io.on('connection', (socket) => {
             user.statPoints += 3;
         }
 
-        await user.save(); // Anlık kaydet
+        await user.save();
 
         socket.emit('questResult', {
             success: true,
@@ -215,7 +213,7 @@ io.on('connection', (socket) => {
             user.hp = user.vit * 20;
         }
 
-        await user.save(); // Anlık kaydet
+        await user.save();
         socket.emit('statUpdated', user);
     });
 
@@ -236,7 +234,7 @@ io.on('connection', (socket) => {
         user.balance -= potionCost;
         user.hp = user.vit * 20;
 
-        await user.save(); // Anlık kaydet
+        await user.save();
         socket.emit('questResult', {
             success: true,
             message: "Can iksiri içildi! Canınız tamamen tazelendi.",
@@ -266,9 +264,9 @@ io.on('connection', (socket) => {
 
         user.balance -= cost;
         user.upgrades[itemType] = currentLvl + 1;
-        user.markModified('upgrades'); // Mongoose iç içe nesne güncellemeleri için şart
+        user.markModified('upgrades');
 
-        await user.save(); // Anlık kaydet
+        await user.save();
 
         socket.emit('forgeResult', {
             success: true,
