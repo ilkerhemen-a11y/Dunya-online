@@ -129,7 +129,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Görev (Sefer) Sistemi (3 Dakika Geri Sayım Eklendi)
+    // Görev (Sefer) Sistemi
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
         if (!user || user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
@@ -140,11 +140,6 @@ io.on('connection', (socket) => {
         if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
         else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
         else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
-
-        // Eğer sefer hakkı maksimumken (20) ilk kez düşüyorsa 3 dakikalık süre başlat
-        if (user.seferLimiti === 20 && !user.seferNextRefill) {
-            user.seferNextRefill = Date.now() + (3 * 60 * 1000); // 3 dakika
-        }
 
         user.seferLimiti -= 1;
         user.hp = Math.max(0, user.hp - hpLoss);
@@ -267,28 +262,6 @@ setInterval(async () => {
         }
     }
 }, 60000); 
-
-// SEFER LİMİTİ YENİLEME DÖNGÜSÜ (Her 1 Saniyede Bir Kontrol Eder)
-setInterval(async () => {
-    const now = Date.now();
-    for (const socketId in users) {
-        const user = users[socketId];
-        if (user.seferLimiti < 20 && user.seferNextRefill) {
-            if (now >= user.seferNextRefill) {
-                user.seferLimiti += 1;
-                
-                if (user.seferLimiti < 20) {
-                    user.seferNextRefill = now + (3 * 60 * 1000); // Sonraki hak için tekrar 3 dakika
-                } else {
-                    user.seferNextRefill = null; // 20'ye ulaştıysa sayacı durdur
-                }
-
-                await user.save();
-                io.to(socketId).emit('statUpdated', user);
-            }
-        }
-    }
-}, 1000);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
