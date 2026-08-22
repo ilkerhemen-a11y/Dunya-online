@@ -1,3 +1,8 @@
+const User = require('./models/User');
+const { quests, estates, defaultInventory } = require('./config/gameConfig');
+
+
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -129,22 +134,24 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Görev (Sefer) Sistemi
+        // Görev (Sefer) Sistemi
     socket.on('doQuest', async (data) => {
         const user = users[socket.id];
-        if (!user || user.hp <= 0 || user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
+        if (!user || user.hp <= 0 || user.seferLimiti <= 0) {
+            return socket.emit('questResult', { success: false, message: "Can veya Sefer hakkı yetersiz!" });
+        }
         
         const questId = data.questId || 1;
-        let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
+        const quest = quests[questId]; // config/gameConfig.js dosyasından ilgili görevi alır
 
-        if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
-        else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
-        else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
+        if (!quest) {
+            return socket.emit('questResult', { success: false, message: "Böyle bir sefer bulunamadı!" });
+        }
 
         user.seferLimiti -= 1;
-        user.hp = Math.max(0, user.hp - hpLoss);
-        user.balance += goldGain;
-        user.exp += expGain;
+        user.hp = Math.max(0, user.hp - quest.hpLoss);
+        user.balance += quest.gold;
+        user.exp += quest.exp;
 
         let maxExp = user.level * 100;
         let levelUpMsg = "";
@@ -158,9 +165,12 @@ io.on('connection', (socket) => {
 
         await user.save();
         socket.emit('questResult', { 
-            success: true, userData: user, 
-            message: `${questName} seferi başarılı!${levelUpMsg}`, 
-            goldEarned: goldGain, expEarned: expGain, hpLost: hpLoss 
+            success: true, 
+            userData: user, 
+            message: `${quest.name} seferi başarılı!${levelUpMsg}`, 
+            goldEarned: quest.gold, 
+            expEarned: quest.exp, 
+            hpLost: quest.hpLoss 
         });
     });
 
