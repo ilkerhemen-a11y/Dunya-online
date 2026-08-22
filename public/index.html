@@ -341,7 +341,21 @@
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
-            const maxHp = (data.vit || 5) * 20;
+
+
+            // Ekipman bonuslarını (VIT) hesapla
+            let bonusVit = 0;
+            if (data.equipped) {
+                Object.values(data.equipped).forEach(item => {
+                    if (item) bonusVit += (item.vitBonus || 0);
+                });
+            }
+
+            // Toplam HP'yi ekipman bonusuyla birlikte hesapla
+            const maxHp = ((data.vit || 5) + bonusVit) * 20;
+
+
+            
             const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
 
