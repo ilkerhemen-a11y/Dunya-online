@@ -400,8 +400,24 @@
             const u = currentUserData;
             if(!u) return;
 
-            if(activeTab === 'overview') {
-                const maxHp = (u.vit || 5) * 20;
+                        if(activeTab === 'overview') {
+                // 1. Ekipmanlardan Gelen Bonusları Hesapla
+                let bonusStr = 0;
+                let bonusVit = 0;
+                
+                if (u.equipped) {
+                    Object.values(u.equipped).forEach(item => {
+                        if (item) {
+                            bonusStr += (item.strBonus || 0);
+                            bonusVit += (item.vitBonus || 0);
+                        }
+                    });
+                }
+
+                // 2. Toplam Statları ve Yeni Max HP'yi Belirle
+                const totalStr = (u.str || 0) + bonusStr;
+                const totalVit = (u.vit || 0) + bonusVit;
+                const maxHp = totalVit * 20;
                 const maxExp = (u.level || 1) * 100;
                 
                 body.innerHTML = `
@@ -413,8 +429,17 @@
                             <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
                             <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
                             <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
-                            <div class="stat-row"><span>Güç (STR):</span><span>${u.str}</span></div>
-                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${u.vit}</span></div>
+                            
+                            <!-- GÜÇ VE DAYANIKLILIK BONUS EKLENTİSİ BURADA -->
+                            <div class="stat-row">
+                                <span>Güç (STR):</span>
+                                <span>${totalStr} ${bonusStr > 0 ? `<span style="color:#22c55e; font-size:11px; font-weight:bold;">(+${bonusStr})</span>` : ''}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Dayanıklılık (VIT):</span>
+                                <span>${totalVit} ${bonusVit > 0 ? `<span style="color:#22c55e; font-size:11px; font-weight:bold;">(+${bonusVit})</span>` : ''}</span>
+                            </div>
+                            
                             <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
                             ${u.statPoints > 0 ? `
                                 <div style="display:flex; gap:10px; margin-top:10px;">
@@ -423,7 +448,6 @@
                                 </div>
                             ` : ''}
 
-                            <!-- İstediğin Karakter Portresi Buraya Eklendi -->
                             <div class="char-portrait">
                                 <img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter Portresi">
                             </div>
