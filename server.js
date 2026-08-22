@@ -63,9 +63,9 @@ const User = mongoose.model('User', userSchema);
 const users = {}; 
 
 const getDefaultInventory = () => [
-    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
-    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5 },
-    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 }
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0 },
+    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5, level: 0 },
+    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2, level: 0 }
 ];
 
 io.on('connection', (socket) => {
@@ -223,23 +223,56 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
 
-    // Demirci (+ Basma)
+    // ============================================
+    // DEMİRCİ (+ BASMA) - YENİ DİNAMİK EŞYA SİSTEMİ
+    // ============================================
     socket.on('upgradeItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
-        const type = data.itemType;
-        if (user.upgrades[type] !== undefined) {
-            const cost = (user.upgrades[type] + 1) * 100;
-            if (user.balance >= cost) {
-                user.balance -= cost;
-                user.upgrades[type] += 1;
-                user.markModified('upgrades');
-                await user.save();
-                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: `${type.toUpperCase()} başarıyla +${user.upgrades[type]} seviyesine yükseltildi!` });
+        const type = data.itemType; // 'weapon', 'armor', 'helmet'
+        const equippedItem = user.equipped[type];
+
+        // 1. Üzerinde geliştirecek bir eşya yoksa engelle
+        if (!equippedItem) {
+            return socket.emit('forgeResult', { userData: user, message: `Demirhanede geliştirmek için önce bir ${type === 'weapon' ? 'silah' : 'zırh'} kuşanmalısınız!` });
+        }
+
+        // 2. Maliyeti eşyanın kendi seviyesinden hesapla
+        const currentLevel = equippedItem.level || 0;
+        const cost = (currentLevel + 1) * 100;
+
+        if (user.balance >= cost) {
+            user.balance -= cost;
+            
+            // 3. Eşyanın Seviyesini Yükselt
+            equippedItem.level = currentLevel + 1;
+
+            // 4. Eşyanın Bonuslarını Artır (Silahsa Str, Zırhsa Vit)
+            if (type === 'weapon') {
+                equippedItem.strBonus = (equippedItem.strBonus || 0) + 2; 
             } else {
-                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: "Geliştirme için yeterli altınınız yok!" });
+                equippedItem.vitBonus = (equippedItem.vitBonus || 0) + 2;
             }
+
+            // 5. Eşyanın ismini güncelle (Örn: "Tahta Kılıç +1")
+            const baseName = equippedItem.name.split(' +')[0]; // İsmindeki eski artıyı temizle
+            equippedItem.name = `${baseName} +${equippedItem.level}`;
+
+            // 6. UI'ın (Önyüzün) senkronize kalması için upgrades objesini de güncelle
+            user.upgrades[type] = equippedItem.level;
+
+            // Veritabanına nesnelerin değiştiğini bildir
+            user.markModified('equipped');
+            user.markModified('upgrades');
+            
+            await user.save();
+            socket.emit('forgeResult', { 
+                userData: user, 
+                message: `${baseName}, başarıyla +${equippedItem.level} seviyesine yükseltildi!` 
+            });
+        } else {
+            socket.emit('forgeResult', { userData: user, message: "Geliştirme için yeterli altınınız yok!" });
         }
     });
 
@@ -277,18 +310,28 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
     });
 
-    // Ekipman Kuşanma/Çıkarma
+    // ============================================
+    // EKİPMAN KUŞANMA / ÇIKARMA SİSTEMİ
+    // ============================================
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
         
         const item = user.inventory[data.itemIndex];
         const old = user.equipped[item.type];
+        
         user.inventory.splice(data.itemIndex, 1);
         if (old) user.inventory.push(old);
+        
         user.equipped[item.type] = item;
+
+        // UI'ın düzgün maliyet hesaplaması için kuşanılan eşyanın seviyesini aktar
+        user.upgrades[item.type] = item.level || 0;
+        
         user.markModified('equipped'); 
         user.markModified('inventory');
+        user.markModified('upgrades'); // Eklendi
+        
         await user.save();
         socket.emit('statUpdated', user);
     });
@@ -296,10 +339,17 @@ io.on('connection', (socket) => {
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
+        
         user.inventory.push(user.equipped[data.slot]);
         user.equipped[data.slot] = null;
+        
+        // Eşya çıktığında demirhane seviye yazısını sıfırla
+        user.upgrades[data.slot] = 0;
+        
         user.markModified('equipped'); 
         user.markModified('inventory');
+        user.markModified('upgrades'); // Eklendi
+        
         await user.save();
         socket.emit('statUpdated', user);
     });
