@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema({
     inventory: { type: Array, default: [] }
 });
 
-const User = mongoose.model('User', userSchema);
+
 const users = {}; 
 
 const getDefaultInventory = () => [
