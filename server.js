@@ -174,21 +174,27 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Tımar Satın Alma
+      // Tımar Satın Alma
     socket.on('buyEstate', async (data) => {
         const user = users[socket.id];
         if (!user) return;
         
-        let cost = 0;
-        if (data.estateId === 1) cost = 500;
-        if (data.estateId === 2) cost = 2000;
-        if (data.estateId === 3) cost = 7500;
+        const estateId = data.estateId;
+        const estate = estates[estateId]; // gameConfig.js dosyasından mülk bilgilerini alır
 
-        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
-        if (user.balance < cost) return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+        if (!estate) {
+            return socket.emit('marketResult', { userData: user, message: "Böyle bir mülk bulunamadı!" });
+        }
 
-        user.balance -= cost;
-        user.estates.push(data.estateId);
+        if (user.estates.includes(estateId)) {
+            return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
+        }
+        if (user.balance < estate.cost) {
+            return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+        }
+
+        user.balance -= estate.cost;
+        user.estates.push(estateId);
         await user.save();
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
