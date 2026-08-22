@@ -264,38 +264,7 @@ io.on('connection', (socket) => {
     });
 
 
-// ============================================
-// GÜNLÜK HEDİYE SİSTEMİ (24 Saatte Bir 10 Elmas)
-// ============================================
-socket.on('claimDailyReward', async () => {
-    const user = users[socket.id];
-    if (!user) return;
 
-    const now = Date.now();
-    const cooldown = 24 * 60 * 60 * 1000; // 24 Saat (milisaniye cinsinden)
-
-    // Daha önce almışsa ve 24 saat geçmediyse engelle
-    if (user.lastDailyReward && (now - user.lastDailyReward < cooldown)) {
-        const kalanSureMs = cooldown - (now - user.lastDailyReward);
-        const kalanSaat = Math.floor(kalanSureMs / (1000 * 60 * 60));
-        const kalanDakika = Math.floor((kalanSureMs % (1000 * 60 * 60)) / (1000 * 60));
-        return socket.emit('marketResult', { 
-            userData: user, 
-            message: `Günlük hediyenizi zaten aldınız! Tekrar alabilmek için kalan süre: ${kalanSaat} saat ${kalanDakika} dakika.` 
-        });
-    }
-
-    // Ödülü ver ve zamanı güncelle
-    user.rubies = (user.rubies || 0) + 10;
-    user.lastDailyReward = now;
-    await user.save();
-
-    socket.emit('statUpdated', user);
-    socket.emit('marketResult', { 
-        userData: user, 
-        message: "Tebrikler! Günlük 10 Elmas hediyeniz başarıyla yüklendi! 💎" 
-    });
-});
 
     
     
