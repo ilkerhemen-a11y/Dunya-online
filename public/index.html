@@ -764,6 +764,48 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
+
+
+
+
+
+// 1. MEYDANA İN Butonuna Bağlanacak Giriş Fonksiyonu
+function handleLogin() {
+    const usernameInput = document.getElementById('loginUsername').value;
+    const passwordInput = document.getElementById('loginPassword').value;
+
+    if (!socket.connected) {
+        alert("Sunucuya bağlanılıyor, lütfen 5-10 saniye bekleyip tekrar deneyin.");
+        return;
+    }
+
+    socket.emit('userLogin', { 
+        username: usernameInput, 
+        password: passwordInput 
+    });
+}
+
+// 2. Başarılı Giriş Yapıldığında Giriş Ekranını Kapat
+socket.on('userData', (user) => {
+    currentUserData = user;
+    
+    // Giriş kutusunu gizle ve oyunu göster
+    const authModal = document.getElementById('auth-modal'); // Giriş kutunuzun ID'si
+    if (authModal) authModal.style.display = 'none';
+
+    renderPanelContent(); // Paneli çizdir
+});
+
+// 3. Hatalı Girişte Uyarı Göster
+socket.on('authResult', (data) => {
+    if (!data.success) {
+        alert(data.message);
+    }
+});
+
+
+
+        
     </script>
 </body>
 </html>
