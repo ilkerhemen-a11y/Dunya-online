@@ -12,7 +12,7 @@ app.use(express.static(__dirname + '/public'));
 
 // Sabitler ve Yardımcı Fonksiyonlar
 const MAX_SEFER_LIMITI = 20;
-const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika
+const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
 
 function checkSeferRefill(user) {
     const now = Date.now();
@@ -71,7 +71,7 @@ const getDefaultInventory = () => [
 io.on('connection', (socket) => {
     console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-    // Kayıt Olma
+    // Kayıt Olma İşlemi
     socket.on('userRegister', async (data) => {
         const { username, password } = data;
         if (!username || !password || username.trim() === '' || password.trim() === '') {
@@ -99,7 +99,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Giriş Yapma
+    // Giriş Yapma İşlemi
     socket.on('userLogin', async (data) => {
         const { username, password } = data;
         try {
@@ -220,83 +220,29 @@ io.on('connection', (socket) => {
         user.balance -= cost;
         user.estates.push(data.estateId);
         await user.save();
-        
-        socket.emit('statUpdated', user);
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
 
-    // Silah ve Zırhçı (Dükkan) Satın Alma
-    socket.on('buyShopItem', async (data) => {
-        try {
-            const user = users[socket.id];
-            if (!user) return;
-
-            const shopCatalog = {
-                1: { name: 'Çelik Ejder Kılıcı', icon: '🗡️', type: 'weapon', strBonus: 12, vitBonus: 4, cost: 1000 },
-                2: { name: 'Şövalye Göğüslüğü', icon: '🛡️', type: 'armor', strBonus: 4, vitBonus: 12, cost: 1200 },
-                3: { name: 'Ejder Miğferi', icon: '🪖', type: 'helmet', strBonus: 6, vitBonus: 8, cost: 1000 },
-                4: { name: 'Ağır Çelik Kalkan', icon: '🛡️', type: 'shield', strBonus: 2, vitBonus: 15, cost: 1500 },
-                5: { name: 'Tılsımlı Yakut Kolye', icon: '📿', type: 'necklace', strBonus: 8, vitBonus: 8, cost: 1800 },
-                6: { name: 'Zümrüt Güç Yüzüğü', icon: '💍', type: 'ring', strBonus: 10, vitBonus: 5, cost: 2000 },
-                7: { name: 'Demir Muşta Eldiven', icon: '🧤', type: 'gloves', strBonus: 9, vitBonus: 6, cost: 1300 },
-                8: { name: 'Muhafız Çizmeleri', icon: '👢', type: 'boots', strBonus: 5, vitBonus: 9, cost: 1100 }
-            };
-
-            const itemToBuy = shopCatalog[data.shopItemId];
-            if (!itemToBuy) {
-                return socket.emit('marketResult', { userData: user, message: "Geçersiz eşya!" });
-            }
-
-            if ((user.balance || 0) < itemToBuy.cost) {
-                return socket.emit('marketResult', { 
-                    userData: user, 
-                    message: `Yetersiz altın! Bu eşyayı almak için ${itemToBuy.cost} Altın gerekiyor.` 
-                });
-            }
-
-            user.balance -= itemToBuy.cost;
-
-            const newItem = {
-                id: `item_${Date.now()}`,
-                name: itemToBuy.name,
-                icon: itemToBuy.icon,
-                type: itemToBuy.type,
-                strBonus: itemToBuy.strBonus,
-                vitBonus: itemToBuy.vitBonus,
-                level: 0
-            };
-
-            if (!user.inventory) user.inventory = [];
-            user.inventory.push(newItem);
-
-            user.markModified('inventory');
-            await user.save();
-
-            socket.emit('statUpdated', user);
-            socket.emit('marketResult', { 
-                userData: user, 
-                message: `⚔️ ${newItem.name} satın alındı ve envanterinize eklendi!` 
-            });
-
-        } catch (err) {
-            console.error("Dükkan satın alma hatası:", err);
-        }
-    });
-
-    // Demirci (+ Basma)
+    // ==========================================
+    // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
+    // ==========================================
     socket.on('upgradeItem', async (data) => {
         try {
-            const user = users[socket.id];
-            if (!user) {
+            const activeUser = users[socket.id];
+            if (!activeUser) {
                 return socket.emit('forgeResult', { 
                     success: false, 
                     message: "Lütfen önce giriş yapın." 
                 });
             }
 
-            const itemIndex = parseInt(data.itemIndex);
+            const user = await User.findById(activeUser._id);
+            if (!user) return;
 
-            if (!user.inventory || user.inventory[itemIndex] === undefined) {
+            const { itemIndex } = data;
+
+            // Envanter ve eşya geçerlilik kontrolü
+            if (!user.inventory || !user.inventory[itemIndex]) {
                 return socket.emit('forgeResult', { 
                     success: false, 
                     message: "Geliştirilecek eşya envanterde bulunamadı!" 
@@ -306,8 +252,9 @@ io.on('connection', (socket) => {
             const item = user.inventory[itemIndex];
             const currentLevel = item.level || 0;
             const nextLevel = currentLevel + 1;
-            const cost = nextLevel * 150;
+            const cost = nextLevel * 150; // Seviye arttıkça + basma maliyeti artar
 
+            // Altın kontrolü
             if ((user.balance || 0) < cost) {
                 return socket.emit('forgeResult', { 
                     success: false, 
@@ -315,17 +262,24 @@ io.on('connection', (socket) => {
                 });
             }
 
+            // Altını düş
             user.balance -= cost;
 
+            // Eşya ismindeki eski + seviyesini temizle ve yenisini ekle
             let baseName = item.name.replace(/\s\+\d+$/, '');
             item.name = `${baseName} +${nextLevel}`;
             item.level = nextLevel;
 
+            // Stat bonuslarını artır (+1 basıldığında mevcut bonusa ekleme yapılır)
             item.strBonus = (item.strBonus || 0) + 2;
             item.vitBonus = (item.vitBonus || 0) + 2;
 
+            // Envanter dizisini güncellendi olarak işaretle
             user.markModified('inventory');
             await user.save();
+
+            // Oturum bilgilerini güncelle
+            users[socket.id] = user;
 
             socket.emit('forgeResult', {
                 success: true,
@@ -355,7 +309,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Sefer Limiti Yenileme İksiri
+    // Sefer Limiti Yenileme İksiri (50 Altın)
     socket.on('refillSefer', async () => {
         const user = users[socket.id];
         if (!user) return;
@@ -377,45 +331,42 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
     });
 
-    // Ekipman Kuşanma
+    // Ekipman Kuşanma/Çıkarma
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
-        const index = parseInt(data.itemIndex);
-        if (!user || isNaN(index) || index < 0 || index >= user.inventory.length) return;
+        if (!user || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
         
-        const item = user.inventory[index];
+        const item = user.inventory[data.itemIndex];
         const old = user.equipped[item.type];
-        user.inventory.splice(index, 1);
+        user.inventory.splice(data.itemIndex, 1);
         if (old) user.inventory.push(old);
         user.equipped[item.type] = item;
-
         user.markModified('equipped'); 
         user.markModified('inventory');
         await user.save();
         socket.emit('statUpdated', user);
     });
 
-    // Eşya Silme İşlemi
+        // Eşya Silme İşlemi
     socket.on('deleteItem', async (data) => {
         const user = users[socket.id];
-        const index = parseInt(data.itemIndex);
-        if (!user || isNaN(index) || index < 0 || index >= user.inventory.length) return;
+        if (!user || data.itemIndex === undefined || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
 
-        user.inventory.splice(index, 1);
+        // Eşyayı envanter dizisinden kaldır
+        user.inventory.splice(data.itemIndex, 1);
         
         user.markModified('inventory');
         await user.save();
 
+        // Güncel veriyi istemciye gönder
         socket.emit('statUpdated', user);
     });
 
-    // Ekipman Çıkarma
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
         user.inventory.push(user.equipped[data.slot]);
         user.equipped[data.slot] = null;
-
         user.markModified('equipped'); 
         user.markModified('inventory');
         await user.save();
@@ -432,35 +383,33 @@ io.on('connection', (socket) => {
 
 // PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
-    try {
-        for (const socketId in users) {
-            const user = users[socketId];
-            if (!user) continue;
-            let isUpdated = false;
+    for (const socketId in users) {
+        const user = users[socketId];
+        let isUpdated = false;
 
-            let income = 0;
-            if (user.estates.includes(1)) income += 10;
-            if (user.estates.includes(2)) income += 45;
-            if (user.estates.includes(3)) income += 180;
+        // 1. Pasif Gelir Hesabı
+        let income = 0;
+        if (user.estates.includes(1)) income += 10;
+        if (user.estates.includes(2)) income += 45;
+        if (user.estates.includes(3)) income += 180;
 
-            if (income > 0) {
-                user.balance += income;
-                isUpdated = true;
-            }
-
-            const maxHp = user.vit * 20;
-            if (user.hp < maxHp) {
-                user.hp = Math.min(maxHp, user.hp + 10);
-                isUpdated = true;
-            }
-
-            if (isUpdated) {
-                await user.save();
-                io.to(socketId).emit('statUpdated', user);
-            }
+        if (income > 0) {
+            user.balance += income;
+            isUpdated = true;
         }
-    } catch (err) {
-        console.error("Pasif gelir döngüsü hatası:", err);
+
+        // 2. Otomatik Can Yenileme (Maksimum Can: Dayanıklılık * 20)
+        const maxHp = user.vit * 20;
+        if (user.hp < maxHp) {
+            user.hp = Math.min(maxHp, user.hp + 10);
+            isUpdated = true;
+        }
+
+        // Herhangi bir değişiklik gerçekleştiyse kaydet ve istemciyi güncelle
+        if (isUpdated) {
+            await user.save();
+            io.to(socketId).emit('statUpdated', user);
+        }
     }
 }, 60000);
 
