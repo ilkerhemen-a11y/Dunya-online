@@ -232,7 +232,7 @@
     <header class="game-header">
         <div class="header-section">
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
-            <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">10</span> Elmas</div>
+            <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">10</span> Yakut</div>
         </div>
         <div class="header-section">
             <div class="bar-container">
@@ -341,21 +341,7 @@
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
-
-
-            // Ekipman bonuslarını (VIT) hesapla
-            let bonusVit = 0;
-            if (data.equipped) {
-                Object.values(data.equipped).forEach(item => {
-                    if (item) bonusVit += (item.vitBonus || 0);
-                });
-            }
-
-            // Toplam HP'yi ekipman bonusuyla birlikte hesapla
-            const maxHp = ((data.vit || 5) + bonusVit) * 20;
-
-
-            
+            const maxHp = (data.vit || 5) * 20;
             const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
 
@@ -400,24 +386,8 @@
             const u = currentUserData;
             if(!u) return;
 
-                        if(activeTab === 'overview') {
-                // 1. Ekipmanlardan Gelen Bonusları Hesapla
-                let bonusStr = 0;
-                let bonusVit = 0;
-                
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (item) {
-                            bonusStr += (item.strBonus || 0);
-                            bonusVit += (item.vitBonus || 0);
-                        }
-                    });
-                }
-
-                // 2. Toplam Statları ve Yeni Max HP'yi Belirle
-                const totalStr = (u.str || 0) + bonusStr;
-                const totalVit = (u.vit || 0) + bonusVit;
-                const maxHp = totalVit * 20;
+            if(activeTab === 'overview') {
+                const maxHp = (u.vit || 5) * 20;
                 const maxExp = (u.level || 1) * 100;
                 
                 body.innerHTML = `
@@ -428,18 +398,9 @@
                             <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
                             <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
                             <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
-                            <div class="stat-row"><span>Elmas:</span><span>${u.rubies} 💎</span></div>
-                            
-                            <!-- GÜÇ VE DAYANIKLILIK BONUS EKLENTİSİ BURADA -->
-                            <div class="stat-row">
-                                <span>Güç (STR):</span>
-                                <span>${totalStr} ${bonusStr > 0 ? `<span style="color:#22c55e; font-size:11px; font-weight:bold;">(+${bonusStr})</span>` : ''}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Dayanıklılık (VIT):</span>
-                                <span>${totalVit} ${bonusVit > 0 ? `<span style="color:#22c55e; font-size:11px; font-weight:bold;">(+${bonusVit})</span>` : ''}</span>
-                            </div>
-                            
+                            <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
+                            <div class="stat-row"><span>Güç (STR):</span><span>${u.str}</span></div>
+                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${u.vit}</span></div>
                             <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
                             ${u.statPoints > 0 ? `
                                 <div style="display:flex; gap:10px; margin-top:10px;">
@@ -516,13 +477,19 @@
                     </div>
                     <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
                 `;
-
-
-
-
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
+                        <!-- Günlük Hediye Kutusu -->
+                        <div class="market-card">
+                            <div class="market-info">
+                                <h4>🎁 Günlük Hediye Kutusu</h4>
+                                <p>Her 24 saatte bir krallık hazinesinden hediyenizi alın.</p>
+                                <div class="market-income">Ödül: +1000 Altın</div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('claimDailyGift')">Hediyeyi Al</button>
+                        </div>
+
                         <!-- Can İksiri -->
                         <div class="market-card">
                             <div class="market-info">
@@ -542,59 +509,9 @@
                             </div>
                             <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
                         </div>
-
-                        <!-- YENİ: EKİPMAN DÜKKANI BAŞLIĞI -->
-                        <div style="margin: 15px 0 5px 0; color: #f3cf7a; font-weight: bold; font-size: 13px; border-bottom: 1px solid #33241b; padding-bottom: 5px;">
-                            🛡️ Ekipman ve Silah Dükkanı
-                        </div>
-
-                        <!-- Demir Kalkan -->
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>🛡️ Demir Kalkan</h4>
-                                <p>Güç: +1 | Dayanıklılık: +3 bonus sağlar.</p>
-                                <span class="forge-cost">Maliyet: 300 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'shield_1' })">Satın Al</button>
-                        </div>
-
-                        <!-- Demir Miğfer -->
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>🪖 Demir Miğfer</h4>
-                                <p>Güç: +2 | Dayanıklılık: +2 bonus sağlar.</p>
-                                <span class="forge-cost">Maliyet: 400 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'helmet_1' })">Satın Al</button>
-                        </div>
-
-                        <!-- Savaş Çizmeleri -->
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>👢 Savaş Çizmeleri</h4>
-                                <p>Güç: +0 | Dayanıklılık: +4 bonus sağlar.</p>
-                                <span class="forge-cost">Maliyet: 350 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'boots_1' })">Satın Al</button>
-                        </div>
-
-                        <!-- Deri Eldiven -->
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>🧤 Deri Eldiven</h4>
-                                <p>Güç: +2 | Dayanıklılık: +1 bonus sağlar.</p>
-                                <span class="forge-cost">Maliyet: 250 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyShopItem', { itemId: 'gloves_1' })">Satın Al</button>
-                        </div>
                     </div>
                 `;
-            }
-                            
-                        
-                        
-                        
-                        else if(activeTab === 'timar') {
+            } else if(activeTab === 'timar') {
                 body.innerHTML = `
                     <div class="market-list">
                         <div class="market-card">
@@ -626,47 +543,30 @@
                         </div>
                     </div>
                 `;
-            // YENİ KOD - SİLDİĞİN YERE BUNU YAPIŞTIR
             } else if(activeTab === 'blacksmith') {
-                // Kuşanılan bir silah varsa adını al, yoksa varsayılan olarak "Tahta Kılıç" yaz.
-                const weaponName = u.equipped?.weapon?.name || "Tahta Kılıç";
-                const weaponLvl = u.upgrades?.weapon || 0;
-                const weaponCost = (weaponLvl + 1) * 100;
-
-                const armorLvl = u.upgrades?.armor || 0;
-                const armorCost = (armorLvl + 1) * 100;
-
-                const helmetLvl = u.upgrades?.helmet || 0;
-                const helmetCost = (helmetLvl + 1) * 100;
-
                 body.innerHTML = `
                     <div class="forge-list">
-                        <!-- DİNAMİK SİLAH / TAHTA KILIÇ GELİŞTİRME -->
                         <div class="forge-card">
                             <div class="forge-info">
-                                <h4>${weaponName} Geliştirme (Seviye: +${weaponLvl})</h4>
-                                <p>Silahınızın saldırı gücünü artırır.</p>
-                                <span class="forge-cost">Maliyet: ${weaponCost} Altın</span>
+                                <h4>Silah Geliştirme (Seviye: +${u.upgrades?.weapon || 0})</h4>
+                                <p>Saldırı gücünüzü artırır.</p>
+                                <span class="forge-cost">Maliyet: ${((u.upgrades?.weapon || 0) + 1) * 100} Altın</span>
                             </div>
                             <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'weapon' })">Geliştir (+1)</button>
                         </div>
-                        
-                        <!-- ZIRH GELİŞTİRME -->
                         <div class="forge-card">
                             <div class="forge-info">
-                                <h4>Zırh Geliştirme (Seviye: +${armorLvl})</h4>
+                                <h4>Zırh Geliştirme (Seviye: +${u.upgrades?.armor || 0})</h4>
                                 <p>Savunmanızı güçlendirir.</p>
-                                <span class="forge-cost">Maliyet: ${armorCost} Altın</span>
+                                <span class="forge-cost">Maliyet: ${((u.upgrades?.armor || 0) + 1) * 100} Altın</span>
                             </div>
                             <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'armor' })">Geliştir (+1)</button>
                         </div>
-
-                        <!-- MİĞFER GELİŞTİRME -->
                         <div class="forge-card">
                             <div class="forge-info">
-                                <h4>Miğfer Geliştirme (Seviye: +${helmetLvl})</h4>
+                                <h4>Miğfer Geliştirme (Seviye: +${u.upgrades?.helmet || 0})</h4>
                                 <p>Kritik direnç sağlar.</p>
-                                <span class="forge-cost">Maliyet: ${helmetCost} Altın</span>
+                                <span class="forge-cost">Maliyet: ${((u.upgrades?.helmet || 0) + 1) * 100} Altın</span>
                             </div>
                             <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'helmet' })">Geliştir (+1)</button>
                         </div>
@@ -700,7 +600,7 @@
         socket.on('statUpdated', (updatedUser) => {
             currentUserData = updatedUser;
             updateHeader(updatedUser);
-            if(activeTab === 'overview') renderPanelContent();
+            if(activeTab === 'overview' || activeTab === 'market') renderPanelContent();
         });
 
         socket.on('questResult', (res) => {
@@ -719,7 +619,7 @@
                 updateHeader(res.userData);
             }
             alert(res.message);
-            if(activeTab === 'timar') renderPanelContent();
+            if(activeTab === 'timar' || activeTab === 'market') renderPanelContent();
         });
 
         socket.on('forgeResult', (res) => {
@@ -750,7 +650,7 @@
         });
 
         function startSeferTimer() {
-            // Sefer yenilenme mekanikleri buraya eklenebilir
+            // Sefer yenilenme mekanikleri
         }
     </script>
 </body>
