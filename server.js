@@ -223,11 +223,6 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
 
-
-
-
-
-    
     // ==========================================
     // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
     // ==========================================
