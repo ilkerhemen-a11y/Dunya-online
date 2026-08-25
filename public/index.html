@@ -538,45 +538,9 @@
             
             
         
-        
-         } else if (activeTab === 'shop') {
-    const shopItems = [
-        { id: 1, name: 'Çelik Ejder Kılıcı', icon: '🗡️', type: 'Silah', str: 12, vit: 4, cost: 1000 },
-        { id: 2, name: 'Şövalye Göğüslüğü', icon: '🛡️', type: 'Zırh', str: 4, vit: 12, cost: 1200 },
-        { id: 3, name: 'Ejder Miğferi', icon: '🪖', type: 'Miğfer', str: 6, vit: 8, cost: 1000 },
-        { id: 4, name: 'Ağır Çelik Kalkan', icon: '🛡', type: 'Kalkan', str: 2, vit: 15, cost: 1500 },
-        { id: 5, name: 'Yakut Kolye', icon: '📿', type: 'Kolye', str: 8, vit: 8, cost: 1800 },
-        { id: 6, name: 'Zümrüt Yüzük', icon: '💍', type: 'Yüzük', str: 10, vit: 5, cost: 2000 },
-        { id: 7, name: 'Demir Muşta Eldiven', icon: '🧤', type: 'Eldiven', str: 9, vit: 6, cost: 1300 },
-        { id: 8, name: 'Muhafız Çizmeleri', icon: '👢', type: 'Çizme', str: 5, vit: 9, cost: 1100 }
-    ];
+     
+    
 
-    body.innerHTML = `
-        <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
-            <h3 style="color: #f3cf7a; font-size: 14px; margin-top: 4px; margin-bottom: 4px;">⚔️ Silah ve Zırh Tüccarı</h3>
-            <p style="color: #9c8e7b; font-size: 11px; margin: 0;">Altın karşılığında güçlü ekipmanlar satın alıp doğrudan envanterinize ekleyebilirsiniz.</p>
-        </div>
-
-        <div class="forge-list">
-            ${shopItems.map(item => `
-                <div class="forge-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 10px; background: #1a1412; border: 1px solid #33241b; border-radius: 6px;">
-                    <div class="item-info-area" style="display: flex; align-items: center; gap: 10px;">
-                        <div class="item-icon-box" style="width:42px; height:42px; font-size:22px; display:flex; align-items:center; justify-content:center; background:#0d0a08; border:1px solid #433222; border-radius:4px;">
-                            ${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" style="width:100%; height:100%; object-fit:cover;">` : (item.icon || '📦')}
-                        </div>
-                        <div class="forge-info">
-                            <h4 style="margin: 0; font-size: 13px; color: #f3cf7a;">${item.name} <span style="font-size:11px; color:#9c8e7b;">(${item.type})</span></h4>
-                            <p style="margin: 2px 0; font-size: 11px; color: #ccc;">Bonus: Güç +${item.str} | Vit +${item.vit}</p>
-                            <span class="forge-cost" style="font-size: 11px; color: #eab308; font-weight: bold;">Fiyat: ${item.cost} Altın 🪙</span>
-                        </div>
-                    </div>
-                    <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: ${item.id} })" style="padding: 6px 12px; cursor: pointer;">
-                        Satın Al
-                    </button>
-                </div>
-            `).join('')}
-        </div>
-    `;
 }
             
        
