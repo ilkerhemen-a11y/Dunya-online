@@ -387,68 +387,92 @@
             if(!u) return;
 
             if(activeTab === 'overview') {
-                const maxHp = (u.vit || 5) * 20;
-                const maxExp = (u.level || 1) * 100;
-                
-                body.innerHTML = `
-                    <div class="character-screen">
-                        <div class="char-stats-box">
-                            <h3>Nitelikler</h3>
-                            <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
-                            <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
-                            <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
-                            <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
-                            <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
-                            <div class="stat-row"><span>Güç (STR):</span><span>${u.str}</span></div>
-                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${u.vit}</span></div>
-                            <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
-                            ${u.statPoints > 0 ? `
-                                <div style="display:flex; gap:10px; margin-top:10px;">
-                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
-                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
-                                </div>
-                            ` : ''}
+    // 1. Kuşanılan ekipman bonuslarını hesapla
+    let bonusStr = 0;
+    let bonusVit = 0;
 
-                            <!-- İstediğin Karakter Portresi Buraya Eklendi -->
-                            <div class="char-portrait">
-                                <img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter Portresi">
+    if (u.equipped) {
+        Object.values(u.equipped).forEach(item => {
+            if (item) {
+                bonusStr += (item.strBonus || 0);
+                bonusVit += (item.vitBonus || 0);
+            }
+        });
+    }
+
+    // Toplam statlar (Temel Stat + Ekipman Bonusu)
+    const totalStr = (u.str || 5) + bonusStr;
+    const totalVit = (u.vit || 5) + bonusVit;
+
+    // Toplam VIT değerine göre Max HP hesaplaması
+    const maxHp = totalVit * 20;
+    const maxExp = (u.level || 1) * 100;
+    
+    body.innerHTML = `
+        <div class="character-screen">
+            <div class="char-stats-box">
+                <h3>Nitelikler</h3>
+                <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
+                <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
+                <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
+                <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
+                <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
+                <div class="stat-row">
+                    <span>Güç (STR):</span>
+                    <span>${totalStr} ${bonusStr > 0 ? `<span style="color:#22c55e;">(+${bonusStr})</span>` : ''}</span>
+                </div>
+                <div class="stat-row">
+                    <span>Dayanıklılık (VIT):</span>
+                    <span>${totalVit} ${bonusVit > 0 ? `<span style="color:#22c55e;">(+${bonusVit})</span>` : ''}</span>
+                </div>
+                <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
+                ${u.statPoints > 0 ? `
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
+                        <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
+                    </div>
+                ` : ''}
+
+                <!-- Karakter Portresi -->
+                <div class="char-portrait">
+                    <img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter Portresi">
+                </div>
+            </div>
+
+            <div class="equipment-wrapper">
+                <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
+                <div class="eq-slots-grid">
+                    <div class="eq-slot ${u.equipped?.helmet ? 'filled' : ''}" onclick="unequip('helmet')">${u.equipped?.helmet ? u.equipped.helmet.icon : '🪖'}</div>
+                    <div class="eq-slot ${u.equipped?.necklace ? 'filled' : ''}" onclick="unequip('necklace')">${u.equipped?.necklace ? u.equipped.necklace.icon : '📿'}</div>
+                    <div class="eq-slot ${u.equipped?.armor ? 'filled' : ''}" onclick="unequip('armor')">${u.equipped?.armor ? u.equipped.armor.icon : '🛡️'}</div>
+                    <div class="eq-slot ${u.equipped?.weapon ? 'filled' : ''}" onclick="unequip('weapon')">${u.equipped?.weapon ? u.equipped.weapon.icon : '🗡️'}</div>
+                    <div class="eq-slot ${u.equipped?.shield ? 'filled' : ''}" onclick="unequip('shield')">${u.equipped?.shield ? u.equipped.shield.icon : '🛡'}</div>
+                    <div class="eq-slot ${u.equipped?.ring ? 'filled' : ''}" onclick="unequip('ring')">${u.equipped?.ring ? u.equipped.ring.icon : '💍'}</div>
+                    <div class="eq-slot ${u.equipped?.gloves ? 'filled' : ''}" onclick="unequip('gloves')">${u.equipped?.gloves ? u.equipped.gloves.icon : '🧤'}</div>
+                    <div class="eq-slot ${u.equipped?.boots ? 'filled' : ''}" onclick="unequip('boots')">${u.equipped?.boots ? u.equipped.boots.icon : '👢'}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="inventory-container">
+            <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 8px;">Envanter / Çanta</h3>
+            <div class="inventory-grid">
+                ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => `
+                    <div class="inventory-item-card">
+                        <div class="item-info-area">
+                            <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
+                            <div class="item-details">
+                                <span class="item-name">${item.name}</span>
+                                <span class="item-bonus">Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</span>
                             </div>
                         </div>
-
-                        <div class="equipment-wrapper">
-                            <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
-                            <div class="eq-slots-grid">
-                                <div class="eq-slot ${u.equipped?.helmet ? 'filled' : ''}" onclick="unequip('helmet')">${u.equipped?.helmet ? u.equipped.helmet.icon : '🪖'}</div>
-                                <div class="eq-slot ${u.equipped?.necklace ? 'filled' : ''}" onclick="unequip('necklace')">${u.equipped?.necklace ? u.equipped.necklace.icon : '📿'}</div>
-                                <div class="eq-slot ${u.equipped?.armor ? 'filled' : ''}" onclick="unequip('armor')">${u.equipped?.armor ? u.equipped.armor.icon : '🛡️'}</div>
-                                <div class="eq-slot ${u.equipped?.weapon ? 'filled' : ''}" onclick="unequip('weapon')">${u.equipped?.weapon ? u.equipped.weapon.icon : '🗡️'}</div>
-                                <div class="eq-slot ${u.equipped?.shield ? 'filled' : ''}" onclick="unequip('shield')">${u.equipped?.shield ? u.equipped.shield.icon : '🛡'}</div>
-                                <div class="eq-slot ${u.equipped?.ring ? 'filled' : ''}" onclick="unequip('ring')">${u.equipped?.ring ? u.equipped.ring.icon : '💍'}</div>
-                                <div class="eq-slot ${u.equipped?.gloves ? 'filled' : ''}" onclick="unequip('gloves')">${u.equipped?.gloves ? u.equipped.gloves.icon : '🧤'}</div>
-                                <div class="eq-slot ${u.equipped?.boots ? 'filled' : ''}" onclick="unequip('boots')">${u.equipped?.boots ? u.equipped.boots.icon : '👢'}</div>
-                            </div>
-                        </div>
+                        <button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
                     </div>
-
-                    <div class="inventory-container">
-                        <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 8px;">Envanter / Çanta</h3>
-                        <div class="inventory-grid">
-                            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => `
-                                <div class="inventory-item-card">
-                                    <div class="item-info-area">
-                                        <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
-                                        <div class="item-details">
-                                            <span class="item-name">${item.name}</span>
-                                            <span class="item-bonus">Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</span>
-                                        </div>
-                                    </div>
-                                    <button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
-                                </div>
-                            `).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
-                        </div>
-                    </div>
-                `;
-            } else if(activeTab === 'work') {
+                `).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
+            </div>
+        </div>
+    `;
+}else if(activeTab === 'work') {
                 body.innerHTML = `
                     <div class="quest-list">
                         <div class="quest-card">
