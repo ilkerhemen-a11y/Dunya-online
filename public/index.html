@@ -561,36 +561,39 @@
                     </div>
                 `;
             } else if(activeTab === 'blacksmith') {
-    const forgeItems = [
-        { type: 'weapon', name: 'Silah', desc: 'Saldırı gücünü (STR) artırır.' },
-        { type: 'armor', name: 'Zırh', desc: 'Canlılık ve dayanıklılığı (VIT) artırır.' },
-        { type: 'helmet', name: 'Miğfer', desc: 'Dengeli savunma ve canlılık sağlar.' },
-        { type: 'shield', name: 'Kalkan', desc: 'Yüksek dayanıklılık ve koruma sağlar.' },
-        { type: 'necklace', name: 'Kolye', desc: 'Dengeli güç ve canlılık bonusu verir.' },
-        { type: 'ring', name: 'Yüzük', desc: 'Yüksek güç bonusu sağlar.' },
-        { type: 'gloves', name: 'Eldiven', desc: 'Saldırı gücü ve çeviklik sağlar.' },
-        { type: 'boots', name: 'Çizme', desc: 'Hareket kabiliyeti ve dayanıklılık sağlar.' }
-    ];
-
     body.innerHTML = `
+        <!-- DEMİRCİ GÖRSELİ VE BAŞLIK -->
+        <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
+            <img src="https://i.hizliresim.com/39w044a.jpg" alt="Demirci Usta" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #433222;">
+            <h3 style="color: #f3cf7a; font-size: 14px; margin-top: 8px;">Usta Demirci Örfü</h3>
+            <p style="color: #9c8e7b; font-size: 11px;">Envanterindeki eşyaları seçerek altın karşılığında güçlerini artırabilirsin.</p>
+        </div>
+
+        <!-- ENVANTERDEKİ EŞYALARIN LİSTESİ -->
         <div class="forge-list">
-            ${forgeItems.map(item => {
-                const currentLvl = u.upgrades?.[item.type] || 0;
+            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
+                const currentLvl = item.level || 0;
                 const nextLvl = currentLvl + 1;
-                const cost = nextLvl * 100;
+                const cost = nextLvl * 150;
+
                 return `
                     <div class="forge-card">
-                        <div class="forge-info">
-                            <h4>${item.name} Geliştirme (Mevcut Seviye: +${currentLvl})</h4>
-                            <p>${item.desc}</p>
-                            <span class="forge-cost">Maliyet: ${cost} Altın</span>
+                        <div class="item-info-area">
+                            <div class="item-icon-box" style="width:42px; height:42px; font-size:22px;">
+                                ${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}
+                            </div>
+                            <div class="forge-info">
+                                <h4>${item.name}</h4>
+                                <p style="margin:0;">Mevcut Bonus: Güç +${item.strBonus || 0} | Vit +${item.vitBonus || 0}</p>
+                                <span class="forge-cost">Geliştirme Maliyeti: ${cost} Altın</span>
+                            </div>
                         </div>
-                        <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: '${item.type}' })">
-                            +${nextLvl} Üret ve Envantere Al
+                        <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">
+                            +${nextLvl} Bas
                         </button>
                     </div>
                 `;
-            }).join('')}
+            }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center; padding:20px;">Demirhanede geliştirebilmek için envanterinizde eşya bulunmalıdır.</p>'}
         </div>
     `;
 }else if(activeTab === 'chat') {
