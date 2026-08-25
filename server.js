@@ -300,8 +300,68 @@ io.on('connection', (socket) => {
             users[socket.id] = user;
 
             socket.emit('forgeResult', {
+    // ==========================================
+    // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
+    // ==========================================
+    socket.on('upgradeItem', async (data) => {
+        try {
+            const activeUser = users[socket.id] || currentUser;
+            if (!activeUser) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: "Lütfen önce giriş yapın." 
+                });
+            }
+
+            const user = await User.findById(activeUser._id);
+            if (!user) return;
+
+            const { itemIndex } = data;
+
+            // Envanter ve eşya geçerlilik kontrolü
+            if (!user.inventory || !user.inventory[itemIndex]) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: "Geliştirilecek eşya envanterde bulunamadı!" 
+                });
+            }
+
+            const item = user.inventory[itemIndex];
+            const currentLevel = item.level || 0;
+            const nextLevel = currentLevel + 1;
+            const cost = nextLevel * 150; // Seviye arttıkça + basma maliyeti artar
+
+            // Altın kontrolü
+            if ((user.balance || 0) < cost) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: `Yetersiz altın! +${nextLevel} basmak için ${cost} Altın gerekiyor.` 
+                });
+            }
+
+            // Altını düş
+            user.balance -= cost;
+
+            // Eşya ismindeki eski + seviyesini temizle ve yenisini ekle
+            let baseName = item.name.replace(/\s\+\d+$/, '');
+            item.name = `${baseName} +${nextLevel}`;
+            item.level = nextLevel;
+
+            // Stat bonuslarını artır (+1 basıldığında mevcut bonusa ekleme yapılır)
+            if (item.strBonus > 0 || item.strBonus === 0) item.strBonus = (item.strBonus || 0) + 2;
+            if (item.vitBonus > 0 || item.vitBonus === 0) item.vitBonus = (item.vitBonus || 0) + 2;
+
+            // Envanter dizisini güncellendi olarak işaretle
+            user.markModified('inventory');
+            await user.save();
+
+            // Oturum bilgilerini güncelle
+            currentUser = user;
+            users[socket.id] = user;
+
+            socket.emit('forgeResult', {
                 success: true,
-                message: `🔥 Başarılı! ${newItem.name} (+${newItem.strBonus} Güç / +${newItem.vitBonus} Dayanıklılık) üretildi ve envanterinize eklendi!`,
+                message: `🔥 Başarılı! Eşyanız ${item.name} seviyesine yükseltildi!`,
                 userData: user
             });
 
@@ -313,7 +373,6 @@ io.on('connection', (socket) => {
             });
         }
     });
-
     // Can İksiri
     socket.on('usePotion', async () => {
         const user = users[socket.id];
