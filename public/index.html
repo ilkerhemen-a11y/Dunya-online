@@ -260,8 +260,7 @@
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-           <button class="menu-btn" onclick="switchTab(deneme')">⚒️ Silahçı ve Zırhçı</button>
-           
+            
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
             <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
@@ -377,7 +376,6 @@
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'chat': 'Diyar Meclisi (Sohbet)'
-                'deneme': 'Silahçı ve Zırhçı Malzemeleri'
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
             renderPanelContent();
@@ -533,10 +531,6 @@
                         
                     </div>
                 `;
-
-
-
-                
             } else if(activeTab === 'timar') {
                 body.innerHTML = `
                     <div class="market-list">
@@ -569,14 +563,7 @@
                         </div>
                     </div>
                 `;
-            } 
-            
-            
-         
-            
-        
-            
-            else if(activeTab === 'blacksmith') {
+            } else if(activeTab === 'blacksmith') {
     body.innerHTML = `
         <!-- DEMİRCİ GÖRSELİ VE BAŞLIK -->
         <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
