@@ -100,7 +100,7 @@ io.on('connection', (socket) => {
     });
 
     // Giriş Yapma İşlemi
-    socket.on('userLogin', async (data) => {
+        socket.on('userLogin', async (data) => {
         const { username, password } = data;
         try {
             const dbUser = await User.findOne({ username });
@@ -118,6 +118,9 @@ io.on('connection', (socket) => {
             }
 
             users[socket.id] = dbUser;
+            currentUser = dbUser;
+            socket.userId = dbUser._id;
+
             socket.emit('userData', dbUser);
         } catch (err) { 
             console.error("Giriş hatası:", err); 
