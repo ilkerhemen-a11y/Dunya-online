@@ -197,36 +197,23 @@
     </style>
 </head>
 <body>
-
-    <!-- GİRİŞ VE KAYIT EKRANI -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="box">
-            <h2>Antik Diyara Adım At</h2>
-            
-            <div class="auth-tabs">
-                <div class="auth-tab active" onclick="switchAuthTab('login')">Giriş Yap</div>
-                <div class="auth-tab" onclick="switchAuthTab('register')">Kayıt Ol</div>
-            </div>
-
-            <div id="authMessage"></div>
-
-            <!-- Giriş Formu -->
-            <div id="loginForm" class="auth-form active">
-                <p>Savaşa geri dön lordum.</p>
-                <input type="text" id="loginUsername" placeholder="Gladyatör Adı" maxlength="15">
-                <input type="password" id="loginPassword" placeholder="Şifreniz">
-                <button class="btn-primary" onclick="login()">MEYDANA İN</button>
-            </div>
-
-            <!-- Kayıt Formu -->
-            <div id="registerForm" class="auth-form">
-                <p>Yeni bir efsane doğuyor...</p>
-                <input type="text" id="regUsername" placeholder="Yeni Gladyatör Adı" maxlength="15">
-                <input type="password" id="regPassword" placeholder="Bir Şifre Belirle">
-                <button class="btn-primary" onclick="register()">KAYIT OL</button>
-            </div>
-        </div>
+<div id="auth-modal" class="auth-box">
+    <h2>Antik Diyara Adım At</h2>
+    
+    <!-- Sekme Butonları -->
+    <div class="tab-header">
+        <button id="tab-login-btn" class="tab-btn active" onclick="setAuthMode('login')">Giriş Yap</button>
+        <button id="tab-register-btn" class="tab-btn" onclick="setAuthMode('register')">Kayıt Ol</button>
     </div>
+
+    <p id="auth-subtext">Savaşa geri dön lordum.</p>
+
+    <!-- Giriş/Kayıt Alanları -->
+    <input type="text" id="authUsername" placeholder="Kullanıcı Adı" autocomplete="off" />
+    <input type="password" id="authPassword" placeholder="Şifre" />
+
+    <button type="button" id="authSubmitBtn" onclick="submitAuth()">MEYDANA İN</button>
+</div>
 
     <!-- Üst Bilgi Çubuğu -->
     <header class="game-header">
@@ -766,7 +753,76 @@
         }
 
 
+// Socket Bağlantısı
+const socket = io(); 
 
+let currentAuthMode = 'login'; // Varsayılan mod
+
+// Sekme Değiştirme (Giriş Yap / Kayıt Ol)
+function setAuthMode(mode) {
+    currentAuthMode = mode;
+    const loginBtn = document.getElementById('tab-login-btn');
+    const registerBtn = document.getElementById('tab-register-btn');
+    const subtext = document.getElementById('auth-subtext');
+    const submitBtn = document.getElementById('authSubmitBtn');
+
+    if (mode === 'login') {
+        loginBtn.classList.add('active');
+        registerBtn.classList.remove('active');
+        subtext.innerText = 'Savaşa geri dön lordum.';
+        submitBtn.innerText = 'MEYDANA İN';
+    } else {
+        registerBtn.classList.add('active');
+        loginBtn.classList.remove('active');
+        subtext.innerText = 'Yeni gladyatörünü oluştur.';
+        submitBtn.innerText = 'KAYDOL VE BAŞLA';
+    }
+}
+
+// Butona Basıldığında Sunucuya İstek Gönderme
+function submitAuth() {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+
+    if (!username || !password) {
+        alert("Lütfen kullanıcı adı ve şifre giriniz!");
+        return;
+    }
+
+    if (!socket.connected) {
+        alert("Sunucuya bağlanılamadı. Lütfen 5-10 saniye bekleyip tekrar deneyin.");
+        return;
+    }
+
+    if (currentAuthMode === 'login') {
+        socket.emit('userLogin', { username, password });
+    } else {
+        socket.emit('userRegister', { username, password });
+    }
+}
+
+// Sunucudan Gelen Yanıtları Dinleme
+socket.on('authResult', (data) => {
+    alert(data.message);
+    // Kayıt başarılı olduysa kullanıcıyı otomatik Giriş sekmesine yönlendir
+    if (data.success && currentAuthMode === 'register') {
+        setAuthMode('login');
+    }
+});
+
+// Başarılı Giriş Yapıldığında Oyunu Yükle
+socket.on('userData', (user) => {
+    currentUserData = user;
+    
+    // Giriş kutusunu gizle
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) authModal.style.display = 'none';
+
+    // Arayüzü çiz
+    if (typeof renderPanelContent === 'function') {
+        renderPanelContent();
+    }
+});
 
 
 // 1. MEYDANA İN Butonuna Bağlanacak Giriş Fonksiyonu
