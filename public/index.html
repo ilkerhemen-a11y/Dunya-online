@@ -566,48 +566,7 @@
             } 
             
             
-         } else if (activeTab === 'shop') {
-    body.innerHTML = `
-        <div class="market-list">
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🗡️ Çelik Ejder Kılıcı</h4>
-                    <p>Efsanevi ejderha çeliğinden dövülmüş keskin kılıç.</p>
-                    <div class="market-income">Bonus: +12 Güç | +4 Vit</div>
-                    <span class="forge-cost">Maliyet: 1000 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 1 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🛡️ Şövalye Göğüslüğü</h4>
-                    <p>Ağır darbeleri emen güçlendirilmiş çelik zırh.</p>
-                    <div class="market-income">Bonus: +4 Güç | +12 Vit</div>
-                    <span class="forge-cost">Maliyet: 1200 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 2 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🪖 Ejder Miğferi</h4>
-                    <p>Savaşçının başını koruyan ejderha pullu miğfer.</p>
-                    <div class="market-income">Bonus: +6 Güç | +8 Vit</div>
-                    <span class="forge-cost">Maliyet: 1000 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 3 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🛡 Ağır Çelik Kalkan</h4>
-                    <p>Sarsılmaz savunma sağlayan devasa çelik kalkan.</p>
-                    <div class="market-income">Bonus: +2 Güç | +15 Vit</div>
-                    <span class="forge-cost">Maliyet: 1500 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 4 })">Satın Al</button>
-            </div>
-        </div>
-    `;
-}
+         
             
         
             
