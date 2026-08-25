@@ -599,6 +599,127 @@
             }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center; padding:20px;">Demirhanede geliştirebilmek için envanterinizde eşya bulunmalıdır.</p>'}
         </div>
     `;
+
+
+
+} else if (activeTab === 'shop') {
+    body.innerHTML = `
+        <div class="market-list">
+            <!-- 1. İksirler Bölümü -->
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>Can İksiri (Sağlık Yenileme)</h4>
+                    <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
+                    <span class="forge-cost">Maliyet: 50 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>Sefer İksiri (Hak Yenileme)</h4>
+                    <p>Sefer limitinizi anında 20/20 yapar.</p>
+                    <span class="forge-cost">Maliyet: 50 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
+            </div>
+
+            <!-- 2. Silah ve Zırhçı Bölümü (10 Efsanevi Eşya) -->
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>🗡️ Çelik Ejder Kılıcı</h4>
+                    <p>Efsanevi ejderha çeliğinden dövülmüş keskin kılıç.</p>
+                    <div class="market-income">Bonus: +12 Güç | +4 Vit</div>
+                    <span class="forge-cost">Maliyet: 1000 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 1 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>🛡️ Şövalye Göğüslüğü</h4>
+                    <p>Ağır darbeleri emen güçlendirilmiş çelik zırh.</p>
+                    <div class="market-income">Bonus: +4 Güç | +12 Vit</div>
+                    <span class="forge-cost">Maliyet: 1200 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 2 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>🪖 Ejder Miğferi</h4>
+                    <p>Savaşçının başını koruyan ejderha pullu miğfer.</p>
+                    <div class="market-income">Bonus: +6 Güç | +8 Vit</div>
+                    <span class="forge-cost">Maliyet: 1000 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 3 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>🛡️ Ağır Çelik Kalkan</h4>
+                    <p>Sarsılmaz savunma sağlayan devasa çelik kalkan.</p>
+                    <div class="market-income">Bonus: +2 Güç | +15 Vit</div>
+                    <span class="forge-cost">Maliyet: 1500 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 4 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>📿 Tılsımlı Yakut Kolye</h4>
+                    <p>Mistik bir dayanıklılık ve güç bağışlayan kolye.</p>
+                    <div class="market-income">Bonus: +8 Güç | +8 Vit</div>
+                    <span class="forge-cost">Maliyet: 1800 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 5 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>💍 Zümrüt Güç Yüzüğü</h4>
+                    <p>Saldırı hamlelerini katbekat güçlendiren yüzük.</p>
+                    <div class="market-income">Bonus: +10 Güç | +5 Vit</div>
+                    <span class="forge-cost">Maliyet: 2000 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 6 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>🧤 Demir Muşta Eldiven</h4>
+                    <p>Yakın dövüşte ekstra darbe gücü sağlar.</p>
+                    <div class="market-income">Bonus: +9 Güç | +6 Vit</div>
+                    <span class="forge-cost">Maliyet: 1300 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 7 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>👢 Muhafız Çizmeleri</h4>
+                    <p>Savaş alanında çeviklik ve sağlam duruş kazandırır.</p>
+                    <div class="market-income">Bonus: +5 Güç | +9 Vit</div>
+                    <span class="forge-cost">Maliyet: 1100 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 8 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>🔮 Ateş Büyüsü Asası</h4>
+                    <p>Karanlık güçleri yok eden antik büyü asası.</p>
+                    <div class="market-income">Bonus: +15 Güç | +5 Vit</div>
+                    <span class="forge-cost">Maliyet: 2500 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 9 })">Satın Al</button>
+            </div>
+            <div class="market-card">
+                <div class="market-info">
+                    <h4>👑 Krallık Altın Tacı</h4>
+                    <p>İmparatorluğun en üstün yöneticilerine layık taç.</p>
+                    <div class="market-income">Bonus: +12 Güç | +15 Vit</div>
+                    <span class="forge-cost">Maliyet: 3000 Altın</span>
+                </div>
+                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 10 })">Satın Al</button>
+            </div>
+        </div>
+    `;
+}
+
+
+                
 }else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
