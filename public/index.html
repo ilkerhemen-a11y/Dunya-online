@@ -260,7 +260,7 @@
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-           <button class="menu-btn" onclick="switchTab('shop')">⚒️ Silahçı ve Zırhçı</button>
+           <button class="menu-btn" onclick="switchTab(deneme')">⚒️ Silahçı ve Zırhçı</button>
            
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
@@ -377,7 +377,7 @@
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'chat': 'Diyar Meclisi (Sohbet)'
-                'chat': 'Silahçı ve Zırhçı Malzemeleri'
+                'deneme': 'Silahçı ve Zırhçı Malzemeleri'
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
             renderPanelContent();
@@ -535,7 +535,7 @@
                 `;
 
 
-} else if(activeTab === 'shop') {
+} else if(activeTab === 'deneme') {
                 body.innerHTML = `
                     <div class="market-list">
     <!-- Can İksiri -->
