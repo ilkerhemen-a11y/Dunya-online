@@ -198,35 +198,14 @@
 </head>
 <body>
 
-    <!-- GİRİŞ VE KAYIT EKRANI -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="box">
-            <h2>Antik Diyara Adım At</h2>
-            
-            <div class="auth-tabs">
-                <div class="auth-tab active" onclick="switchAuthTab('login')">Giriş Yap</div>
-                <div class="auth-tab" onclick="switchAuthTab('register')">Kayıt Ol</div>
-            </div>
+    <div id="auth-modal" class="auth-box" style="text-align: center; padding: 30px;">
+    <h2>Antik Diyara Adım At</h2>
+    <p id="auth-subtext" style="margin-bottom: 20px; color: #aaa;">Şifre gerektirmez, doğrudan meydana in!</p>
 
-            <div id="authMessage"></div>
+    <!-- Kullanıcı adı ve şifre inputları kaldırıldı -->
 
-            <!-- Giriş Formu -->
-            <div id="loginForm" class="auth-form active">
-                <p>Savaşa geri dön lordum.</p>
-                <input type="text" id="loginUsername" placeholder="Gladyatör Adı" maxlength="15">
-                <input type="password" id="loginPassword" placeholder="Şifreniz">
-                <button class="btn-primary" onclick="login()">MEYDANA İN</button>
-            </div>
-
-            <!-- Kayıt Formu -->
-            <div id="registerForm" class="auth-form">
-                <p>Yeni bir efsane doğuyor...</p>
-                <input type="text" id="regUsername" placeholder="Yeni Gladyatör Adı" maxlength="15">
-                <input type="password" id="regPassword" placeholder="Bir Şifre Belirle">
-                <button class="btn-primary" onclick="register()">KAYIT OL</button>
-            </div>
-        </div>
-    </div>
+    <button type="button" id="authSubmitBtn" onclick="autoLogin()" style="padding: 12px 30px; font-size: 16px; cursor: pointer;">MEYDANA İN</button>
+</div>
 
     <!-- Üst Bilgi Çubuğu -->
     <header class="game-header">
@@ -679,6 +658,40 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
+
+
+
+const socket = io(); 
+
+// Otomatik Giriş / Kayıt Fonksiyonu
+function autoLogin() {
+    if (!socket.connected) {
+        alert("Sunucuya bağlanılıyor, lütfen 3-5 saniye bekleyip tekrar deneyin.");
+        return;
+    }
+
+    // Sabit bir otomatik kullanıcı adı belirliyoruz (İstediğin ismi yazabilirsin)
+    const defaultUsername = "KaranNova"; 
+
+    // Sunucuya direkt giriş isteği atıyoruz
+    socket.emit('autoLoginUser', { username: defaultUsername });
+}
+
+// Sunucudan kullanıcı verisi geldiğinde oyunu başlat
+socket.on('userData', (user) => {
+    currentUserData = user;
+    
+    // Giriş penceresini gizle
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) authModal.style.display = 'none';
+
+    // Arayüzü çiz
+    if (typeof renderPanelContent === 'function') {
+        renderPanelContent();
+    }
+});
+
+        
     </script>
 </body>
 </html>
