@@ -300,6 +300,7 @@ io.on('connection', (socket) => {
             users[socket.id] = user;
 
             socket.emit('forgeResult', {
+                });
     // ==========================================
     // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
     // ==========================================
