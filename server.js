@@ -271,60 +271,55 @@ io.on('connection', (socket) => {
     // ... Giriş / Kayıt eventleriniz (userLogin, userRegister vb.) ...
 
     // GÜNLÜK HEDİYE ALMA EVENT'İ
-    socket.on('claimDailyGift', async () => {
-        try {
-            // Oturum kontrolü (Kullanıcı giriş yapmamışsa engelle)
-            if (!currentUser) {
-                return socket.emit('marketResult', { 
-                    success: false, 
-                    message: "Lütfen önce giriş yapın." 
-                });
-            }
-
-            // Güncel kullanıcı verisini veritabanından çek
-            const user = await User.findById(currentUser._id);
-            if (!user) return;
-
-            const now = new Date();
-            const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 saat (Milisaniye cinsinden)
-
-            // Süre Kontrolü: Daha önce ödül alındı mı ve 24 saat doldu mu?
-            if (user.lastDailyGift && (now - new Date(user.lastDailyGift)) < COOLDOWN_MS) {
-                const remainingMs = COOLDOWN_MS - (now - new Date(user.lastDailyGift));
-                const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
-                const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
-                return socket.emit('marketResult', {
-                    success: false,
-                    message: `Hediyeyi zaten aldınız! Kalan süre: ${hoursLeft} saat ${minutesLeft} dakika.`
-                });
-            }
-
-            // Ödülü Ver ve Veritabanını Güncelle
-            user.balance = (user.balance || 0) + 1000;
-            user.lastDailyGift = now;
-            await user.save();
-
-            // Giriş yapmış mevcut oturum nesnesini de güncelle
-            currentUser = user;
-
-            // İstemciye (Front-End) Başarı Mesajı ve Güncel Verileri Gönder
-            socket.emit('marketResult', {
-                success: true,
-                message: "🎁 1000 Altın günlük hediye hesabınıza eklendi!",
-                userData: user
-            });
-
-        } catch (error) {
-            console.error("Günlük hediye hatası:", error);
-            socket.emit('marketResult', { 
+socket.on('claimDailyGift', async () => {
+    try {
+        // currentUser veya socket.userId üzerinden kullanıcı id'sini al
+        const userId = currentUser?._id || socket.userId;
+        
+        if (!userId) {
+            return socket.emit('marketResult', { 
                 success: false, 
-                message: "Bir sunucu hatası oluştu." 
+                message: "Lütfen önce giriş yapın." 
             });
         }
-    });
 
-    // ... Diğer event dinleyicileriniz (doQuest, usePotion, sendChatMessage vb.) ...
+        const user = await User.findById(userId);
+        if (!user) return;
+
+        const now = new Date();
+        const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 Saat
+
+        if (user.lastDailyGift && (now - new Date(user.lastDailyGift)) < COOLDOWN_MS) {
+            const remainingMs = COOLDOWN_MS - (now - new Date(user.lastDailyGift));
+            const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+            return socket.emit('marketResult', {
+                success: false,
+                message: `Hediyeyi zaten aldınız! Kalan süre: ${hoursLeft} saat ${minutesLeft} dakika.`
+            });
+        }
+
+        user.balance = (user.balance || 0) + 1000;
+        user.lastDailyGift = now;
+        await user.save();
+
+        currentUser = user;
+        socket.userId = user._id;
+
+        socket.emit('marketResult', {
+            success: true,
+            message: "🎁 1000 Altın günlük hediye hesabınıza eklendi!",
+            userData: user
+        });
+
+    } catch (error) {
+        console.error("Günlük hediye hatası:", error);
+        socket.emit('marketResult', { 
+            success: false, 
+            message: "Bir sunucu hatası oluştu." 
+        });
+    }
 });
     
     // ============================================
