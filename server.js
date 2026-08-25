@@ -224,22 +224,93 @@ io.on('connection', (socket) => {
     });
 
     // Demirci (+ Basma)
+        // ==========================================
+    // DEMİRCİ (+ BASMA VE ENVANTERE EKLEME)
+    // ==========================================
     socket.on('upgradeItem', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-
-        const type = data.itemType;
-        if (user.upgrades[type] !== undefined) {
-            const cost = (user.upgrades[type] + 1) * 100;
-            if (user.balance >= cost) {
-                user.balance -= cost;
-                user.upgrades[type] += 1;
-                user.markModified('upgrades');
-                await user.save();
-                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: `${type.toUpperCase()} başarıyla +${user.upgrades[type]} seviyesine yükseltildi!` });
-            } else {
-                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: "Geliştirme için yeterli altınınız yok!" });
+        try {
+            const activeUser = users[socket.id] || currentUser;
+            if (!activeUser) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: "Lütfen önce giriş yapın." 
+                });
             }
+
+            const user = await User.findById(activeUser._id);
+            if (!user) return;
+
+            const { itemType } = data;
+
+            // 8 Farklı Ekipman Türünün Özellik Tanımları
+            const itemDefs = {
+                weapon:   { name: 'Savaş Kılıcı', icon: '🗡️', strPerLvl: 3, vitPerLvl: 0 },
+                armor:    { name: 'Şövalye Zırhı', icon: '🛡️', strPerLvl: 0, vitPerLvl: 3 },
+                helmet:   { name: 'Demir Miğfer', icon: '🪖', strPerLvl: 1, vitPerLvl: 2 },
+                shield:   { name: 'Kraliyet Kalkanı', icon: '🛡', strPerLvl: 0, vitPerLvl: 4 },
+                necklace: { name: 'Tılsımlı Kolye', icon: '📿', strPerLvl: 2, vitPerLvl: 2 },
+                ring:     { name: 'Güç Yüzüğü', icon: '💍', strPerLvl: 3, vitPerLvl: 1 },
+                gloves:   { name: 'Çelik Eldiven', icon: '🧤', strPerLvl: 2, vitPerLvl: 1 },
+                boots:    { name: 'Savaş Çizmeleri', icon: '👢', strPerLvl: 1, vitPerLvl: 2 }
+            };
+
+            const def = itemDefs[itemType];
+            if (!def) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: "Geçersiz ekipman türü!" 
+                });
+            }
+
+            if (!user.upgrades) user.upgrades = {};
+            const currentLvl = user.upgrades[itemType] || 0;
+            const nextLvl = currentLvl + 1;
+            const cost = nextLvl * 100; // Seviye arttıkça maliyet artar
+
+            // Altın Kontrolü
+            if ((user.balance || 0) < cost) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: `Yetersiz altın! +${nextLvl} basmak için ${cost} Altın gerekiyor.` 
+                });
+            }
+
+            // Altını düş ve demirhane seviyesini güncelle
+            user.balance -= cost;
+            user.upgrades[itemType] = nextLvl;
+            user.markModified('upgrades');
+
+            // Yeni basılan eşyayı envantere eklenecek nesne olarak oluştur
+            const newItem = {
+                type: itemType,
+                name: `${def.name} +${nextLvl}`,
+                icon: def.icon,
+                strBonus: def.strPerLvl * nextLvl,
+                vitBonus: def.vitPerLvl * nextLvl
+            };
+
+            if (!user.inventory) user.inventory = [];
+            user.inventory.push(newItem);
+            user.markModified('inventory');
+
+            await user.save();
+
+            // Oturum durumunu güncelle
+            currentUser = user;
+            users[socket.id] = user;
+
+            socket.emit('forgeResult', {
+                success: true,
+                message: `🔥 Başarılı! ${newItem.name} (+${newItem.strBonus} Güç / +${newItem.vitBonus} Dayanıklılık) üretildi ve envanterinize eklendi!`,
+                userData: user
+            });
+
+        } catch (err) {
+            console.error("Demirhane hatası:", err);
+            socket.emit('forgeResult', { 
+                success: false, 
+                message: "Geliştirme sırasında bir sunucu hatası oluştu." 
+            });
         }
     });
 
