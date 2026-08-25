@@ -377,6 +377,7 @@
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'chat': 'Diyar Meclisi (Sohbet)'
+                'chat': 'Silahçı ve Zırhçı Malzemeleri'
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
             renderPanelContent();
@@ -532,6 +533,36 @@
                         
                     </div>
                 `;
+
+
+} else if(activeTab === 'shop') {
+                body.innerHTML = `
+                    <div class="market-list">
+    <!-- Can İksiri -->
+    <div class="market-card">
+        <div class="market-info">
+            <h4>Can İksiri (Sağlık Yenileme)</h4>
+            <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
+            <span class="forge-cost">Maliyet: 50 Altın</span>
+        </div>
+        <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
+    </div>
+
+    <!-- Sefer İksiri -->
+    <div class="market-card">
+        <div class="market-info">
+            <h4>Sefer İksiri (Hak Yenileme)</h4>
+            <p>Sefer limitinizi anında 20/20 yapar.</p>
+            <span class="forge-cost">Maliyet: 50 Altın</span>
+        </div>
+        <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
+    </div>
+</div>
+                        
+                    </div>
+                `;
+
+                
             } else if(activeTab === 'timar') {
                 body.innerHTML = `
                     <div class="market-list">
