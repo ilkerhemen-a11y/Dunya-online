@@ -276,17 +276,18 @@ io.on('connection', (socket) => {
     // GÜNLÜK HEDİYE ALMA EVENT'İ
 socket.on('claimDailyGift', async () => {
     try {
-        // currentUser veya socket.userId üzerinden kullanıcı id'sini al
-        const userId = currentUser?._id || socket.userId;
+        // Hem users[socket.id] hem de currentUser kontrolü
+        const activeUser = users[socket.id] || currentUser;
         
-        if (!userId) {
+        if (!activeUser) {
             return socket.emit('marketResult', { 
                 success: false, 
                 message: "Lütfen önce giriş yapın." 
             });
         }
 
-        const user = await User.findById(userId);
+        const user = await User.findById(activeUser._id);
+        // ... (kodun geri kalanı aynı kalacak)
         if (!user) return;
 
         const now = new Date();
