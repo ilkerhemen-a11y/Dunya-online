@@ -63,9 +63,9 @@ const User = mongoose.model('User', userSchema);
 const users = {}; 
 
 const getDefaultInventory = () => [
-    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0 },
-    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5, level: 0 },
-    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2, level: 0 }
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0 },
+    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5 },
+    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2 }
 ];
 
 io.on('connection', (socket) => {
@@ -100,7 +100,7 @@ io.on('connection', (socket) => {
     });
 
     // Giriş Yapma İşlemi
-        socket.on('userLogin', async (data) => {
+    socket.on('userLogin', async (data) => {
         const { username, password } = data;
         try {
             const dbUser = await User.findOne({ username });
@@ -118,9 +118,6 @@ io.on('connection', (socket) => {
             }
 
             users[socket.id] = dbUser;
-            currentUser = dbUser;
-            socket.userId = dbUser._id;
-
             socket.emit('userData', dbUser);
         } catch (err) { 
             console.error("Giriş hatası:", err); 
@@ -226,156 +223,23 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
 
-    // ============================================
-    // EKİPMAN DÜKKANI / PAZAR YERİNDEN EŞYA SATIN ALMA
-    // ============================================
-    socket.on('buyShopItem', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-
-        // Mağazada satılan eşyaların kataloğu
-        const shopCatalog = {
-            'shield_1': { id: 'shop_shield_1', name: 'Demir Kalkan', icon: '🛡️', type: 'shield', strBonus: 1, vitBonus: 3, level: 0, cost: 300 },
-            'helmet_1': { id: 'shop_helmet_1', name: 'Demir Miğfer', icon: '🪖', type: 'helmet', strBonus: 2, vitBonus: 2, level: 0, cost: 400 },
-            'boots_1': { id: 'shop_boots_1', name: 'Savaş Çizmeleri', icon: '👢', type: 'boots', strBonus: 0, vitBonus: 4, level: 0, cost: 350 },
-            'gloves_1': { id: 'shop_gloves_1', name: 'Deri Eldiven', icon: '🧤', type: 'gloves', strBonus: 2, vitBonus: 1, level: 0, cost: 250 }
-        };
-
-        const itemTemplate = shopCatalog[data.itemId];
-        if (!itemTemplate) {
-            return socket.emit('marketResult', { userData: user, message: "Böyle bir eşya bulunamadı!" });
-        }
-
-        if (user.balance < itemTemplate.cost) {
-            return socket.emit('marketResult', { userData: user, message: "Bu eşyayı satın almak için yeterli altınınız yok!" });
-        }
-
-        // Altını düş ve eşyanın kopyasını envantere ekle
-        user.balance -= itemTemplate.cost;
-        const newItem = { ...itemTemplate };
-        delete newItem.cost; // Maliyet bilgisini envanter objesinde tutmaya gerek yok
-
-        user.inventory.push(newItem);
-        user.markModified('inventory');
-        await user.save();
-
-        socket.emit('marketResult', { 
-            userData: user, 
-            message: `${newItem.name} başarıyla satın alındı ve çantanıza eklendi!` 
-        });
-    });
-
-io.on('connection', (socket) => {
-    console.log('Bir oyuncu bağlandı:', socket.id);
-
-    // Oturum açan kullanıcının bilgisini tutmak için
-    let currentUser = null;
-
-    // ... Giriş / Kayıt eventleriniz (userLogin, userRegister vb.) ...
-
-    // GÜNLÜK HEDİYE ALMA EVENT'İ
-socket.on('claimDailyGift', async () => {
-    try {
-        // Hem users[socket.id] hem de currentUser kontrolü
-        const activeUser = users[socket.id] || currentUser;
-        
-        if (!activeUser) {
-            return socket.emit('marketResult', { 
-                success: false, 
-                message: "Lütfen önce giriş yapın." 
-            });
-        }
-
-        const user = await User.findById(activeUser._id);
-        // ... (kodun geri kalanı aynı kalacak)
-        if (!user) return;
-
-        const now = new Date();
-        const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 Saat
-
-        if (user.lastDailyGift && (now - new Date(user.lastDailyGift)) < COOLDOWN_MS) {
-            const remainingMs = COOLDOWN_MS - (now - new Date(user.lastDailyGift));
-            const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
-            const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
-            return socket.emit('marketResult', {
-                success: false,
-                message: `Hediyeyi zaten aldınız! Kalan süre: ${hoursLeft} saat ${minutesLeft} dakika.`
-            });
-        }
-
-        user.balance = (user.balance || 0) + 1000;
-        user.lastDailyGift = now;
-        await user.save();
-
-        currentUser = user;
-        socket.userId = user._id;
-
-        socket.emit('marketResult', {
-            success: true,
-            message: "🎁 1000 Altın günlük hediye hesabınıza eklendi!",
-            userData: user
-        });
-
-    } catch (error) {
-        console.error("Günlük hediye hatası:", error);
-        socket.emit('marketResult', { 
-            success: false, 
-            message: "Bir sunucu hatası oluştu." 
-        });
-    }
-});
-    
-    // ============================================
-    // DEMİRCİ (+ BASMA) - YENİ DİNAMİK EŞYA SİSTEMİ
-    // ============================================
+    // Demirci (+ Basma)
     socket.on('upgradeItem', async (data) => {
         const user = users[socket.id];
         if (!user) return;
 
-        const type = data.itemType; // 'weapon', 'armor', 'helmet'
-        const equippedItem = user.equipped[type];
-
-        // 1. Üzerinde geliştirecek bir eşya yoksa engelle
-        if (!equippedItem) {
-            return socket.emit('forgeResult', { userData: user, message: `Demirhanede geliştirmek için önce bir ${type === 'weapon' ? 'silah' : 'zırh'} kuşanmalısınız!` });
-        }
-
-        // 2. Maliyeti eşyanın kendi seviyesinden hesapla
-        const currentLevel = equippedItem.level || 0;
-        const cost = (currentLevel + 1) * 100;
-
-        if (user.balance >= cost) {
-            user.balance -= cost;
-            
-            // 3. Eşyanın Seviyesini Yükselt
-            equippedItem.level = currentLevel + 1;
-
-            // 4. Eşyanın Bonuslarını Artır (Silahsa Str, Zırhsa Vit)
-            if (type === 'weapon') {
-                equippedItem.strBonus = (equippedItem.strBonus || 0) + 2; 
+        const type = data.itemType;
+        if (user.upgrades[type] !== undefined) {
+            const cost = (user.upgrades[type] + 1) * 100;
+            if (user.balance >= cost) {
+                user.balance -= cost;
+                user.upgrades[type] += 1;
+                user.markModified('upgrades');
+                await user.save();
+                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: `${type.toUpperCase()} başarıyla +${user.upgrades[type]} seviyesine yükseltildi!` });
             } else {
-                equippedItem.vitBonus = (equippedItem.vitBonus || 0) + 2;
+                socket.emit('forgeResult', { userData: user, itemType: type, newLevel: user.upgrades[type], message: "Geliştirme için yeterli altınınız yok!" });
             }
-
-            // 5. Eşyanın ismini güncelle (Örn: "Tahta Kılıç +1")
-            const baseName = equippedItem.name.split(' +')[0]; // İsmindeki eski artıyı temizle
-            equippedItem.name = `${baseName} +${equippedItem.level}`;
-
-            // 6. UI'ın (Önyüzün) senkronize kalması için upgrades objesini de güncelle
-            user.upgrades[type] = equippedItem.level;
-
-            // Veritabanına nesnelerin değiştiğini bildir
-            user.markModified('equipped');
-            user.markModified('upgrades');
-            
-            await user.save();
-            socket.emit('forgeResult', { 
-                userData: user, 
-                message: `${baseName}, başarıyla +${equippedItem.level} seviyesine yükseltildi!` 
-            });
-        } else {
-            socket.emit('forgeResult', { userData: user, message: "Geliştirme için yeterli altınınız yok!" });
         }
     });
 
@@ -413,28 +277,18 @@ socket.on('claimDailyGift', async () => {
         socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
     });
 
-    // ============================================
-    // EKİPMAN KUŞANMA / ÇIKARMA SİSTEMİ
-    // ============================================
+    // Ekipman Kuşanma/Çıkarma
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
         
         const item = user.inventory[data.itemIndex];
         const old = user.equipped[item.type];
-        
         user.inventory.splice(data.itemIndex, 1);
         if (old) user.inventory.push(old);
-        
         user.equipped[item.type] = item;
-
-        // UI'ın düzgün maliyet hesaplaması için kuşanılan eşyanın seviyesini aktar
-        user.upgrades[item.type] = item.level || 0;
-        
         user.markModified('equipped'); 
         user.markModified('inventory');
-        user.markModified('upgrades'); // Eklendi
-        
         await user.save();
         socket.emit('statUpdated', user);
     });
@@ -442,17 +296,10 @@ socket.on('claimDailyGift', async () => {
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
-        
         user.inventory.push(user.equipped[data.slot]);
         user.equipped[data.slot] = null;
-        
-        // Eşya çıktığında demirhane seviye yazısını sıfırla
-        user.upgrades[data.slot] = 0;
-        
         user.markModified('equipped'); 
         user.markModified('inventory');
-        user.markModified('upgrades'); // Eklendi
-        
         await user.save();
         socket.emit('statUpdated', user);
     });
