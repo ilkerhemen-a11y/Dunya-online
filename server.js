@@ -347,6 +347,21 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
+        // Eşya Silme İşlemi
+    socket.on('deleteItem', async (data) => {
+        const user = users[socket.id];
+        if (!user || data.itemIndex === undefined || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
+
+        // Eşyayı envanter dizisinden kaldır
+        user.inventory.splice(data.itemIndex, 1);
+        
+        user.markModified('inventory');
+        await user.save();
+
+        // Güncel veriyi istemciye gönder
+        socket.emit('statUpdated', user);
+    });
+
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
