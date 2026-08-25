@@ -1,867 +1,417 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taht Savaşı — İmparatorluk Sistemi</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        body { 
-            background-color: #0b0908;
-            background-image: radial-gradient(circle at center, #1c1510 0%, #080605 100%);
-            color: #d4c5b9; 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 10px;
-        }
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-        .game-header {
-            width: 100%;
-            max-width: 1000px;
-            background: linear-gradient(to bottom, #1d1712, #0e0a08);
-            border: 1px solid #433222;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            font-size: 12px;
-        }
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 
-        .header-section { display: flex; align-items: center; gap: 15px; }
-        .resource-item { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #f3cf7a; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .bar-container { display: flex; flex-direction: column; gap: 2px; }
-        .stat-bar-mini { width: 110px; height: 12px; background: #080605; border: 1px solid #33241b; border-radius: 3px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
-        .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #15803d); width: 100%; transition: width 0.3s ease; }
-        .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #a16207); width: 0%; }
-        .stat-bar-fill.sefer { background: linear-gradient(to right, #3b82f6, #1e40af); width: 100%; }
+app.use(express.static(__dirname + '/public'));
 
-        .main-wrapper {
-            width: 100%;
-            max-width: 1000px;
-            display: grid;
-            grid-template-columns: 210px 1fr;
-            gap: 15px;
-        }
+// Sabitler ve Yardımcı Fonksiyonlar
+const MAX_SEFER_LIMITI = 20;
+const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
 
-        .sidebar-menu {
-            background: linear-gradient(to bottom, #17120e, #0a0705);
-            border: 1px solid #433222;
-            border-radius: 6px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            height: fit-content;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-        }
-
-        .menu-category-title {
-            text-align: center;
-            background: #231b14;
-            color: #f3cf7a;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 5px;
-            border: 1px solid #3d2f23;
-            border-radius: 4px;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .menu-btn {
-            background: #110d0a;
-            border: 1px solid #2d2017;
-            color: #b5a494;
-            padding: 8px 12px;
-            text-align: left;
-            font-size: 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .menu-btn:hover { background: #241c15; border-color: #d4af37; color: #f3cf7a; transform: translateX(2px); }
-        .menu-btn.logout-btn { border-color: #5b2828; color: #e57373; }
-        .menu-btn.logout-btn:hover { background: #2a1515; border-color: #ef5350; color: #ff8a80; }
-
-        .content-panel {
-            background: linear-gradient(135deg, #1b1410 0%, #0d0a08 100%);
-            border: 1px solid #433222;
-            border-radius: 6px;
-            padding: 20px;
-            min-height: 520px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.9);
-            position: relative;
-        }
-
-        .panel-title {
-            font-size: 15px;
-            font-weight: bold;
-            color: #f3cf7a;
-            border-bottom: 1px solid #33241b;
-            padding-bottom: 10px;
-            margin-bottom: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            letter-spacing: 0.5px;
-        }
-
-        .character-screen { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .char-stats-box { background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
-        .char-stats-box h3 { font-size: 13px; color: #f3cf7a; margin-bottom: 12px; border-bottom: 1px solid #221912; padding-bottom: 6px; }
-        .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed #1e150f; }
-        .stat-row span:first-child { color: #9c8e7b; }
-        .stat-row span:nth-child(2) { color: #f3cf7a; font-weight: bold; }
-
-        .btn-stat { background: linear-gradient(to bottom, #d4af37, #997415); border: 1px solid #ffdf73; color: #0b0908; padding: 2px 7px; font-size: 11px; font-weight: bold; border-radius: 3px; cursor: pointer; transition: 0.1s; }
-        .btn-stat:hover { filter: brightness(1.15); }
-
-        .char-portrait { width: 100%; margin-top: 15px; border: 1px solid #433222; border-radius: 6px; overflow: hidden; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
-        .char-portrait img { width: 100%; display: block; filter: brightness(0.9) contrast(1.1); }
-
-        .equipment-wrapper { background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
-        .eq-slots-grid { display: grid; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(2, 52px); gap: 10px; justify-content: center; margin-top: 10px; }
-        .eq-slot { width: 52px; height: 52px; background: radial-gradient(circle, #19120e 0%, #0d0a08 100%); border: 2px solid #3d2f23; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4a3a2b; cursor: pointer; position: relative; overflow: hidden; box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.3); transition: all 0.25s ease; }
-        .eq-slot:hover { border-color: #d4af37; transform: scale(1.05); box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 10px rgba(212, 175, 55, 0.3); }
-        .eq-slot.filled { border-color: #8c6d36; background: radial-gradient(circle, #2a2016 0%, #120d09 100%); }
-        .eq-slot img { width: 100%; height: 100%; object-fit: cover; }
-
-        .inventory-container { margin-top: 20px; background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
-        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
-        .inventory-item-card { background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%); border: 1px solid #38291e; border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
-        .inventory-item-card:hover { border-color: #b38b4d; background: linear-gradient(135deg, #221a14 0%, #140f0c 100%); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.7); }
-        .item-info-area { display: flex; align-items: center; gap: 8px; }
-        .item-icon-box { width: 36px; height: 36px; background: #0b0806; border: 1px solid #2d2017; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; }
-        .item-icon-box img { width: 100%; height: 100%; object-fit: cover; }
-        .item-details { display: flex; flex-direction: column; gap: 2px; }
-        .item-name { font-size: 12px; font-weight: bold; color: #e6d5c3; }
-        .item-bonus { font-size: 10px; color: #22c55e; font-weight: 600; }
-
-        .btn-equip { background: linear-gradient(to bottom, #3b2e23, #221912); border: 1px solid #544131; color: #d4c5b9; padding: 5px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
-        .btn-equip:hover { background: linear-gradient(to bottom, #d4af37, #997415); border-color: #ffdf73; color: #0b0908; }
-
-        .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
-        .quest-card, .market-card, .forge-card { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1a130f; }
-        
-        .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 13px; margin-bottom: 3px; }
-        .quest-info p, .market-info p, .forge-info p { color: #9c8e7b; font-size: 11px; margin-bottom: 6px; }
-        .quest-rewards { font-size: 11px; color: #22c55e; display: flex; gap: 10px; font-weight: bold; }
-        .market-income { font-size: 11px; color: #38bdf8; font-weight: bold; }
-        .forge-cost { font-size: 11px; color: #ef4444; font-weight: bold; }
-
-        .btn-quest { background: linear-gradient(135deg, #d4af37 0%, #997415 100%); border: 1px solid #ffdf73; color: #0b0908; padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: 0.1s; white-space: nowrap; }
-        .btn-quest:hover:not(:disabled) { filter: brightness(1.1); }
-        .btn-quest:disabled { background: #231b14; color: #594738; border-color: #2e231b; cursor: not-allowed; }
-        
-        .quest-log { margin-top: 15px; background: #0d0a08; border: 1px solid #2d2017; padding: 10px; border-radius: 6px; font-size: 12px; color: #9c8e7b; min-height: 40px; }
-        .chat-container { display: flex; flex-direction: column; gap: 10px; height: 420px; }
-        .chat-messages { flex: 1; background: #0d0a08; border: 1px solid #2d2017; border-radius: 6px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
-        .chat-msg { border-bottom: 1px dashed #1e150f; padding-bottom: 4px; }
-        .chat-msg span { color: #f3cf7a; font-weight: bold; }
-        .chat-input-area { display: flex; gap: 8px; }
-        .chat-input-area input { flex: 1; background: #0d0a08; border: 1px solid #3d2f23; border-radius: 4px; padding: 8px; color: #d4c5b9; font-size: 12px; }
-        .chat-input-area input:focus { outline: none; border-color: #d4af37; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(8, 6, 5, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        .box { background: #140f0c; padding: 30px; border-radius: 6px; border: 2px solid #b38b4d; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
-        .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 20px; text-align: center;}
-        
-        /* AUTH TABS CSS */
-        .auth-tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid #3d2f23; }
-        .auth-tab { flex: 1; padding: 10px; text-align: center; color: #9c8e7b; cursor: pointer; font-size: 14px; font-weight: bold; border-bottom: 2px solid transparent; }
-        .auth-tab.active { color: #f3cf7a; border-bottom-color: #d4af37; }
-        .auth-form { display: none; text-align: center; }
-        .auth-form.active { display: block; }
-        .auth-form p { color: #9c8e7b; font-size: 12px; margin-bottom: 20px; }
-        .box input { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #3d2f23; background: #080605; color: #f3cf7a; text-align: center; margin-bottom: 12px; font-size: 14px; }
-        #authMessage { margin-bottom: 10px; font-size: 12px; font-weight: bold; min-height: 15px; text-align: center; }
-        .btn-primary { width: 100%; padding: 10px; border: 1px solid #ffdf73; border-radius: 4px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #d4af37 0%, #997415 100%); color: #0b0908; font-size: 14px; }
-
-        @media (max-width: 768px) {
-            .main-wrapper { grid-template-columns: 1fr; }
-            .character-screen { grid-template-columns: 1fr; }
-            .game-header { flex-direction: column; gap: 8px; padding: 10px; }
-        }
-    </style>
-</head>
-<body>
-<div id="auth-modal" class="auth-box">
-    <h2>Antik Diyara Adım At</h2>
-    
-    <!-- Sekme Butonları -->
-    <div class="tab-header">
-        <button id="tab-login-btn" class="tab-btn active" onclick="setAuthMode('login')">Giriş Yap</button>
-        <button id="tab-register-btn" class="tab-btn" onclick="setAuthMode('register')">Kayıt Ol</button>
-    </div>
-
-    <p id="auth-subtext">Savaşa geri dön lordum.</p>
-
-    <!-- Giriş/Kayıt Alanları -->
-    <input type="text" id="authUsername" placeholder="Kullanıcı Adı" autocomplete="off" />
-    <input type="password" id="authPassword" placeholder="Şifre" />
-
-    <button type="button" id="authSubmitBtn" onclick="submitAuth()">MEYDANA İN</button>
-</div>
-
-    <!-- Üst Bilgi Çubuğu -->
-    <header class="game-header">
-        <div class="header-section">
-            <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
-            <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">10</span> Yakut</div>
-        </div>
-        <div class="header-section">
-            <div class="bar-container">
-                <span id="hpLabel" style="font-size: 10px; color: #9c8e7b;">Can Puanı</span>
-                <div class="stat-bar-mini"><div id="hpBarFill" class="stat-bar-fill" style="width: 100%;"></div></div>
-            </div>
-            <div class="bar-container">
-                <span id="expLabel" style="font-size: 10px; color: #9c8e7b;">Tecrübe</span>
-                <div class="stat-bar-mini"><div id="expBarFill" class="stat-bar-fill exp" style="width: 0%;"></div></div>
-            </div>
-            <div class="bar-container">
-                <span id="seferLabel" style="font-size: 10px; color: #9c8e7b;">Sefer Limiti (20/20)</span>
-                <div class="stat-bar-mini"><div id="seferBarFill" class="stat-bar-fill sefer" style="width: 100%;"></div></div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Ana Oyun Çerçevesi -->
-    <div class="main-wrapper" id="mainApp" style="display: none;">
-        
-        <nav class="sidebar-menu">
-            <div class="menu-category-title">İmparatorluk</div>
-            <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
-            <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
-            <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
-            <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
-            <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-            
-            <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
-            <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
-            <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
-        </nav>
-
-        <main class="content-panel">
-            <div class="panel-title">
-                <span id="panelHeaderTitle">Genel Durum & Karakter</span>
-                <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
-            </div>
-            <div id="panelContentBody"></div>
-        </main>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let currentUserData = null;
-        let activeTab = 'overview';
-        let seferTimerInterval = null;
-
-        // AUTH FONKSİYONLARI
-        function switchAuthTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
-            document.getElementById('authMessage').innerText = "";
-            
-            if(tab === 'login') {
-                document.querySelector('.auth-tab:nth-child(1)').classList.add('active');
-                document.getElementById('loginForm').classList.add('active');
-            } else {
-                document.querySelector('.auth-tab:nth-child(2)').classList.add('active');
-                document.getElementById('registerForm').classList.add('active');
-            }
-        }
-
-        function showAuthError(msg, isSuccess = false) {
-            const msgEl = document.getElementById('authMessage');
-            msgEl.innerText = msg;
-            msgEl.style.color = isSuccess ? '#22c55e' : '#ef4444';
-        }
-
-        function login() {
-            const u = document.getElementById('loginUsername').value;
-            const p = document.getElementById('loginPassword').value;
-            if(!u || !p) return showAuthError("Bilgileri eksiksiz giriniz.");
-            socket.emit('userLogin', { username: u, password: p });
-        }
-
-        function register() {
-            const u = document.getElementById('regUsername').value;
-            const p = document.getElementById('regPassword').value;
-            if(!u || !p) return showAuthError("Bilgileri eksiksiz giriniz.");
-            socket.emit('userRegister', { username: u, password: p });
-        }
-
-        socket.on('authResult', (data) => {
-            showAuthError(data.message, data.success);
-            if(data.success && document.getElementById('registerForm').classList.contains('active')) {
-                setTimeout(() => switchAuthTab('login'), 2000);
-            }
-        });
-
-        // OYUN İÇİ FONKSİYONLAR
-        socket.on('userData', (data) => {
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'grid';
-            currentUserData = data;
-            updateHeader(data);
-            switchTab('overview');
-            startSeferTimer();
-        });
-
-        function updateHeader(data) {
-            if(!data) return;
-            currentUserData = data;
-            
-            document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
-            document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
-
-            const maxHp = (data.vit || 5) * 20;
-            const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
-            const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
-
-            const hpBarFill = document.getElementById('hpBarFill');
-            const hpLabel = document.getElementById('hpLabel');
-            if(hpBarFill) hpBarFill.style.width = `${hpPercent}%`;
-            if(hpLabel) hpLabel.innerText = `Can (${currentHp}/${maxHp})`;
-
-            const maxExp = (data.level || 1) * 100;
-            const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
-
-            const expBarFill = document.getElementById('expBarFill');
-            const expLabel = document.getElementById('expLabel');
-            if(expBarFill) expBarFill.style.width = `${expPercent}%`;
-            if(expLabel) expLabel.innerText = `Tecrübe (${data.exp || 0}/${maxExp})`;
-
-            const seferBarFill = document.getElementById('seferBarFill');
-            const seferLabel = document.getElementById('seferLabel');
-            const seferLimit = (data.seferLimiti !== undefined) ? data.seferLimiti : 20;
-            const seferPercent = Math.max(0, Math.min(100, (seferLimit / 20) * 100));
-            if(seferBarFill) seferBarFill.style.width = `${seferPercent}%`;
-            if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferLimit}/20)`;
-        }
-
-        // Sekme Değiştirme ve Arayüz Çizme
-        function switchTab(tab) {
-            activeTab = tab;
-            const titles = {
-                'overview': 'Genel Durum & Karakter',
-                'work': 'İş / Sefer Görevleri',
-                'market': 'Pazar Yeri ve İksirler',
-                'timar': 'İmparatorluk Tımarları',
-                'blacksmith': 'Demirhane ve Ekipman Geliştirme',
-                'chat': 'Diyar Meclisi (Sohbet)'
-            };
-            document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
-            renderPanelContent();
-        }
-
-        function renderPanelContent() {
-            const body = document.getElementById('panelContentBody');
-            const u = currentUserData;
-            if(!u) return;
-
-            if(activeTab === 'overview') {
-    // 1. Kuşanılan ekipman bonuslarını hesapla
-    let bonusStr = 0;
-    let bonusVit = 0;
-
-    if (u.equipped) {
-        Object.values(u.equipped).forEach(item => {
-            if (item) {
-                bonusStr += (item.strBonus || 0);
-                bonusVit += (item.vitBonus || 0);
-            }
-        });
+function checkSeferRefill(user) {
+    const now = Date.now();
+    if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
+        user.seferLimiti = MAX_SEFER_LIMITI;
+        user.seferNextRefill = null;
+        return true;
     }
-
-    // Toplam statlar (Temel Stat + Ekipman Bonusu)
-    const totalStr = (u.str || 5) + bonusStr;
-    const totalVit = (u.vit || 5) + bonusVit;
-
-    // Toplam VIT değerine göre Max HP hesaplaması
-    const maxHp = totalVit * 20;
-    const maxExp = (u.level || 1) * 100;
-    
-    body.innerHTML = `
-        <div class="character-screen">
-            <div class="char-stats-box">
-                <h3>Nitelikler</h3>
-                <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
-                <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
-                <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
-                <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
-                <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
-                <div class="stat-row">
-                    <span>Güç (STR):</span>
-                    <span>${totalStr} ${bonusStr > 0 ? `<span style="color:#22c55e;">(+${bonusStr})</span>` : ''}</span>
-                </div>
-                <div class="stat-row">
-                    <span>Dayanıklılık (VIT):</span>
-                    <span>${totalVit} ${bonusVit > 0 ? `<span style="color:#22c55e;">(+${bonusVit})</span>` : ''}</span>
-                </div>
-                <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
-                ${u.statPoints > 0 ? `
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
-                        <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
-                    </div>
-                ` : ''}
-
-                <!-- Karakter Portresi -->
-                <div class="char-portrait">
-                    <img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter Portresi">
-                </div>
-            </div>
-
-            <div class="equipment-wrapper">
-                <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
-                <div class="eq-slots-grid">
-                    <div class="eq-slot ${u.equipped?.helmet ? 'filled' : ''}" onclick="unequip('helmet')">${u.equipped?.helmet ? u.equipped.helmet.icon : '🪖'}</div>
-                    <div class="eq-slot ${u.equipped?.necklace ? 'filled' : ''}" onclick="unequip('necklace')">${u.equipped?.necklace ? u.equipped.necklace.icon : '📿'}</div>
-                    <div class="eq-slot ${u.equipped?.armor ? 'filled' : ''}" onclick="unequip('armor')">${u.equipped?.armor ? u.equipped.armor.icon : '🛡️'}</div>
-                    <div class="eq-slot ${u.equipped?.weapon ? 'filled' : ''}" onclick="unequip('weapon')">${u.equipped?.weapon ? u.equipped.weapon.icon : '🗡️'}</div>
-                    <div class="eq-slot ${u.equipped?.shield ? 'filled' : ''}" onclick="unequip('shield')">${u.equipped?.shield ? u.equipped.shield.icon : '🛡'}</div>
-                    <div class="eq-slot ${u.equipped?.ring ? 'filled' : ''}" onclick="unequip('ring')">${u.equipped?.ring ? u.equipped.ring.icon : '💍'}</div>
-                    <div class="eq-slot ${u.equipped?.gloves ? 'filled' : ''}" onclick="unequip('gloves')">${u.equipped?.gloves ? u.equipped.gloves.icon : '🧤'}</div>
-                    <div class="eq-slot ${u.equipped?.boots ? 'filled' : ''}" onclick="unequip('boots')">${u.equipped?.boots ? u.equipped.boots.icon : '👢'}</div>
-                </div>
-            </div>
-        </div>
-
-                <div class="inventory-container">
-            <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 8px;">Envanter / Çanta</h3>
-            <div class="inventory-grid">
-                ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => `
-                    <div class="inventory-item-card">
-                        <div class="item-info-area">
-                            <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
-                            <div class="item-details">
-                                <span class="item-name">${item.name}</span>
-                                <span class="item-bonus">Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</span>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
-                            <button class="btn-delete" onclick="if(confirm('${item.name} eşyasını silmek istediğinize emin misiniz?')) socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Sil</button>
-                        </div>
-                    </div>
-                `).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
-            </div>
-        </div>
-    `;
-}else if(activeTab === 'work') {
-                body.innerHTML = `
-                    <div class="quest-list">
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Karanlık Orman Seferi</h4>
-                                <p>Ormandaki gölgelerle savaş ve ganimet topla.</p>
-                                <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Unutulmuş Tapınak</h4>
-                                <p>Antik tapınaktakı tehlikeli mahlukları alt et.</p>
-                                <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Ejderha Dağı</h4>
-                                <p>Zirvedeki ejderhanın yuvasını yağmala.</p>
-                                <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
-                        </div>
-                    </div>
-                    <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
-                `;
-            } else if(activeTab === 'market') {
-                body.innerHTML = `
-                    <div class="market-list">
-    <!-- Can İksiri -->
-    <div class="market-card">
-        <div class="market-info">
-            <h4>Can İksiri (Sağlık Yenileme)</h4>
-            <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
-            <span class="forge-cost">Maliyet: 50 Altın</span>
-        </div>
-        <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
-    </div>
-
-    <!-- Sefer İksiri -->
-    <div class="market-card">
-        <div class="market-info">
-            <h4>Sefer İksiri (Hak Yenileme)</h4>
-            <p>Sefer limitinizi anında 20/20 yapar.</p>
-            <span class="forge-cost">Maliyet: 50 Altın</span>
-        </div>
-        <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
-    </div>
-</div>
-                        
-                    </div>
-                `;
-            } else if(activeTab === 'timar') {
-                body.innerHTML = `
-                    <div class="market-list">
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Küçük Çiftlik Tımarı</h4>
-                                <p>Düzenli pasif altın geliri sağlar.</p>
-                                <div class="market-income">Gelir: +10 Altın / dk</div>
-                                <span class="forge-cost">Maliyet: 500 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 1 })">${u.estates.includes(1) ? 'Sahipsiniz' : 'Satın Al'}</button>
-                        </div>
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Kervansaray Tımarı</h4>
-                                <p>İmparatorluk ticaret yolları üzerinden kazanç getirir.</p>
-                                <div class="market-income">Gelir: +45 Altın / dk</div>
-                                <span class="forge-cost">Maliyet: 2000 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button>
-                        </div>
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Altın Madeni</h4>
-                                <p>Zengin cevher yataklarından devasa gelir akışı.</p>
-                                <div class="market-income">Gelir: +180 Altın / dk</div>
-                                <span class="forge-cost">Maliyet: 7500 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button>
-                        </div>
-                    </div>
-                `;
-
-
-} else if (activeTab === 'shop') {
-    body.innerHTML = `
-        <div class="market-list">
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🗡️ Çelik Ejder Kılıcı</h4>
-                    <p>Efsanevi ejderha çeliğinden dövülmüş keskin kılıç.</p>
-                    <div class="market-income">Bonus: +12 Güç | +4 Vit</div>
-                    <span class="forge-cost">Maliyet: 1000 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 1 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🛡️ Şövalye Göğüslüğü</h4>
-                    <p>Ağır darbeleri emen güçlendirilmiş çelik zırh.</p>
-                    <div class="market-income">Bonus: +4 Güç | +12 Vit</div>
-                    <span class="forge-cost">Maliyet: 1200 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 2 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🪖 Ejder Miğferi</h4>
-                    <p>Savaşçının başını koruyan ejderha pullu miğfer.</p>
-                    <div class="market-income">Bonus: +6 Güç | +8 Vit</div>
-                    <span class="forge-cost">Maliyet: 1000 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 3 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🛡 Ağır Çelik Kalkan</h4>
-                    <p>Sarsılmaz savunma sağlayan devasa çelik kalkan.</p>
-                    <div class="market-income">Bonus: +2 Güç | +15 Vit</div>
-                    <span class="forge-cost">Maliyet: 1500 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 4 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>📿 Tılsımlı Yakut Kolye</h4>
-                    <p>Mistik bir dayanıklılık ve güç bağışlayan kolye.</p>
-                    <div class="market-income">Bonus: +8 Güç | +8 Vit</div>
-                    <span class="forge-cost">Maliyet: 1800 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 5 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>💍 Zümrüt Güç Yüzüğü</h4>
-                    <p>Saldırı hamlelerini katbekat güçlendiren yüzük.</p>
-                    <div class="market-income">Bonus: +10 Güç | +5 Vit</div>
-                    <span class="forge-cost">Maliyet: 2000 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 6 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>🧤 Demir Muşta Eldiven</h4>
-                    <p>Yakın dövüşte ekstra darbe gücü sağlar.</p>
-                    <div class="market-income">Bonus: +9 Güç | +6 Vit</div>
-                    <span class="forge-cost">Maliyet: 1300 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 7 })">Satın Al</button>
-            </div>
-            <div class="market-card">
-                <div class="market-info">
-                    <h4>👢 Muhafız Çizmeleri</h4>
-                    <p>Savaş alanında çeviklik ve sağlam duruş kazandırır.</p>
-                    <div class="market-income">Bonus: +5 Güç | +9 Vit</div>
-                    <span class="forge-cost">Maliyet: 1100 Altın</span>
-                </div>
-                <button class="btn-quest" onclick="socket.emit('buyShopItem', { shopItemId: 8 })">Satın Al</button>
-            </div>
-        </div>
-    `;
+    return false;
 }
 
+// 1. MongoDB Bağlantısı
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB bağlantısı başarılı!'))
+    .catch(err => console.error('MongoDB bağlantı hatası:', err));
 
-
-
-                
-            } else if(activeTab === 'blacksmith') {
-    body.innerHTML = `
-        <!-- DEMİRCİ GÖRSELİ VE BAŞLIK -->
-        <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
-            <img src="https://i.hizliresim.com/75en0pnj.jpg" alt="Demirci Usta" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #433222;">
-            <h3 style="color: #f3cf7a; font-size: 14px; margin-top: 8px;">Usta Demirci Örfü</h3>
-            <p style="color: #9c8e7b; font-size: 11px;">Envanterindeki eşyaları seçerek altın karşılığında güçlerini artırabilirsin.</p>
-        </div>
-
-        <!-- ENVANTERDEKİ EŞYALARIN LİSTESİ -->
-        <div class="forge-list">
-            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
-                const currentLvl = item.level || 0;
-                const nextLvl = currentLvl + 1;
-                const cost = nextLvl * 150;
-
-                return `
-                    <div class="forge-card">
-                        <div class="item-info-area">
-                            <div class="item-icon-box" style="width:42px; height:42px; font-size:22px;">
-                                ${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}
-                            </div>
-                            <div class="forge-info">
-                                <h4>${item.name}</h4>
-                                <p style="margin:0;">Mevcut Bonus: Güç +${item.strBonus || 0} | Vit +${item.vitBonus || 0}</p>
-                                <span class="forge-cost">Geliştirme Maliyeti: ${cost} Altın</span>
-                            </div>
-                        </div>
-                        <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">
-                            +${nextLvl} Bas
-                        </button>
-                    </div>
-                `;
-            }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center; padding:20px;">Demirhanede geliştirebilmek için envanterinizde eşya bulunmalıdır.</p>'}
-        </div>
-    `;
-}else if(activeTab === 'chat') {
-                body.innerHTML = `
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessagesBox"></div>
-                        <div class="chat-input-area">
-                            <input type="text" id="chatInputMsg" placeholder="Diyara bir mesaj fısılda..." onkeydown="if(event.key==='Enter') sendChat()">
-                            <button class="btn-quest" onclick="sendChat()">Gönder</button>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function unequip(slot) {
-            socket.emit('unequipItem', { slot: slot });
-        }
-
-        function sendChat() {
-            const input = document.getElementById('chatInputMsg');
-            if(!input || !input.value.trim()) return;
-            socket.emit('sendChatMessage', { message: input.value.trim() });
-            input.value = '';
-        }
-
-        // Socket Dinleyicileri (Anlık Veri Güncellemeleri)
-        socket.on('statUpdated', (updatedUser) => {
-            currentUserData = updatedUser;
-            updateHeader(updatedUser);
-            if(activeTab === 'overview') renderPanelContent();
-        });
-
-        socket.on('questResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            const log = document.getElementById('questLogResult');
-            if(log) log.innerText = res.message;
-            if(activeTab === 'overview') renderPanelContent();
-        });
-
-        socket.on('marketResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            alert(res.message);
-            if(activeTab === 'timar') renderPanelContent();
-        });
-
-        socket.on('forgeResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            alert(res.message);
-            if(activeTab === 'blacksmith') renderPanelContent();
-        });
-
-        socket.on('receiveChatMessage', (data) => {
-            const box = document.getElementById('chatMessagesBox');
-            if(box) {
-                box.innerHTML += `<div class="chat-msg"><span>${data.username || 'Gezgin'}:</span> ${data.message}</div>`;
-                box.scrollTop = box.scrollHeight;
-            }
-        });
-
-        function logout() {
-            socket.emit('logout');
-        }
-
-        socket.on('logoutSuccess', () => {
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('loginModal').style.display = 'flex';
-            currentUserData = null;
-        });
-
-        function startSeferTimer() {
-            // Sefer yenilenme mekanikleri buraya eklenebilir
-        }
-
-
-// Socket Bağlantısı
-const socket = io(); 
-
-let currentAuthMode = 'login'; // Varsayılan mod
-
-// Sekme Değiştirme (Giriş Yap / Kayıt Ol)
-function setAuthMode(mode) {
-    currentAuthMode = mode;
-    const loginBtn = document.getElementById('tab-login-btn');
-    const registerBtn = document.getElementById('tab-register-btn');
-    const subtext = document.getElementById('auth-subtext');
-    const submitBtn = document.getElementById('authSubmitBtn');
-
-    if (mode === 'login') {
-        loginBtn.classList.add('active');
-        registerBtn.classList.remove('active');
-        subtext.innerText = 'Savaşa geri dön lordum.';
-        submitBtn.innerText = 'MEYDANA İN';
-    } else {
-        registerBtn.classList.add('active');
-        loginBtn.classList.remove('active');
-        subtext.innerText = 'Yeni gladyatörünü oluştur.';
-        submitBtn.innerText = 'KAYDOL VE BAŞLA';
-    }
-}
-
-// Butona Basıldığında Sunucuya İstek Gönderme
-function submitAuth() {
-    const username = document.getElementById('authUsername').value.trim();
-    const password = document.getElementById('authPassword').value.trim();
-
-    if (!username || !password) {
-        alert("Lütfen kullanıcı adı ve şifre giriniz!");
-        return;
-    }
-
-    if (!socket.connected) {
-        alert("Sunucuya bağlanılamadı. Lütfen 5-10 saniye bekleyip tekrar deneyin.");
-        return;
-    }
-
-    if (currentAuthMode === 'login') {
-        socket.emit('userLogin', { username, password });
-    } else {
-        socket.emit('userRegister', { username, password });
-    }
-}
-
-// Sunucudan Gelen Yanıtları Dinleme
-socket.on('authResult', (data) => {
-    alert(data.message);
-    // Kayıt başarılı olduysa kullanıcıyı otomatik Giriş sekmesine yönlendir
-    if (data.success && currentAuthMode === 'register') {
-        setAuthMode('login');
-    }
+// 2. Kullanıcı Veritabanı Şeması
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    level: { type: Number, default: 1 },
+    exp: { type: Number, default: 0 },
+    balance: { type: Number, default: 100 },
+    rubies: { type: Number, default: 10 },
+    str: { type: Number, default: 5 },
+    vit: { type: Number, default: 5 },
+    statPoints: { type: Number, default: 0 },
+    hp: { type: Number, default: 100 },
+    seferLimiti: { type: Number, default: 20 },
+    seferNextRefill: { type: Number, default: null },
+    estates: { type: [Number], default: [] },
+    upgrades: { weapon: { type: Number, default: 0 }, armor: { type: Number, default: 0 }, helmet: { type: Number, default: 0 } },
+    equipped: { 
+        helmet: { type: Object, default: null }, 
+        necklace: { type: Object, default: null }, 
+        armor: { type: Object, default: null }, 
+        weapon: { type: Object, default: null }, 
+        shield: { type: Object, default: null }, 
+        ring: { type: Object, default: null }, 
+        gloves: { type: Object, default: null }, 
+        boots: { type: Object, default: null } 
+    },
+    inventory: { type: Array, default: [] }
 });
 
-// Başarılı Giriş Yapıldığında Oyunu Yükle
-socket.on('userData', (user) => {
-    currentUserData = user;
-    
-    // Giriş kutusunu gizle
-    const authModal = document.getElementById('auth-modal');
-    if (authModal) authModal.style.display = 'none';
+const User = mongoose.model('User', userSchema);
+const users = {}; 
 
-    // Arayüzü çiz
-    if (typeof renderPanelContent === 'function') {
-        renderPanelContent();
-    }
-});
+const getDefaultInventory = () => [
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0 },
+    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5, level: 0 },
+    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2, level: 0 }
+];
 
+io.on('connection', (socket) => {
+    console.log('Yeni bir gladyatör bağlandı:', socket.id);
 
-// 1. MEYDANA İN Butonuna Bağlanacak Giriş Fonksiyonu
-function handleLogin() {
-    const usernameInput = document.getElementById('loginUsername').value;
-    const passwordInput = document.getElementById('loginPassword').value;
+    // Kayıt Olma İşlemi
+    socket.on('userRegister', async (data) => {
+        const { username, password } = data;
+        if (!username || !password || username.trim() === '' || password.trim() === '') {
+            return socket.emit('authResult', { success: false, message: "Kullanıcı adı ve şifre boş olamaz!" });
+        }
 
-    if (!socket.connected) {
-        alert("Sunucuya bağlanılıyor, lütfen 5-10 saniye bekleyip tekrar deneyin.");
-        return;
-    }
+        try {
+            const existingUser = await User.findOne({ username });
+            if (existingUser) {
+                return socket.emit('authResult', { success: false, message: "Bu isimde bir gladyatör zaten var!" });
+            }
 
-    socket.emit('userLogin', { 
-        username: usernameInput, 
-        password: passwordInput 
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const newUser = new User({ 
+                username: username, 
+                password: hashedPassword,
+                inventory: getDefaultInventory() 
+            });
+            await newUser.save();
+            
+            socket.emit('authResult', { success: true, message: "Kayıt başarılı! Şimdi giriş yapabilirsiniz." });
+        } catch (err) { 
+            console.error("Kayıt hatası:", err); 
+            socket.emit('authResult', { success: false, message: "Sunucu hatası oluştu." });
+        }
     });
-}
 
-// 2. Başarılı Giriş Yapıldığında Giriş Ekranını Kapat
-socket.on('userData', (user) => {
-    currentUserData = user;
-    
-    // Giriş kutusunu gizle ve oyunu göster
-    const authModal = document.getElementById('auth-modal'); // Giriş kutunuzun ID'si
-    if (authModal) authModal.style.display = 'none';
+    // Giriş Yapma İşlemi
+    socket.on('userLogin', async (data) => {
+        const { username, password } = data;
+        try {
+            const dbUser = await User.findOne({ username });
+            if (!dbUser) {
+                return socket.emit('authResult', { success: false, message: "Böyle bir kullanıcı bulunamadı." });
+            }
 
-    renderPanelContent(); // Paneli çizdir
-});
+            const isPasswordValid = await bcrypt.compare(password, dbUser.password);
+            if (!isPasswordValid) {
+                return socket.emit('authResult', { success: false, message: "Hatalı şifre!" });
+            }
 
-// 3. Hatalı Girişte Uyarı Göster
-socket.on('authResult', (data) => {
-    if (!data.success) {
-        alert(data.message);
-    }
-});
+            if (checkSeferRefill(dbUser)) {
+                await dbUser.save();
+            }
 
+            users[socket.id] = dbUser;
+            socket.emit('userData', dbUser);
+        } catch (err) { 
+            console.error("Giriş hatası:", err); 
+            socket.emit('authResult', { success: false, message: "Giriş yapılırken bir hata oluştu." });
+        }
+    });
 
+    // Çıkış Yapma
+    socket.on('logout', () => {
+        if (users[socket.id]) {
+            console.log('Gladyatör çıkış yaptı:', users[socket.id].username);
+            delete users[socket.id];
+            socket.emit('logoutSuccess');
+            socket.disconnect();
+        }
+    });
 
+    // Stat Puanı Dağıtımı
+    socket.on('distributeStat', async (statName) => {
+        const user = users[socket.id];
+        if (user && user.statPoints > 0) {
+            if (statName === 'str') user.str += 1;
+            if (statName === 'vit') { user.vit += 1; user.hp += 20; }
+            user.statPoints -= 1;
+            await user.save();
+            socket.emit('statUpdated', user);
+        }
+    });
+
+    // Görev (Sefer) Sistemi
+    socket.on('doQuest', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        checkSeferRefill(user);
+
+        if (user.hp <= 0) {
+            return socket.emit('questResult', { success: false, message: "Canınız yetersiz!" });
+        }
+
+        if (user.seferLimiti <= 0) {
+            const kalanDakika = Math.ceil((user.seferNextRefill - Date.now()) / (1000 * 60));
+            return socket.emit('questResult', { 
+                success: false, 
+                message: `Sefer hakkınız bitti! Yenilenmeye kalan süre: ${kalanDakika} dakika.` 
+            });
+        }
+
+        user.seferLimiti -= 1;
+
+        if (user.seferLimiti === 0) {
+            user.seferNextRefill = Date.now() + REFILL_INTERVAL;
+        }
+
+        const questId = data.questId || 1;
+        let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
+
+        if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
+        else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
+        else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
+
+        user.hp = Math.max(0, user.hp - hpLoss);
+        user.balance += goldGain;
+        user.exp += expGain;
+
+        let maxExp = user.level * 100;
+        let levelUpMsg = "";
+        if (user.exp >= maxExp) {
+            user.level += 1;
+            user.exp -= maxExp;
+            user.statPoints += 3;
+            user.hp = user.vit * 20;
+            levelUpMsg = " SEVİYE ATLADIN!";
+        }
+
+        await user.save();
+        socket.emit('questResult', { 
+            success: true, 
+            userData: user, 
+            message: `${questName} seferi başarılı!${levelUpMsg}`, 
+            goldEarned: goldGain, 
+            expEarned: expGain, 
+            hpLost: hpLoss 
+        });
+    });
+
+    // Tımar Satın Alma
+    socket.on('buyEstate', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
         
-    </script>
-</body>
-</html>
+        let cost = 0;
+        if (data.estateId === 1) cost = 500;
+        if (data.estateId === 2) cost = 2000;
+        if (data.estateId === 3) cost = 7500;
+
+        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
+        if (user.balance < cost) return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+
+        user.balance -= cost;
+        user.estates.push(data.estateId);
+        await user.save();
+        socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
+    });
+
+    // ==========================================
+    // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
+    // ==========================================
+    socket.on('upgradeItem', async (data) => {
+        try {
+            const activeUser = users[socket.id];
+            if (!activeUser) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: "Lütfen önce giriş yapın." 
+                });
+            }
+
+            const user = await User.findById(activeUser._id);
+            if (!user) return;
+
+            const { itemIndex } = data;
+
+            // Envanter ve eşya geçerlilik kontrolü
+            if (!user.inventory || !user.inventory[itemIndex]) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: "Geliştirilecek eşya envanterde bulunamadı!" 
+                });
+            }
+
+            const item = user.inventory[itemIndex];
+            const currentLevel = item.level || 0;
+            const nextLevel = currentLevel + 1;
+            const cost = nextLevel * 150; // Seviye arttıkça + basma maliyeti artar
+
+            // Altın kontrolü
+            if ((user.balance || 0) < cost) {
+                return socket.emit('forgeResult', { 
+                    success: false, 
+                    message: `Yetersiz altın! +${nextLevel} basmak için ${cost} Altın gerekiyor.` 
+                });
+            }
+
+            // Altını düş
+            user.balance -= cost;
+
+            // Eşya ismindeki eski + seviyesini temizle ve yenisini ekle
+            let baseName = item.name.replace(/\s\+\d+$/, '');
+            item.name = `${baseName} +${nextLevel}`;
+            item.level = nextLevel;
+
+            // Stat bonuslarını artır (+1 basıldığında mevcut bonusa ekleme yapılır)
+            item.strBonus = (item.strBonus || 0) + 2;
+            item.vitBonus = (item.vitBonus || 0) + 2;
+
+            // Envanter dizisini güncellendi olarak işaretle
+            user.markModified('inventory');
+            await user.save();
+
+            // Oturum bilgilerini güncelle
+            users[socket.id] = user;
+
+            socket.emit('forgeResult', {
+                success: true,
+                message: `🔥 Başarılı! Eşyanız ${item.name} seviyesine yükseltildi!`,
+                userData: user
+            });
+            socket.emit('statUpdated', user);
+
+        } catch (err) {
+            console.error("Demirhane hatası:", err);
+            socket.emit('forgeResult', { 
+                success: false, 
+                message: "Geliştirme sırasında bir sunucu hatası oluştu." 
+            });
+        }
+    });
+
+    // Can İksiri
+    socket.on('usePotion', async () => {
+        const user = users[socket.id];
+        if (user && user.balance >= 50) {
+            user.balance -= 50; 
+            user.hp = user.vit * 20;
+            await user.save();
+            socket.emit('statUpdated', user);
+            socket.emit('marketResult', { userData: user, message: "Canınız yenilendi!" });
+        }
+    });
+
+    // Sefer Limiti Yenileme İksiri (50 Altın)
+    socket.on('refillSefer', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        if (user.seferLimiti >= MAX_SEFER_LIMITI) {
+            return socket.emit('marketResult', { userData: user, message: "Sefer hakkınız zaten maksimum seviyede!" });
+        }
+
+        if (user.balance < 50) {
+            return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+        }
+
+        user.balance -= 50;
+        user.seferLimiti = MAX_SEFER_LIMITI;
+        user.seferNextRefill = null;
+        await user.save();
+
+        socket.emit('statUpdated', user);
+        socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
+    });
+
+    // Ekipman Kuşanma/Çıkarma
+    socket.on('equipItem', async (data) => {
+        const user = users[socket.id];
+        if (!user || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
+        
+        const item = user.inventory[data.itemIndex];
+        const old = user.equipped[item.type];
+        user.inventory.splice(data.itemIndex, 1);
+        if (old) user.inventory.push(old);
+        user.equipped[item.type] = item;
+        user.markModified('equipped'); 
+        user.markModified('inventory');
+        await user.save();
+        socket.emit('statUpdated', user);
+    });
+
+        // Eşya Silme İşlemi
+    socket.on('deleteItem', async (data) => {
+        const user = users[socket.id];
+        if (!user || data.itemIndex === undefined || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
+
+        // Eşyayı envanter dizisinden kaldır
+        user.inventory.splice(data.itemIndex, 1);
+        
+        user.markModified('inventory');
+        await user.save();
+
+        // Güncel veriyi istemciye gönder
+        socket.emit('statUpdated', user);
+    });
+
+    socket.on('unequipItem', async (data) => {
+        const user = users[socket.id];
+        if (!user || !user.equipped[data.slot]) return;
+        user.inventory.push(user.equipped[data.slot]);
+        user.equipped[data.slot] = null;
+        user.markModified('equipped'); 
+        user.markModified('inventory');
+        await user.save();
+        socket.emit('statUpdated', user);
+    });
+
+    // Sohbet
+    socket.on('sendChatMessage', (data) => {
+        io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
+    });
+
+    socket.on('disconnect', () => delete users[socket.id]);
+});
+
+// PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
+setInterval(async () => {
+    for (const socketId in users) {
+        const user = users[socketId];
+        let isUpdated = false;
+
+        // 1. Pasif Gelir Hesabı
+        let income = 0;
+        if (user.estates.includes(1)) income += 10;
+        if (user.estates.includes(2)) income += 45;
+        if (user.estates.includes(3)) income += 180;
+
+        if (income > 0) {
+            user.balance += income;
+            isUpdated = true;
+        }
+
+        // 2. Otomatik Can Yenileme (Maksimum Can: Dayanıklılık * 20)
+        const maxHp = user.vit * 20;
+        if (user.hp < maxHp) {
+            user.hp = Math.min(maxHp, user.hp + 10);
+            isUpdated = true;
+        }
+
+        // Herhangi bir değişiklik gerçekleştiyse kaydet ve istemciyi güncelle
+        if (isUpdated) {
+            await user.save();
+            io.to(socketId).emit('statUpdated', user);
+        }
+    }
+}, 60000);
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
