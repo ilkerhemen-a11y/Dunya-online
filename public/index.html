@@ -561,35 +561,39 @@
                     </div>
                 `;
             } else if(activeTab === 'blacksmith') {
-                body.innerHTML = `
-                    <div class="forge-list">
-                        <div class="forge-card">
-                            <div class="forge-info">
-                                <h4>Silah Geliştirme (Seviye: +${u.upgrades?.weapon || 0})</h4>
-                                <p>Saldırı gücünüzü artırır.</p>
-                                <span class="forge-cost">Maliyet: ${((u.upgrades?.weapon || 0) + 1) * 100} Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'weapon' })">Geliştir (+1)</button>
+    const forgeItems = [
+        { type: 'weapon', name: 'Silah', desc: 'Saldırı gücünü (STR) artırır.' },
+        { type: 'armor', name: 'Zırh', desc: 'Canlılık ve dayanıklılığı (VIT) artırır.' },
+        { type: 'helmet', name: 'Miğfer', desc: 'Dengeli savunma ve canlılık sağlar.' },
+        { type: 'shield', name: 'Kalkan', desc: 'Yüksek dayanıklılık ve koruma sağlar.' },
+        { type: 'necklace', name: 'Kolye', desc: 'Dengeli güç ve canlılık bonusu verir.' },
+        { type: 'ring', name: 'Yüzük', desc: 'Yüksek güç bonusu sağlar.' },
+        { type: 'gloves', name: 'Eldiven', desc: 'Saldırı gücü ve çeviklik sağlar.' },
+        { type: 'boots', name: 'Çizme', desc: 'Hareket kabiliyeti ve dayanıklılık sağlar.' }
+    ];
+
+    body.innerHTML = `
+        <div class="forge-list">
+            ${forgeItems.map(item => {
+                const currentLvl = u.upgrades?.[item.type] || 0;
+                const nextLvl = currentLvl + 1;
+                const cost = nextLvl * 100;
+                return `
+                    <div class="forge-card">
+                        <div class="forge-info">
+                            <h4>${item.name} Geliştirme (Mevcut Seviye: +${currentLvl})</h4>
+                            <p>${item.desc}</p>
+                            <span class="forge-cost">Maliyet: ${cost} Altın</span>
                         </div>
-                        <div class="forge-card">
-                            <div class="forge-info">
-                                <h4>Zırh Geliştirme (Seviye: +${u.upgrades?.armor || 0})</h4>
-                                <p>Savunmanızı güçlendirir.</p>
-                                <span class="forge-cost">Maliyet: ${((u.upgrades?.armor || 0) + 1) * 100} Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'armor' })">Geliştir (+1)</button>
-                        </div>
-                        <div class="forge-card">
-                            <div class="forge-info">
-                                <h4>Miğfer Geliştirme (Seviye: +${u.upgrades?.helmet || 0})</h4>
-                                <p>Kritik direnç sağlar.</p>
-                                <span class="forge-cost">Maliyet: ${((u.upgrades?.helmet || 0) + 1) * 100} Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: 'helmet' })">Geliştir (+1)</button>
-                        </div>
+                        <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemType: '${item.type}' })">
+                            +${nextLvl} Üret ve Envantere Al
+                        </button>
                     </div>
                 `;
-            } else if(activeTab === 'chat') {
+            }).join('')}
+        </div>
+    `;
+}else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
                         <div class="chat-messages" id="chatMessagesBox"></div>
