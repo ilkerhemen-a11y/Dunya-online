@@ -223,6 +223,72 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
 
+
+    // ==========================================
+    // SİLAH VE ZIRHÇI SATIN ALMA İŞLEMİ
+    // ==========================================
+    socket.on('buyShopItem', async (data) => {
+        try {
+            const user = users[socket.id];
+            if (!user) return;
+
+            // Dükkandaki Eşyaların Özellikleri ve Fiyatları
+            const shopCatalog = {
+                1: { name: 'Çelik Ejder Kılıcı', icon: '🗡️', type: 'weapon', strBonus: 12, vitBonus: 4, cost: 1000 },
+                2: { name: 'Şövalye Göğüslüğü', icon: '🛡️', type: 'armor', strBonus: 4, vitBonus: 12, cost: 1200 },
+                3: { name: 'Ejder Miğferi', icon: '🪖', type: 'helmet', strBonus: 6, vitBonus: 8, cost: 1000 },
+                4: { name: 'Ağır Çelik Kalkan', icon: '🛡', type: 'shield', strBonus: 2, vitBonus: 15, cost: 1500 }
+            };
+
+            const itemToBuy = shopCatalog[data.shopItemId];
+            if (!itemToBuy) {
+                return socket.emit('marketResult', { userData: user, message: "Geçersiz eşya!" });
+            }
+
+            // Altın Kontrolü
+            if ((user.balance || 0) < itemToBuy.cost) {
+                return socket.emit('marketResult', { 
+                    userData: user, 
+                    message: `Yetersiz altın! Bu eşyayı almak için ${itemToBuy.cost} Altın gerekiyor.` 
+                });
+            }
+
+            // Altını düş ve yeni eşyayı envantere ekle
+            user.balance -= itemToBuy.cost;
+
+            const newItem = {
+                id: `item_${Date.now()}`,
+                name: itemToBuy.name,
+                icon: itemToBuy.icon,
+                type: itemToBuy.type,
+                strBonus: itemToBuy.strBonus,
+                vitBonus: itemToBuy.vitBonus,
+                level: 0
+            };
+
+            if (!user.inventory) user.inventory = [];
+            user.inventory.push(newItem);
+
+            user.markModified('inventory');
+            await user.save();
+
+            users[socket.id] = user;
+
+            // İstemciye güncel veriyi bildir
+            socket.emit('statUpdated', user);
+            socket.emit('marketResult', { 
+                userData: user, 
+                message: `⚔️ ${newItem.name} satın alındı ve envanterinize eklendi!` 
+            });
+
+        } catch (err) {
+            console.error("Dükkan satın alma hatası:", err);
+        }
+    });
+
+
+
+    
     // ==========================================
     // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
     // ==========================================
