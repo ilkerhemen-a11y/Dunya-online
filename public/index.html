@@ -406,12 +406,14 @@
                     <div class="inventory-container">
                         <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 8px;">Envanter / Çanta</h3>
                         <div class="inventory-grid">
-                            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => `
+                            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
+                                const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+                                return `
                                 <div class="inventory-item-card">
                                     <div class="item-info-area">
                                         <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
                                         <div class="item-details">
-                                            <span class="item-name">${item.name} +${item.level || 0}</span>
+                                            <span class="item-name">${cleanName} +${item.level || 0}</span>
                                             <span class="item-bonus">Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</span>
                                         </div>
                                     </div>
@@ -420,7 +422,7 @@
                                         <button onclick="socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Sil</button>
                                     </div>
                                 </div>
-                            `).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
+                            `;}).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
                         </div>
                     </div>
                 `;
@@ -461,11 +463,12 @@
                             const currentLvl = item.level || 0;
                             const nextLvl = currentLvl + 1;
                             const cost = nextLvl * 150;
+                            const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
                             return `
                                 <div class="forge-card">
                                     <div class="item-info-area">
                                         <div class="item-icon-box">${item.icon || '📦'}</div>
-                                        <div class="forge-info"><h4>${item.name} +${currentLvl}</h4><p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p><span class="forge-cost">Maliyet: ${cost} Altın</span></div>
+                                        <div class="forge-info"><h4>${cleanName} +${currentLvl}</h4><p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p><span class="forge-cost">Maliyet: ${cost} Altın</span></div>
                                     </div>
                                     <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
                                 </div>
