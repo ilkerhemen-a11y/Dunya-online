@@ -379,10 +379,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => delete users[socket.id]);
-});
+}); // PARANTEZ KAPANDI
 
-// PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
-setInterval(async () => {
 // PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
     for (const socketId in users) {
@@ -410,8 +408,7 @@ setInterval(async () => {
         // Herhangi bir değişiklik gerçekleştiyse GÜVENLİ KAYDET ve istemciyi güncelle
         if (isUpdated) {
             try {
-                // user.save() yerine User.updateOne() kullanıyoruz. 
-                // Bu yöntem, belgenin Mongoose kilitlerine takılmadan doğrudan veritabanında güncellenmesini sağlar (ParallelSaveError'u önler).
+                // user.save() yerine User.updateOne() kullanarak ParallelSaveError hatasını önlüyoruz
                 await User.updateOne(
                     { _id: user._id }, 
                     { $set: { balance: user.balance, hp: user.hp } }
