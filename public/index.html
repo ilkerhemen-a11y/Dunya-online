@@ -251,31 +251,35 @@
     </header>
 
     <!-- Ana Oyun Çerçevesi -->
-    <div class="main-wrapper" id="mainApp" style="display: none;">
+    <!-- Ana Oyun Çerçevesi -->
+<div class="main-wrapper" id="mainApp" style="display: none;">
+    
+    <nav class="sidebar-menu">
+        <div class="menu-category-title">İmparatorluk</div>
+        <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
+        <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
         
-        <nav class="sidebar-menu">
-            <div class="menu-category-title">İmparatorluk</div>
-            <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
-            <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
-            <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
-            <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
-            <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-            <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
-            <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
-            <button class="menu-btn" onclick="switchTab('shop')">⚖️ Şehir Pazarı</button>
-            <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
-            
-            <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
-        </nav>
+        <!-- İki pazarı teke indirdik ve burada bıraktık. Sadece 'shop' kullandım çünkü javascript'te shop üzerinden gittik -->
+        <button class="menu-btn" onclick="switchTab('shop')">⚖️ Şehir Pazarı</button> 
+        
+        <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
+        <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
+        <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
+        
+        <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
+        <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
+        
+        <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
+    </nav>
 
-        <main class="content-panel">
-            <div class="panel-title">
-                <span id="panelHeaderTitle">Genel Durum & Karakter</span>
-                <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
-            </div>
-            <div id="panelContentBody"></div>
-        </main>
-    </div>
+    <main class="content-panel">
+        <div class="panel-title">
+            <span id="panelHeaderTitle">Genel Durum & Karakter</span>
+            <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
+        </div>
+        <div id="panelContentBody"></div>
+    </main>
+</div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -705,7 +709,7 @@
         }
 
         // Socket Dinleyicileri (Anlık Veri Güncellemeleri)
-        socket.on('statUpdated', (updatedUser) => {
+                socket.on('statUpdated', (updatedUser) => {
             currentUserData = updatedUser;
             updateHeader(updatedUser);
             if(activeTab === 'overview') renderPanelContent();
@@ -716,12 +720,13 @@
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
+            if(res.success) playSound('success');
             const log = document.getElementById('questLogResult');
             if(log) log.innerText = res.message;
-            if(activeTab === 'overview') renderPanelContent();
+            if(activeTab === 'overview' || activeTab === 'work') renderPanelContent();
         });
 
-                socket.on('shopResult', (res) => {
+        socket.on('shopResult', (res) => {
             if (res.success) playSound('success');
             const log = document.getElementById('shopLogResult');
             if (log) {
@@ -735,8 +740,14 @@
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
-            alert(res.message);
-            if(activeTab === 'timar') renderPanelContent();
+            // Alert yerine HTML içinde bir ID arayalım, yoksa geçici olarak alert kullansın
+            const log = document.getElementById('marketLogResult');
+            if(log) {
+                log.innerText = res.message;
+            } else {
+                alert(res.message); 
+            }
+            if(activeTab === 'market' || activeTab === 'timar') renderPanelContent();
         });
 
         socket.on('forgeResult', (res) => {
@@ -744,7 +755,14 @@
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
-            alert(res.message);
+            if(res.success) playSound('success');
+            
+            const log = document.getElementById('forgeLogResult');
+            if(log) {
+                log.innerText = res.message;
+            } else {
+                alert(res.message); 
+            }
             if(activeTab === 'blacksmith') renderPanelContent();
         });
 
@@ -761,12 +779,15 @@
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
+            if(res.success) playSound('success');
             const log = document.getElementById('dungeonLogResult');
             if(log) log.innerText = res.message;
-            if(activeTab === 'overview') renderPanelContent();
+            // Zindandaysa Zindan ekranını, Genel Durumdaysa Genel Durum'u yenile
+            if(activeTab === 'overview' || activeTab === 'dungeon') renderPanelContent();
         });
 
         function logout() {
+            playSound('click');
             socket.emit('logout');
         }
 
@@ -779,6 +800,7 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
-    </script>
+   </script>
 </body>
 </html>
+        
