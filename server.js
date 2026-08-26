@@ -266,18 +266,16 @@ io.on('connection', (socket) => {
         if (data.estateId === 2) cost = 2000;
         if (data.estateId === 3) cost = 7500;
 
-        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
-        if (user.balance < cost) return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { success: false, userData: user, message: "Bu mülke zaten sahipsiniz!" });
+        if (user.balance < cost) return socket.emit('marketResult', { success: false, userData: user, message: "Yeterli altınınız yok!" });
 
         user.balance -= cost;
         user.estates.push(data.estateId);
         await user.save();
-        socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
+        socket.emit('marketResult', { success: true, userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
     });
 
-    // ==========================================
-    // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
-    // ==========================================
+    // DEMİRCİ (+ BASMA)
     socket.on('upgradeItem', async (data) => {
         try {
             const activeUser = users[socket.id];
@@ -350,21 +348,23 @@ io.on('connection', (socket) => {
             user.hp = user.vit * 20;
             await user.save();
             socket.emit('statUpdated', user);
-            socket.emit('marketResult', { userData: user, message: "Canınız yenilendi!" });
+            socket.emit('marketResult', { success: true, userData: user, message: "Canınız yenilendi!" });
+        } else if (user) {
+            socket.emit('marketResult', { success: false, userData: user, message: "Yeterli altınınız yok!" });
         }
     });
 
-    // Sefer Limiti Yenileme İksiri (50 Altın)
+    // Sefer Limiti Yenileme İksiri
     socket.on('refillSefer', async () => {
         const user = users[socket.id];
         if (!user) return;
 
         if (user.seferLimiti >= MAX_SEFER_LIMITI) {
-            return socket.emit('marketResult', { userData: user, message: "Sefer hakkınız zaten maksimum seviyede!" });
+            return socket.emit('marketResult', { success: false, userData: user, message: "Sefer hakkınız zaten maksimum seviyede!" });
         }
 
         if (user.balance < 50) {
-            return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+            return socket.emit('marketResult', { success: false, userData: user, message: "Yeterli altınınız yok!" });
         }
 
         user.balance -= 50;
@@ -373,7 +373,7 @@ io.on('connection', (socket) => {
         await user.save();
 
         socket.emit('statUpdated', user);
-        socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
+        socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
     });
 
     // Ekipman Kuşanma/Çıkarma
@@ -392,47 +392,6 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-
-    // PAZARDA SATILACAK EŞYALAR LİSTESİ
-    const shopItems = [
-        { id: 101, name: "Kısa Kılıç", icon: "🗡️", type: "weapon", strBonus: 5, vitBonus: 0, price: 150 },
-        { id: 102, name: "Çelik Zırh", icon: "🛡️", type: "armor", strBonus: 2, vitBonus: 8, price: 300 },
-        { id: 103, name: "Sihirli Yüzük", icon: "💍", type: "ring", strBonus: 3, vitBonus: 3, price: 500 },
-        { id: 104, name: "Deriden Çizme", icon: "👢", type: "boots", strBonus: 1, vitBonus: 2, price: 100 },
-        { id: 105, name: "Şövalye Kalkanı", icon: "🛡️", type: "shield", strBonus: 0, vitBonus: 10, price: 450 }
-    ];
-
-    // EŞYA SATIN ALMA İŞLEMİ
-    socket.on('buyItem', async (itemId) => {
-        if (!loggedInUser) return;
-        let user = await User.findById(loggedInUser._id);
-        
-        const item = shopItems.find(i => i.id === itemId);
-        if (!item) {
-            return socket.emit('shopResult', { success: false, message: 'Bu eşya pazarda bulunamadı!' });
-        }
-
-        if (user.balance < item.price) {
-            return socket.emit('shopResult', { success: false, message: 'Yeterli altınınız yok!' });
-        }
-
-        // Altını düş ve eşyayı envantere ekle
-        user.balance -= item.price;
-        
-        // Eşyanın kopyasını oluştur (Fiyat bilgisini envanterde tutmaya gerek yok)
-        const itemToAdd = { ...item };
-        delete itemToAdd.price; 
-        
-        user.inventory.push(itemToAdd);
-
-        await user.save();
-        loggedInUser = user;
-        socket.emit('userData', user); // Üstteki altını ve envanteri anında güncellemek için
-        socket.emit('shopResult', { success: true, message: `${item.name} başarıyla satın alındı ve çantana eklendi!` });
-    });
-
-    
-    // Eşya Silme İşlemi
     socket.on('deleteItem', async (data) => {
         const user = users[socket.id];
         if (!user || data.itemIndex === undefined || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
