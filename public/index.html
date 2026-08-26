@@ -246,6 +246,7 @@
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
+            <button class="menu-btn" onclick="switchTab('arena')">🏟️ PvP Arena</button>
             <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
@@ -346,6 +347,7 @@
                 'market': 'Pazar Yeri ve İksirler',
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
+                'arena': 'Kolosseum / PvP Arena',
                 'chat': 'Diyar Meclisi (Sohbet)',
                 'dungeon': 'Zindan Adası'
             };
@@ -378,6 +380,7 @@
                             <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${totalVit * 20}</span></div>
                             <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
                             <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
+                            <div class="stat-row"><span>Onur Puanı:</span><span>${u.honor || 0} 🌟</span></div>
                             <div class="stat-row"><span>Güç (STR):</span><span>${totalStr} ${bonusStr > 0 ? `(+${bonusStr})` : ''}</span></div>
                             <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${totalVit} ${bonusVit > 0 ? `(+${bonusVit})` : ''}</span></div>
                             <div class="stat-row"><span>Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
@@ -477,6 +480,21 @@
                     </div>
                     <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
                 `;
+            } else if(activeTab === 'arena') {
+                body.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
+                        <h3 style="color: #f3cf7a; font-size: 14px;">Meydan Okuma Arenası (Onur Puanın: ${u.honor || 0} 🌟)</h3>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Rakiplerini alt et, adını şanlı tarihe yazdır!</p>
+                    </div>
+                    <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+                        <button class="btn-quest" onclick="socket.emit('getArenaOpponents')">🔄 Rakip Listesini Yenile</button>
+                    </div>
+                    <div id="arenaOpponentsList" class="quest-list">
+                        <p style="color:#9c8e7b; font-size:12px; text-align:center;">Rakipleri görmek için yukarıdaki butona tıklayın.</p>
+                    </div>
+                    <div id="arenaLogResult" class="quest-log" style="margin-top: 15px;">Arena savaş raporları burada görünecektir...</div>
+                `;
+                socket.emit('getArenaOpponents');
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
@@ -512,6 +530,32 @@
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
         socket.on('forgeResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('forgeLogResult').innerText = res.message; if(activeTab === 'blacksmith') renderPanelContent(); });
         socket.on('dungeonResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('dungeonLogResult').innerText = res.message; });
+        
+        socket.on('arenaOpponentsList', (opponents) => {
+            const listEl = document.getElementById('arenaOpponentsList');
+            if (!listEl) return;
+            if (!opponents || opponents.length === 0) {
+                listEl.innerHTML = `<p style="color:#9c8e7b; font-size:12px; text-align:center;">Şu an aktif başka rakip bulunamadı.</p>`;
+                return;
+            }
+            listEl.innerHTML = opponents.map(op => `
+                <div class="quest-card">
+                    <div class="quest-info">
+                        <h4>⚔️ ${op.username} (Seviye ${op.level || 1})</h4>
+                        <p>Onur: ${op.honor || 0} 🌟</p>
+                    </div>
+                    <button class="btn-quest" style="background: #ef4444; color: white; border-color: #f87171;" onclick="socket.emit('attackPlayer', { defenderId: '${op._id}' })">Saldır</button>
+                </div>
+            `).join('');
+        });
+
+        socket.on('arenaResult', (res) => {
+            if (res.userData) updateHeader(res.userData);
+            const logEl = document.getElementById('arenaLogResult');
+            if (logEl) logEl.innerText = res.message;
+            socket.emit('getArenaOpponents');
+        });
+
         socket.on('receiveChatMessage', (data) => {
             const box = document.getElementById('chatMessagesBox');
             if(box) { box.innerHTML += `<div class="chat-msg"><span>${data.username}:</span> ${data.message}</div>`; box.scrollTop = box.scrollHeight; }
