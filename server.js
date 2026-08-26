@@ -392,6 +392,46 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
+
+    // PAZARDA SATILACAK EŞYALAR LİSTESİ
+    const shopItems = [
+        { id: 101, name: "Kısa Kılıç", icon: "🗡️", type: "weapon", strBonus: 5, vitBonus: 0, price: 150 },
+        { id: 102, name: "Çelik Zırh", icon: "🛡️", type: "armor", strBonus: 2, vitBonus: 8, price: 300 },
+        { id: 103, name: "Sihirli Yüzük", icon: "💍", type: "ring", strBonus: 3, vitBonus: 3, price: 500 },
+        { id: 104, name: "Deriden Çizme", icon: "👢", type: "boots", strBonus: 1, vitBonus: 2, price: 100 },
+        { id: 105, name: "Şövalye Kalkanı", icon: "🛡️", type: "shield", strBonus: 0, vitBonus: 10, price: 450 }
+    ];
+
+    // EŞYA SATIN ALMA İŞLEMİ
+    socket.on('buyItem', async (itemId) => {
+        if (!loggedInUser) return;
+        let user = await User.findById(loggedInUser._id);
+        
+        const item = shopItems.find(i => i.id === itemId);
+        if (!item) {
+            return socket.emit('shopResult', { success: false, message: 'Bu eşya pazarda bulunamadı!' });
+        }
+
+        if (user.balance < item.price) {
+            return socket.emit('shopResult', { success: false, message: 'Yeterli altınınız yok!' });
+        }
+
+        // Altını düş ve eşyayı envantere ekle
+        user.balance -= item.price;
+        
+        // Eşyanın kopyasını oluştur (Fiyat bilgisini envanterde tutmaya gerek yok)
+        const itemToAdd = { ...item };
+        delete itemToAdd.price; 
+        
+        user.inventory.push(itemToAdd);
+
+        await user.save();
+        loggedInUser = user;
+        socket.emit('userData', user); // Üstteki altını ve envanteri anında güncellemek için
+        socket.emit('shopResult', { success: true, message: `${item.name} başarıyla satın alındı ve çantana eklendi!` });
+    });
+
+    
     // Eşya Silme İşlemi
     socket.on('deleteItem', async (data) => {
         const user = users[socket.id];
