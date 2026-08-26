@@ -481,10 +481,11 @@
                     <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'arena') {
+                const arenaLimit = u.arenaLimit !== undefined ? u.arenaLimit : 5;
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
                         <h3 style="color: #f3cf7a; font-size: 14px;">Meydan Okuma Arenası (Onur Puanın: ${u.honor || 0} 🌟)</h3>
-                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Rakiplerini alt et, adını şanlı tarihe yazdır!</p>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Günlük Arena Hakkı: <span style="color: #22c55e; font-weight: bold;">${arenaLimit}/5</span> | Rakiplerini alt et, adını şanlı tarihe yazdır!</p>
                     </div>
                     <div style="display: flex; justify-content: center; margin-bottom: 12px;">
                         <button class="btn-quest" onclick="socket.emit('getArenaOpponents')">🔄 Rakip Listesini Yenile</button>
@@ -553,7 +554,7 @@
             if (res.userData) updateHeader(res.userData);
             const logEl = document.getElementById('arenaLogResult');
             if (logEl) logEl.innerText = res.message;
-            socket.emit('getArenaOpponents');
+            if (activeTab === 'arena') renderPanelContent();
         });
 
         socket.on('receiveChatMessage', (data) => {
