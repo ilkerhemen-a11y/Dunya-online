@@ -679,6 +679,97 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
+
+
+
+// --- 1. Karakter ve Düşman İstatistikleri ---
+// (Bu veriler normalde veritabanından veya oyuncunun envanterinden çekilecektir)
+let playerState = {
+    name: "Kahraman",
+    hp: 100,
+    maxHp: 100,
+    attack: 25,
+    defense: 10,
+    isDefending: false,
+    potions: 3,          // Zindanda kullanılabilecek can iksiri sayısı
+    potionHeal: 40       // İksirin yenilediği sağlık miktarı
+};
+
+let enemyState = {
+    name: "Zindan İskeleti",
+    hp: 80,
+    maxHp: 80,
+    attack: 22,
+    defense: 8
+};
+
+// --- 2. Hasar Hesaplama Formülü ---
+function calculateDamage(attackerAttack, defenderDefense, defenderIsDefending) {
+    // Vuruşlarda %20'lik bir dalgalanma (RNG) yaratıyoruz (0.8 ile 1.2 çarpanı arası)
+    let variance = (Math.random() * 0.4) + 0.8; 
+    let baseDamage = attackerAttack * variance;
+
+    // Eğer savunan taraf "Savunma" pozisyonundaysa defansı 2 kat etkili olur
+    let effectiveDefense = defenderIsDefending ? (defenderDefense * 2) : defenderDefense;
+
+    // Net hasarı hesapla (En az 1 hasar vurulmasını garantiye alıyoruz)
+    let finalDamage = Math.floor(baseDamage - effectiveDefense);
+    return Math.max(1, finalDamage); 
+}
+
+// --- 3. Savaş Turu (Turn) Fonksiyonu ---
+// Bu fonksiyon oyuncu her butona bastığında (Saldır, Savun, İksir) tetiklenecek
+function playTurn(actionType) {
+    let combatLog = []; // Ekrana yazdıracağımız savaş metinleri
+    playerState.isDefending = false; // Her turun başında oyuncunun savunma durumunu sıfırla
+
+    // -- OYUNCU HAMLESİ --
+    if (actionType === 'attack') {
+        let dmg = calculateDamage(playerState.attack, enemyState.defense, false);
+        enemyState.hp -= dmg;
+        combatLog.push(`${playerState.name}, ${enemyState.name} hedefine ${dmg} hasar vurdu!`);
+    } 
+    else if (actionType === 'defend') {
+        playerState.isDefending = true;
+        combatLog.push(`${playerState.name} kalkanını kaldırdı ve savunma pozisyonuna geçti.`);
+    } 
+    else if (actionType === 'potion') {
+        if (playerState.potions > 0) {
+            playerState.hp = Math.min(playerState.maxHp, playerState.hp + playerState.potionHeal);
+            playerState.potions--;
+            combatLog.push(`${playerState.name} iksir içti. Kalan iksir: ${playerState.potions}`);
+        } else {
+            combatLog.push(`İksiriniz kalmadı! Turunuzu boşa harcadınız.`);
+        }
+    }
+
+    // Düşmanın ölüp ölmediğini kontrol et
+    if (enemyState.hp <= 0) {
+        enemyState.hp = 0;
+        combatLog.push(`${enemyState.name} yenildi! Ganimetleri topladınız.`);
+        return { log: combatLog, status: 'victory' };
+    }
+
+    // -- DÜŞMAN HAMLESİ --
+    // Düşman şimdilik sadece saldırıyor (İleride boss'lar için özel skiller eklenebilir)
+    let enemyDmg = calculateDamage(enemyState.attack, playerState.defense, playerState.isDefending);
+    playerState.hp -= enemyDmg;
+    combatLog.push(`${enemyState.name} saldırdı ve size ${enemyDmg} hasar verdi!`);
+
+    // Oyuncunun ölüp ölmediğini kontrol et
+    if (playerState.hp <= 0) {
+        playerState.hp = 0;
+        combatLog.push(`Öldünüz... Zindan maceranız burada sona erdi.`);
+        return { log: combatLog, status: 'defeat' };
+    }
+
+    // Savaş devam ediyor
+    return { log: combatLog, status: 'ongoing' };
+        }
+
+
+
+        
     </script>
 </body>
 </html>
