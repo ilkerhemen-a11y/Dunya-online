@@ -39,6 +39,7 @@ const userSchema = new mongoose.Schema({
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
     hp: { type: Number, default: 100 },
+    honor: { type: Number, default: 0 },
     seferLimiti: { type: Number, default: 20 },
     seferNextRefill: { type: Number, default: null },
     estates: { type: [Number], default: [] },
@@ -139,6 +140,67 @@ io.on('connection', (socket) => {
         socket.emit('dungeonResult', { success: true, userData: user, message: "Zindan katı temizlendi!" });
     });
 
+    socket.on('getArenaOpponents', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+        try {
+            const opponents = await User.find({ _id: { $ne: user._id } }).select('username level str vit equipped honor').limit(5);
+            socket.emit('arenaOpponentsList', opponents);
+        } catch (err) {
+            socket.emit('arenaResult', { success: false, message: "Rakipler yüklenemedi." });
+        }
+    });
+
+    socket.on('attackPlayer', async (data) => {
+        const attacker = users[socket.id];
+        if (!attacker) return;
+
+        try {
+            const defender = await User.findById(data.defenderId);
+            if (!defender) return socket.emit('arenaResult', { success: false, message: "Rakip bulunamadı!" });
+
+            const calculatePower = (u) => {
+                let strB = u.str || 5, vitB = u.vit || 5;
+                if (u.equipped) {
+                    Object.values(u.equipped).forEach(item => {
+                        if (item) { strB += (item.strBonus || 0); vitB += (item.vitBonus || 0); }
+                    });
+                }
+                return (strB * 2) + vitB;
+            };
+
+            const atkPower = calculatePower(attacker);
+            const defPower = calculatePower(defender);
+
+            const atkRoll = atkPower + (Math.random() * 20);
+            const defRoll = defPower + (Math.random() * 20);
+
+            if (atkRoll >= defRoll) {
+                const goldReward = Math.floor(Math.random() * 50) + 30;
+                attacker.balance += goldReward;
+                attacker.honor = (attacker.honor || 0) + 15;
+                await attacker.save();
+                
+                socket.emit('arenaResult', { 
+                    success: true, 
+                    userData: attacker, 
+                    message: `🏆 Zafer! ${defender.username} adlı gladyatörü alt ettin. Ödül: +${goldReward} Altın, +15 Onur!` 
+                });
+            } else {
+                attacker.honor = Math.max(0, (attacker.honor || 0) - 5);
+                await attacker.save();
+
+                socket.emit('arenaResult', { 
+                    success: false, 
+                    userData: attacker, 
+                    message: `💀 Mağlubiyet! ${defender.username} direncini kırdı. 5 Onur kaybettin.` 
+                });
+            }
+        } catch (err) {
+            socket.emit('arenaResult', { success: false, message: "Savaş sırasında bir hata oluştu." });
+        }
+    });
+
     socket.on('usePotion', async () => {
         const user = users[socket.id];
         if (!user || user.balance < 50) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın!" });
@@ -160,7 +222,7 @@ io.on('connection', (socket) => {
         if (!user || user.balance < 300) return socket.emit('marketResult', { success: false, userData: user, message: "Sandık için 300 altın gerekli!" });
         
         user.balance -= 300;
-        const randomLevel = Math.floor(Math.random() * 3); // 0, 1 veya 2
+        const randomLevel = Math.floor(Math.random() * 3);
         
         const baseItems = [
             { id: 'item_sword', name: 'Savaş Baltası', icon: '🪓', type: 'weapon', baseStr: 7, baseVit: 2 },
@@ -206,7 +268,7 @@ io.on('connection', (socket) => {
         if (user.balance < cost) return socket.emit('forgeResult', { success: false, userData: user, message: "Yetersiz altın!" });
 
         user.balance -= cost;
-        item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, ''); // Adındaki eski artıkları temizle
+        item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
         item.level = nextLvl;
         item.strBonus = (item.strBonus || 0) + 2;
         item.vitBonus = (item.vitBonus || 0) + 2;
