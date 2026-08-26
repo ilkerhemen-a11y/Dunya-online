@@ -2,462 +2,243 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server);
 
-app.use(express.static(__dirname + '/public'));
+// Statik dosyalar için (Eğer HTML aynı dizindeyse veya public klasöründeyse)
+app.use(express.static('public'));
 
-// Sabitler ve Yardımcı Fonksiyonlar
-const MAX_SEFER_LIMITI = 20;
-const REFILL_INTERVAL = 30 * 60 * 1000; // 30 Dakika (milisaniye)
+// MongoDB Bağlantısı (Kendi bağlantı adresini buraya yazabilirsin)
+mongoose.connect('mongodb://127.0.0.1:27017/taht_savasi', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => console.log('MongoDB bağlantısı başarılı!')).catch(err => console.log('DB Bağlantı Hatası:', err));
 
-function checkSeferRefill(user) {
-    const now = Date.now();
-    if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
-        user.seferLimiti = MAX_SEFER_LIMITI;
-        user.seferNextRefill = null;
-        return true;
-    }
-    return false;
-}
-
-// 1. MongoDB Bağlantısı
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB bağlantısı başarılı!'))
-    .catch(err => console.error('MongoDB bağlantı hatası:', err));
-
-// 2. Kullanıcı Veritabanı Şeması
+// Kullanıcı Şeması
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
-    balance: { type: Number, default: 100 },
+    balance: { type: Number, default: 1000 },
     rubies: { type: Number, default: 10 },
+    hp: { type: Number, default: 100 },
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
-    hp: { type: Number, default: 100 },
     seferLimiti: { type: Number, default: 20 },
-    seferNextRefill: { type: Number, default: null },
-    estates: { type: [Number], default: [] },
-    upgrades: { weapon: { type: Number, default: 0 }, armor: { type: Number, default: 0 }, helmet: { type: Number, default: 0 } },
-    equipped: { 
-        helmet: { type: Object, default: null }, 
-        necklace: { type: Object, default: null }, 
-        armor: { type: Object, default: null }, 
-        weapon: { type: Object, default: null }, 
-        shield: { type: Object, default: null }, 
-        ring: { type: Object, default: null }, 
-        gloves: { type: Object, default: null }, 
-        boots: { type: Object, default: null } 
+    inventory: { type: Array, default: [] },
+    equipped: {
+        type: Object,
+        default: { helmet: null, necklace: null, armor: null, weapon: null, shield: null, ring: null, gloves: null, boots: null }
     },
-    inventory: { type: Array, default: [] }
+    estates: { type: Array, default: [] }
 });
 
 const User = mongoose.model('User', userSchema);
-const users = {}; 
 
-const getDefaultInventory = () => [
-    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0 },
-    { id: 'item_2', name: 'Deri Zırh', icon: 'https://i.hizliresim.com/hnneaa5l.jpg', type: 'armor', strBonus: 0, vitBonus: 5, level: 0 },
-    { id: 'item_3', name: 'Bakır Kolye', icon: '📿', type: 'necklace', strBonus: 1, vitBonus: 2, level: 0 }
+// BOSS'tan Düşebilecek Eşya Havuzu
+const bossItemPool = [
+    { name: "Ejderha Miğferi", icon: "🪖", strBonus: 6, vitBonus: 4, level: 0 },
+    { name: "Alev Kılıcı", icon: "🗡️", strBonus: 12, vitBonus: 3, level: 0 },
+    { name: "Kraliyet Zırhı", icon: "🛡️", strBonus: 5, vitBonus: 15, level: 0 },
+    { name: "Kadim Kolye", icon: "📿", strBonus: 7, vitBonus: 7, level: 0 },
+    { name: "Ejderha Çizmesi", icon: "👢", strBonus: 4, vitBonus: 6, level: 0 },
+    { name: "Titan Eldiveni", icon: "🧤", strBonus: 8, vitBonus: 5, level: 0 }
 ];
 
 io.on('connection', (socket) => {
-    console.log('Yeni bir gladyatör bağlandı:', socket.id);
+    console.log('Bir gezgin bağlandı:', socket.id);
 
-    // Kayıt Olma İşlemi
+    // Kayıt Ol
     socket.on('userRegister', async (data) => {
-        const { username, password } = data;
-        if (!username || !password || username.trim() === '' || password.trim() === '') {
-            return socket.emit('authResult', { success: false, message: "Kullanıcı adı ve şifre boş olamaz!" });
-        }
-
         try {
-            const existingUser = await User.findOne({ username });
-            if (existingUser) {
-                return socket.emit('authResult', { success: false, message: "Bu isimde bir gladyatör zaten var!" });
+            const existing = await User.findOne({ username: data.username });
+            if (existing) {
+                return socket.emit('authResult', { success: false, message: 'Bu gladyatör adı zaten alınmış!' });
             }
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const newUser = new User({ 
-                username: username, 
-                password: hashedPassword,
-                inventory: getDefaultInventory() 
+            const newUser = new User({
+                username: data.username,
+                password: data.password,
+                hp: 100
             });
             await newUser.save();
-            
-            socket.emit('authResult', { success: true, message: "Kayıt başarılı! Şimdi giriş yapabilirsiniz." });
-        } catch (err) { 
-            console.error("Kayıt hatası:", err); 
-            socket.emit('authResult', { success: false, message: "Sunucu hatası oluştu." });
+            socket.emit('authResult', { success: true, message: 'Kayıt başarılı! Şimdi giriş yapabilirsin.' });
+        } catch (err) {
+            socket.emit('authResult', { success: false, message: 'Kayıt sırasında bir hata oluştu.' });
         }
     });
 
-    // Giriş Yapma İşlemi
+    // Giriş Yap
     socket.on('userLogin', async (data) => {
-        const { username, password } = data;
         try {
-            const dbUser = await User.findOne({ username });
-            if (!dbUser) {
-                return socket.emit('authResult', { success: false, message: "Böyle bir kullanıcı bulunamadı." });
+            const user = await User.findOne({ username: data.username, password: data.password });
+            if (!user) {
+                return socket.emit('authResult', { success: false, message: 'Hatalı kullanıcı adı veya şifre!' });
             }
-
-            const isPasswordValid = await bcrypt.compare(password, dbUser.password);
-            if (!isPasswordValid) {
-                return socket.emit('authResult', { success: false, message: "Hatalı şifre!" });
-            }
-
-            if (checkSeferRefill(dbUser)) {
-                await dbUser.save();
-            }
-
-            users[socket.id] = dbUser;
-            socket.emit('userData', dbUser);
-        } catch (err) { 
-            console.error("Giriş hatası:", err); 
-            socket.emit('authResult', { success: false, message: "Giriş yapılırken bir hata oluştu." });
+            socket.userId = user._id;
+            socket.emit('userData', user);
+        } catch (err) {
+            socket.emit('authResult', { success: false, message: 'Giriş yapılırken hata oluştu.' });
         }
     });
 
-    // Çıkış Yapma
+    // Çıkış Yap
     socket.on('logout', () => {
-        if (users[socket.id]) {
-            console.log('Gladyatör çıkış yaptı:', users[socket.id].username);
-            delete users[socket.id];
-            socket.emit('logoutSuccess');
-            socket.disconnect();
-        }
+        socket.userId = null;
+        socket.emit('logoutSuccess');
     });
 
-    // Stat Puanı Dağıtımı
-    socket.on('distributeStat', async (statName) => {
-        const user = users[socket.id];
-        if (user && user.statPoints > 0) {
-            if (statName === 'str') user.str += 1;
-            if (statName === 'vit') { user.vit += 1; user.hp += 20; }
-            user.statPoints -= 1;
-            await user.save();
-            socket.emit('statUpdated', user);
+    // Stat Dağıtımı
+    socket.on('distributeStat', async (statType) => {
+        if (!socket.userId) return;
+        const user = await User.findById(socket.userId);
+        if (!user || user.statPoints <= 0) return;
+
+        user.statPoints -= 1;
+        if (statType === 'str') user.str += 1;
+        if (statType === 'vit') {
+            user.vit += 1;
+            user.hp = user.vit * 20; // Canı tazele
         }
+        await user.save();
+        socket.emit('statUpdated', user);
     });
 
-    // Görev (Sefer) Sistemi
-    socket.on('doQuest', async (data) => {
-        const user = users[socket.id];
+    // Zindan & Boss Savaşları
+    socket.on('doDungeon', async (data) => {
+        if (!socket.userId) return;
+        const user = await User.findById(socket.userId);
         if (!user) return;
 
-        checkSeferRefill(user);
+        const { floor } = data;
+        let goldReward = 0;
+        let expReward = 0;
+        let hpCost = 0;
+        let isBoss = (floor === 4);
 
-        if (user.hp <= 0) {
-            return socket.emit('questResult', { success: false, message: "Canınız yetersiz!" });
+        if (floor === 1) { goldReward = 100; expReward = 40; hpCost = 20; }
+        else if (floor === 2) { goldReward = 250; expReward = 90; hpCost = 45; }
+        else if (floor === 3) { goldReward = 600; expReward = 200; hpCost = 90; }
+        else if (floor === 4) { goldReward = 1500; expReward = 500; hpCost = 120; }
+
+        const maxHp = (user.vit || 5) * 20;
+        if (user.hp === undefined) user.hp = maxHp;
+
+        if (user.hp < hpCost) {
+            return socket.emit('dungeonResult', { success: false, message: 'Canınız bu zindan katı için yetersiz! İksir ile iyileşin.', userData: user });
         }
 
-        if (user.seferLimiti <= 0) {
-            const kalanDakika = Math.ceil((user.seferNextRefill - Date.now()) / (1000 * 60));
-            return socket.emit('questResult', { 
-                success: false, 
-                message: `Sefer hakkınız bitti! Yenilenmeye kalan süre: ${kalanDakika} dakika.` 
-            });
+        user.hp -= hpCost;
+        user.balance += goldReward;
+        user.exp += expReward;
+
+        let dropMessage = "";
+        if (isBoss) {
+            // Havuzdan rastgele 1 eşya seç ve envantere ekle
+            const randomIndex = Math.floor(Math.random() * bossItemPool.length);
+            const droppedItem = { ...bossItemPool[randomIndex] };
+            
+            if (!user.inventory) user.inventory = [];
+            user.inventory.push(droppedItem);
+            dropMessage = ` | Ganimet: ${droppedItem.icon} ${droppedItem.name} envanterine düştü!`;
         }
 
-        user.seferLimiti -= 1;
-
-        if (user.seferLimiti === 0) {
-            user.seferNextRefill = Date.now() + REFILL_INTERVAL;
-        }
-
-        const questId = data.questId || 1;
-        let goldGain = 0, expGain = 0, hpLoss = 0, questName = "";
-
-        if (questId === 1) { goldGain = 45; expGain = 20; hpLoss = 15; questName = "Karanlık Orman"; }
-        else if (questId === 2) { goldGain = 120; expGain = 55; hpLoss = 35; questName = "Unutulmuş Tapınak"; }
-        else if (questId === 3) { goldGain = 300; expGain = 140; hpLoss = 70; questName = "Ejderha Dağı"; }
-
-        user.hp = Math.max(0, user.hp - hpLoss);
-        user.balance += goldGain;
-        user.exp += expGain;
-
-        let maxExp = user.level * 100;
-        let levelUpMsg = "";
+        // Seviye Atlama Kontrolü
+        const maxExp = (user.level || 1) * 100;
         if (user.exp >= maxExp) {
-            user.level += 1;
             user.exp -= maxExp;
+            user.level += 1;
             user.statPoints += 3;
             user.hp = user.vit * 20;
-            levelUpMsg = " SEVİYE ATLADIN!";
         }
 
         await user.save();
-        socket.emit('questResult', { 
-            success: true, 
-            userData: user, 
-            message: `${questName} seferi başarılı!${levelUpMsg}`, 
-            goldEarned: goldGain, 
-            expEarned: expGain, 
-            hpLost: hpLoss 
+        socket.emit('dungeonResult', {
+            success: true,
+            message: `Zafer! Kat ${floor} temizlendi! Kazanım: +${goldReward} Altın, +${expReward} Tecrübe${dropMessage}`,
+            userData: user
         });
     });
 
-    // Zindan Katları Sistemi
-    socket.on('doDungeon', async (data) => {
-        try {
-            const user = users[socket.id];
-            if (!user) return;
+    // Eşya Kuşanma
+    socket.on('equipItem', async (data) => {
+        if (!socket.userId) return;
+        const user = await User.findById(socket.userId);
+        if (!user || !user.inventory[data.itemIndex]) return;
 
-            const floors = {
-                1: { hpCost: 20, gold: 100, exp: 40, name: "İskelet Savaşçı" },
-                2: { hpCost: 45, gold: 250, exp: 90, name: "Zombi Muhafız" },
-                3: { hpCost: 90, gold: 600, exp: 200, name: "Ork Şampiyonu" },
-                4: { hpCost: 150, gold: 1500, exp: 500, rubies: 2, name: "Zindan Ejderhası" }
-            };
+        const item = user.inventory[data.itemIndex];
+        // Basit slot eşleştirme mantığı
+        let slot = 'weapon';
+        if (item.icon === '🪖') slot = 'helmet';
+        else if (item.icon === '📿') slot = 'necklace';
+        else if (item.icon === '🛡️') slot = 'armor';
+        else if (item.icon === '🛡') slot = 'shield';
+        else if (item.icon === '💍') slot = 'ring';
+        else if (item.icon === '🧤') slot = 'gloves';
+        else if (item.icon === '👢') slot = 'boots';
 
-            const dungeon = floors[data.floor];
-            if (!dungeon) return;
-
-            const maxHp = (user.vit || 5) * 20;
-            if (user.hp === undefined) user.hp = maxHp;
-
-            if (user.hp < dungeon.hpCost) {
-                return socket.emit('dungeonResult', { 
-                    success: false, 
-                    message: `Canınız yetersiz! Zindana girmek için en az ${dungeon.hpCost} HP'ye ihtiyacınız var.`, 
-                    userData: user 
-                });
-            }
-
-            user.hp -= dungeon.hpCost;
-            user.balance += dungeon.gold;
-            user.exp += dungeon.exp;
-            if (dungeon.rubies) user.rubies += dungeon.rubies;
-
-            const maxExp = user.level * 100;
-            if (user.exp >= maxExp) {
-                user.level += 1;
-                user.exp -= maxExp;
-                user.statPoints = (user.statPoints || 0) + 3;
-            }
-
-            await user.save();
-
-            socket.emit('dungeonResult', {
-                success: true,
-                message: `Zafer! ${dungeon.name}'nı alt ettin! Kazanç: +${dungeon.gold} Altın, +${dungeon.exp} Tecrübe.`,
-                userData: user
-            });
-
-        } catch (err) {
-            console.error("Zindan hatası:", err);
+        // Eskisini çantaya geri koy, yenisini tak
+        if (user.equipped[slot]) {
+            user.inventory.push(user.equipped[slot]);
         }
-    });
+        user.equipped[slot] = item;
+        user.inventory.splice(data.itemIndex, 1);
 
-    // Tımar Satın Alma
-    socket.on('buyEstate', async (data) => {
-        const user = users[socket.id];
-        if (!user) return;
-        
-        let cost = 0;
-        if (data.estateId === 1) cost = 500;
-        if (data.estateId === 2) cost = 2000;
-        if (data.estateId === 3) cost = 7500;
-
-        if (user.estates.includes(data.estateId)) return socket.emit('marketResult', { userData: user, message: "Bu mülke zaten sahipsiniz!" });
-        if (user.balance < cost) return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
-
-        user.balance -= cost;
-        user.estates.push(data.estateId);
         await user.save();
-        socket.emit('marketResult', { userData: user, message: "Mülk başarıyla satın alındı! Artık pasif gelir getirecek." });
+        socket.emit('statUpdated', user);
     });
 
-    // ==========================================
-    // DEMİRCİ (+ BASMA) - ENVANTERDEKİ EŞYAYI GELİŞTİRME
-    // ==========================================
-    socket.on('upgradeItem', async (data) => {
-        try {
-            const activeUser = users[socket.id];
-            if (!activeUser) {
-                return socket.emit('forgeResult', { 
-                    success: false, 
-                    message: "Lütfen önce giriş yapın." 
-                });
-            }
+    // Eşya Çıkartma
+    socket.on('unequipItem', async (data) => {
+        if (!socket.userId) return;
+        const user = await User.findById(socket.userId);
+        if (!user || !user.equipped[data.slot]) return;
 
-            const user = await User.findById(activeUser._id);
-            if (!user) return;
+        user.inventory.push(user.equipped[data.slot]);
+        user.equipped[data.slot] = null;
 
-            const { itemIndex } = data;
-
-            if (!user.inventory || !user.inventory[itemIndex]) {
-                return socket.emit('forgeResult', { 
-                    success: false, 
-                    message: "Geliştirilecek eşya envanterde bulunamadı!" 
-                });
-            }
-
-            const item = user.inventory[itemIndex];
-            const currentLevel = item.level || 0;
-            const nextLevel = currentLevel + 1;
-            const cost = nextLevel * 150;
-
-            if ((user.balance || 0) < cost) {
-                return socket.emit('forgeResult', { 
-                    success: false, 
-                    message: `Yetersiz altın! +${nextLevel} basmak için ${cost} Altın gerekiyor.` 
-                });
-            }
-
-            user.balance -= cost;
-
-            let baseName = item.name.replace(/\s\+\d+$/, '');
-            item.name = `${baseName} +${nextLevel}`;
-            item.level = nextLevel;
-
-            item.strBonus = (item.strBonus || 0) + 2;
-            item.vitBonus = (item.vitBonus || 0) + 2;
-
-            user.markModified('inventory');
-            await user.save();
-
-            users[socket.id] = user;
-
-            socket.emit('forgeResult', {
-                success: true,
-                message: `🔥 Başarılı! Eşyanız ${item.name} seviyesine yükseltildi!`,
-                userData: user
-            });
-            socket.emit('statUpdated', user);
-
-        } catch (err) {
-            console.error("Demirhane hatası:", err);
-            socket.emit('forgeResult', { 
-                success: false, 
-                message: "Geliştirme sırasında bir sunucu hatası oluştu." 
-            });
-        }
+        await user.save();
+        socket.emit('statUpdated', user);
     });
 
-    // Can İksiri
+    // Eşya Silme
+    socket.on('deleteItem', async (data) => {
+        if (!socket.userId) return;
+        const user = await User.findById(socket.userId);
+        if (!user || !user.inventory[data.itemIndex]) return;
+
+        user.inventory.splice(data.itemIndex, 1);
+        await user.save();
+        socket.emit('statUpdated', user);
+    });
+
+    // Can İksiri Kullanma
     socket.on('usePotion', async () => {
-        const user = users[socket.id];
-        if (user && user.balance >= 50) {
-            user.balance -= 50; 
-            user.hp = user.vit * 20;
-            await user.save();
-            socket.emit('statUpdated', user);
-            socket.emit('marketResult', { userData: user, message: "Canınız yenilendi!" });
-        }
-    });
-
-    // Sefer Limiti Yenileme İksiri (50 Altın)
-    socket.on('refillSefer', async () => {
-        const user = users[socket.id];
-        if (!user) return;
-
-        if (user.seferLimiti >= MAX_SEFER_LIMITI) {
-            return socket.emit('marketResult', { userData: user, message: "Sefer hakkınız zaten maksimum seviyede!" });
-        }
-
-        if (user.balance < 50) {
-            return socket.emit('marketResult', { userData: user, message: "Yeterli altınınız yok!" });
+        if (!socket.userId) return;
+        const user = await User.findById(socket.userId);
+        if (!user || user.balance < 50) {
+            return socket.emit('marketResult', { success: false, message: 'Yeterli altınınız yok! (Maliyet: 50 Altın)' });
         }
 
         user.balance -= 50;
-        user.seferLimiti = MAX_SEFER_LIMITI;
-        user.seferNextRefill = null;
+        user.hp = user.vit * 20;
         await user.save();
-
-        socket.emit('statUpdated', user);
-        socket.emit('marketResult', { userData: user, message: "Sefer limitiniz 20/20 olarak yenilendi!" });
+        socket.emit('marketResult', { success: true, message: 'Can iksiri içildi, sağlığınız tamamen doldu!', userData: user });
     });
 
-    // Ekipman Kuşanma/Çıkarma
-    socket.on('equipItem', async (data) => {
-        const user = users[socket.id];
-        if (!user || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
-        
-        const item = user.inventory[data.itemIndex];
-        const old = user.equipped[item.type];
-        user.inventory.splice(data.itemIndex, 1);
-        if (old) user.inventory.push(old);
-        user.equipped[item.type] = item;
-        user.markModified('equipped'); 
-        user.markModified('inventory');
-        await user.save();
-        socket.emit('statUpdated', user);
-    });
-
-    // Eşya Silme İşlemi
-    socket.on('deleteItem', async (data) => {
-        const user = users[socket.id];
-        if (!user || data.itemIndex === undefined || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
-
-        user.inventory.splice(data.itemIndex, 1);
-        user.markModified('inventory');
-        await user.save();
-
-        socket.emit('statUpdated', user);
-    });
-
-    socket.on('unequipItem', async (data) => {
-        const user = users[socket.id];
-        if (!user || !user.equipped[data.slot]) return;
-        user.inventory.push(user.equipped[data.slot]);
-        user.equipped[data.slot] = null;
-        user.markModified('equipped'); 
-        user.markModified('inventory');
-        await user.save();
-        socket.emit('statUpdated', user);
-    });
-
-    // Sohbet
+    // Sohbet Mesajı
     socket.on('sendChatMessage', (data) => {
-        io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: data.message });
+        io.emit('receiveChatMessage', { username: 'Gezgin', message: data.message });
     });
 
-    socket.on('disconnect', () => delete users[socket.id]);
+    socket.on('disconnect', () => {
+        console.log('Bir gezgin ayrıldı.');
+    });
 });
 
-// PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
-setInterval(async () => {
-    for (const socketId in users) {
-        const user = users[socketId];
-        let isUpdated = false;
-
-        let income = 0;
-        if (user.estates.includes(1)) income += 10;
-        if (user.estates.includes(2)) income += 45;
-        if (user.estates.includes(3)) income += 180;
-
-        if (income > 0) {
-            user.balance += income;
-            isUpdated = true;
-        }
-
-        const maxHp = user.vit * 20;
-        if (user.hp < maxHp) {
-            user.hp = Math.min(maxHp, user.hp + 10);
-            isUpdated = true;
-        }
-
-        if (isUpdated) {
-            try {
-                await User.updateOne(
-                    { _id: user._id }, 
-                    { $set: { balance: user.balance, hp: user.hp } }
-                );
-                io.to(socketId).emit('statUpdated', user);
-            } catch (err) {
-                console.error("Pasif gelir döngüsünde kaydetme hatası:", err);
-            }
-        }
-    }
-}, 60000);
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sunucu http://localhost:${PORT} aktif.`));
+server.listen(3000, () => {
+    console.log('Sunucu 3000 portunda çalışıyor...');
+});
