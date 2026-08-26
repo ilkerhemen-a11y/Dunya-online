@@ -260,7 +260,7 @@
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-            
+            <button class="menu-btn" onclick="switchTab('dungeon')">Zindan Adası</button>
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
             <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
@@ -376,6 +376,7 @@
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'chat': 'Diyar Meclisi (Sohbet)'
+                'dungeon': 'Zindan Adası'
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
             renderPanelContent();
@@ -612,6 +613,14 @@
             }
         }
 
+        else if(activeTab === 'dungeon') {
+    body.innerHTML = `
+        <div style="text-align: center; padding: 50px;">
+            <h3 style="color: #f3cf7a;">Zindan Adası</h3>
+            <p style="color: #9c8e7b;">Burası çok yakında tehlikeli canavarlarla dolacak. İlk adımı başarıyla attık!</p>
+        </div>
+    `;
+        }
         function unequip(slot) {
             socket.emit('unequipItem', { slot: slot });
         }
