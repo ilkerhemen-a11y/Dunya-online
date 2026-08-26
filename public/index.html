@@ -1072,6 +1072,17 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
+
+        socket.on('dungeonResult', (res) => {
+            if(res.userData) {
+                currentUserData = res.userData;
+                updateHeader(res.userData);
+            }
+            const log = document.getElementById('dungeonLogResult');
+            if(log) log.innerText = res.message;
+            if(activeTab === 'overview') renderPanelContent();
+        });
+        
     </script>
 </body>
 </html>
