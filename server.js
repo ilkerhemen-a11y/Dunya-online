@@ -139,7 +139,6 @@ io.on('connection', (socket) => {
         socket.emit('dungeonResult', { success: true, userData: user, message: "Zindan katı temizlendi!" });
     });
 
-    // PAZAR YERİ: CAN İKSİRİ, SEFER İKSİRİ VE GİZEMLİ SANDIK
     socket.on('usePotion', async () => {
         const user = users[socket.id];
         if (!user || user.balance < 50) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın!" });
@@ -156,21 +155,35 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitiniz yenilendi!" });
     });
 
+    // RASTGELE SEVİYELİ SANDIK SİSTEMİ (+0, +1 veya +2)
     socket.on('buyMysteryBox', async () => {
         const user = users[socket.id];
         if (!user || user.balance < 300) return socket.emit('marketResult', { success: false, userData: user, message: "Sandık için 300 altın gerekli!" });
         
         user.balance -= 300;
-        const randomItems = [
-            { id: 'item_sword', name: 'Savaş Baltası', icon: '🪓', type: 'weapon', strBonus: 7, vitBonus: 2, level: 0 },
-            { id: 'item_shield', name: 'Demir Kalkan', icon: '🛡', type: 'shield', strBonus: 2, vitBonus: 6, level: 0 },
-            { id: 'item_ring', name: 'Kudret Yüzüğü', icon: '💍', type: 'ring', strBonus: 4, vitBonus: 4, level: 0 }
+        const randomLevel = Math.floor(Math.random() * 3); // 0, 1 veya 2 seviye rastgele gelir
+        
+        const baseItems = [
+            { id: 'item_sword', name: 'Savaş Baltası', icon: '🪓', type: 'weapon', baseStr: 7, baseVit: 2 },
+            { id: 'item_shield', name: 'Demir Kalkan', icon: '🛡', type: 'shield', baseStr: 2, baseVit: 6 },
+            { id: 'item_ring', name: 'Kudret Yüzüğü', icon: '💍', type: 'ring', baseStr: 4, baseVit: 4 }
         ];
-        const wonItem = randomItems[Math.floor(Math.random() * randomItems.length)];
+        const base = baseItems[Math.floor(Math.random() * baseItems.length)];
+        
+        const wonItem = {
+            id: base.id,
+            name: base.name,
+            icon: base.icon,
+            type: base.type,
+            level: randomLevel,
+            strBonus: base.baseStr + (randomLevel * 2),
+            vitBonus: base.baseVit + (randomLevel * 2)
+        };
+
         user.inventory.push(wonItem);
         user.markModified('inventory');
         await user.save();
-        socket.emit('marketResult', { success: true, userData: user, message: `🎁 Sandıktan ${wonItem.name} çıktı ve envantere eklendi!` });
+        socket.emit('marketResult', { success: true, userData: user, message: `🎁 Sandıktan ${wonItem.name} +${wonItem.level} çıktı ve envantere eklendi!` });
     });
 
     socket.on('buyEstate', async (data) => {
@@ -188,11 +201,13 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user || !user.inventory[data.itemIndex]) return;
         const item = user.inventory[data.itemIndex];
-        const cost = ((item.level || 0) + 1) * 150;
+        const currentLvl = item.level || 0;
+        const nextLvl = currentLvl + 1;
+        const cost = nextLvl * 150;
         if (user.balance < cost) return socket.emit('forgeResult', { success: false, userData: user, message: "Yetersiz altın!" });
 
         user.balance -= cost;
-        item.level = (item.level || 0) + 1;
+        item.level = nextLvl;
         item.strBonus = (item.strBonus || 0) + 2;
         item.vitBonus = (item.vitBonus || 0) + 2;
         user.markModified('inventory');
