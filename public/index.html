@@ -323,7 +323,21 @@
                 setTimeout(() => switchAuthTab('login'), 2000);
             }
         });
+  // --- EKSİK OLAN VE GİRİŞ YAPTIKTAN SONRA OYUNU AÇAN KISIM ---
+        socket.on('userData', (user) => {
+            currentUserData = user;
+            
+            // Giriş ekranını gizle, oyun ekranını göster
+            // (HTML'deki ID'lerine göre buradaki isimler 'loginScreen' veya benzeri olabilir)
+            const authScreen = document.getElementById('authScreen') || document.querySelector('.auth-container');
+            const gameScreen = document.getElementById('gameScreen') || document.querySelector('.game-container');
+            
+            if(authScreen) authScreen.style.display = 'none';
+            if(gameScreen) gameScreen.style.display = 'block';
 
+            // Arayüzü ve verileri güncelle (Eğer oyun içi fonksiyonların varsa burada tetiklenir)
+            if(typeof updateUI === 'function') updateUI();
+        });
         // OYUN İÇİ FONKSİYONLAR
         socket.on('userData', (data) => {
             document.getElementById('loginModal').style.display = 'none';
