@@ -23,6 +23,16 @@ function checkSeferRefill(user) {
     return false;
 }
 
+function checkArenaReset(user) {
+    const today = new Date().toDateString();
+    if (user.arenaResetDate !== today) {
+        user.arenaLimit = 5;
+        user.arenaResetDate = today;
+        return true;
+    }
+    return false;
+}
+
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
 mongoose.connect(MONGO_URI)
     .then(() => console.log('MongoDB bağlantısı başarılı!'))
@@ -40,6 +50,8 @@ const userSchema = new mongoose.Schema({
     statPoints: { type: Number, default: 0 },
     hp: { type: Number, default: 100 },
     honor: { type: Number, default: 0 },
+    arenaLimit: { type: Number, default: 5 },
+    arenaResetDate: { type: String, default: "" },
     seferLimiti: { type: Number, default: 20 },
     seferNextRefill: { type: Number, default: null },
     estates: { type: [Number], default: [] },
@@ -72,7 +84,7 @@ io.on('connection', (socket) => {
             const existing = await User.findOne({ username });
             if (existing) return socket.emit('authResult', { success: false, message: "Bu isimde gladyatör var!" });
             const hashedPassword = await bcrypt.hash(password, 10);
-            const newUser = new User({ username, password: hashedPassword, inventory: getDefaultInventory() });
+            const newUser = new User({ username, password: hashedPassword, inventory: getDefaultInventory(), arenaResetDate: new Date().toDateString() });
             await newUser.save();
             socket.emit('authResult', { success: true, message: "Kayıt başarılı!" });
         } catch (err) { socket.emit('authResult', { success: false, message: "Hata oluştu." }); }
@@ -85,7 +97,11 @@ io.on('connection', (socket) => {
             if (!dbUser || !(await bcrypt.compare(password, dbUser.password))) {
                 return socket.emit('authResult', { success: false, message: "Hatalı kullanıcı adı veya şifre!" });
             }
-            if (checkSeferRefill(dbUser)) await dbUser.save();
+            let updated = false;
+            if (checkSeferRefill(dbUser)) updated = true;
+            if (checkArenaReset(dbUser)) updated = true;
+            if (updated) await dbUser.save();
+            
             users[socket.id] = dbUser;
             socket.emit('userData', dbUser);
         } catch (err) { socket.emit('authResult', { success: false, message: "Giriş hatası." }); }
@@ -143,6 +159,8 @@ io.on('connection', (socket) => {
     socket.on('getArenaOpponents', async () => {
         const user = users[socket.id];
         if (!user) return;
+        checkArenaReset(user);
+        await user.save();
         try {
             const opponents = await User.find({ _id: { $ne: user._id } }).select('username level str vit equipped honor').limit(5);
             socket.emit('arenaOpponentsList', opponents);
@@ -154,6 +172,11 @@ io.on('connection', (socket) => {
     socket.on('attackPlayer', async (data) => {
         const attacker = users[socket.id];
         if (!attacker) return;
+
+        checkArenaReset(attacker);
+        if (attacker.arenaLimit <= 0) {
+            return socket.emit('arenaResult', { success: false, userData: attacker, message: "Günlük 5 arena hakkın doldu! Yarın tekrar bekleriz." });
+        }
 
         try {
             const defender = await User.findById(data.defenderId);
@@ -175,6 +198,8 @@ io.on('connection', (socket) => {
             const atkRoll = atkPower + (Math.random() * 20);
             const defRoll = defPower + (Math.random() * 20);
 
+            attacker.arenaLimit -= 1; // Hak düşüldü
+
             if (atkRoll >= defRoll) {
                 const goldReward = Math.floor(Math.random() * 50) + 30;
                 attacker.balance += goldReward;
@@ -184,7 +209,7 @@ io.on('connection', (socket) => {
                 socket.emit('arenaResult', { 
                     success: true, 
                     userData: attacker, 
-                    message: `🏆 Zafer! ${defender.username} adlı gladyatörü alt ettin. Ödül: +${goldReward} Altın, +15 Onur!` 
+                    message: `🏆 Zafer! ${defender.username} adlı gladyatörü alt ettin. Ödül: +${goldReward} Altın, +15 Onur! (Kalan Hak: ${attacker.arenaLimit}/5)` 
                 });
             } else {
                 attacker.honor = Math.max(0, (attacker.honor || 0) - 5);
@@ -193,7 +218,7 @@ io.on('connection', (socket) => {
                 socket.emit('arenaResult', { 
                     success: false, 
                     userData: attacker, 
-                    message: `💀 Mağlubiyet! ${defender.username} direncini kırdı. 5 Onur kaybettin.` 
+                    message: `💀 Mağlubiyet! ${defender.username} direncini kırdı. 5 Onur kaybettin. (Kalan Hak: ${attacker.arenaLimit}/5)` 
                 });
             }
         } catch (err) {
