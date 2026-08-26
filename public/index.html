@@ -457,37 +457,38 @@
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Tımar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'blacksmith') {
-                body.innerHTML = `
-                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
-                        <h3 style="color: #f3cf7a; font-size: 14px;">Usta Demirci Örfü</h3>
-                    </div>
-
+    body.innerHTML = `
         <div class="usta-demirci-box">
-    <div class="demirci-frame">
-        <img src="https://i.hizliresim.com/wyd96lik.jpg" alt="Usta Demirci Örsü">
-    </div>
-    <span>Usta Demirci Örsü</span>
-</div>
-                    <div class="forge-list">
-                        ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
-                            const currentLvl = item.level || 0;
-                            const nextLvl = currentLvl + 1;
-                            const cost = nextLvl * 150;
-                            const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
-                            return `
-                                <div class="forge-card">
-                                    <div class="item-info-area">
-                                        <div class="item-icon-box">${item.icon || '📦'}</div>
-                                        <div class="forge-info"><h4>${cleanName} +${currentLvl}</h4><p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p><span class="forge-cost">Maliyet: ${cost} Altın</span></div>
-                                    </div>
-                                    <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
-                                </div>
-                            `;
-                        }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center;">Geliştirilecek eşya yok.</p>'}
+            <div class="demirci-frame">
+                <img src="https://i.hizliresim.com/wyd96lik.jpg" alt="Usta Demirci Örsü">
+            </div>
+            <span>Usta Demirci Örsü</span>
+        </div>
+
+        <div class="forge-list">
+            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
+                const currentLvl = item.level || 0;
+                const nextLvl = currentLvl + 1;
+                const cost = nextLvl * 150;
+                const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+                return `
+                    <div class="forge-card">
+                        <div class="item-info-area">
+                            <div class="item-icon-box">${item.icon || '📦'}</div>
+                            <div class="forge-info">
+                                <h4>${cleanName} +${currentLvl}</h4>
+                                <p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p>
+                                <span class="forge-cost">Maliyet: ${cost} Altın</span>
+                            </div>
+                        </div>
+                        <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
                     </div>
-                    <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
                 `;
-            } else if(activeTab === 'arena') {
+            }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center;">Geliştirilecek eşya yok.</p>'}
+        </div>
+        <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
+    `;
+}else if(activeTab === 'arena') {
                 const arenaLimit = u.arenaLimit !== undefined ? u.arenaLimit : 5;
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
