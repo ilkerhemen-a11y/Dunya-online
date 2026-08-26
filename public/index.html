@@ -251,35 +251,29 @@
     </header>
 
     <!-- Ana Oyun Çerçevesi -->
-    <!-- Ana Oyun Çerçevesi -->
-<div class="main-wrapper" id="mainApp" style="display: none;">
-    
-    <nav class="sidebar-menu">
-        <div class="menu-category-title">İmparatorluk</div>
-        <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
-        <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
+    <div class="main-wrapper" id="mainApp" style="display: none;">
         
-        <!-- İki pazarı teke indirdik ve burada bıraktık. Sadece 'shop' kullandım çünkü javascript'te shop üzerinden gittik -->
-        <button class="menu-btn" onclick="switchTab('shop')">⚖️ Şehir Pazarı</button> 
-        
-        <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
-        <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-        <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
-        
-        <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
-        <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
-        
-        <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
-    </nav>
+        <nav class="sidebar-menu">
+            <div class="menu-category-title">İmparatorluk</div>
+            <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
+            <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
+            <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
+            <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
+            <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
+            <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
+            <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
+            <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
+            <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
+        </nav>
 
-    <main class="content-panel">
-        <div class="panel-title">
-            <span id="panelHeaderTitle">Genel Durum & Karakter</span>
-            <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
-        </div>
-        <div id="panelContentBody"></div>
-    </main>
-</div>
+        <main class="content-panel">
+            <div class="panel-title">
+                <span id="panelHeaderTitle">Genel Durum & Karakter</span>
+                <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
+            </div>
+            <div id="panelContentBody"></div>
+        </main>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -287,6 +281,12 @@
         let currentUserData = null;
         let activeTab = 'overview';
         let seferTimerInterval = null;
+
+        // Gelecekte ses dosyası eklersen diye hata vermemesi için boş fonksiyon eklendi.
+        function playSound(type) {
+            // Örnek: if(type === 'success') new Audio('success.mp3').play();
+            console.log('Ses tetiklendi:', type);
+        }
 
         // AUTH FONKSİYONLARI
         function switchAuthTab(tab) {
@@ -375,14 +375,10 @@
         // Sekme Değiştirme ve Arayüz Çizme
         function switchTab(tab) {
             activeTab = tab;
-                function switchTab(tab) {
-            playSound('click');
-            activeTab = tab;
             const titles = {
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
                 'market': 'Pazar Yeri ve İksirler',
-                'shop': 'Şehir Pazarı', // Benim verdiğim pazar kodunu çağırırsanız bu başlık çıkar
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'chat': 'Diyar Meclisi (Sohbet)',
@@ -531,6 +527,7 @@
                             <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
                         </div>
                     </div>
+                    <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Pazar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'timar') {
                 body.innerHTML = `
@@ -563,6 +560,7 @@
                             <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button>
                         </div>
                     </div>
+                    <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Tımar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'blacksmith') {
                 body.innerHTML = `
@@ -597,51 +595,8 @@
                             `;
                         }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center; padding:20px;">Demirhanede geliştirebilmek için envanterinizde eşya bulunmalıdır.</p>'}
                     </div>
+                    <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
                 `;
-
-
-            else if(activeTab === 'shop') {
-                // Pazardaki ürünler (Backend'deki listeyle aynı olmalı)
-                const shopItems = [
-                    { id: 101, name: "Kısa Kılıç", icon: "🗡️", type: "weapon", strBonus: 5, vitBonus: 0, price: 150 },
-                    { id: 102, name: "Çelik Zırh", icon: "🛡️", type: "armor", strBonus: 2, vitBonus: 8, price: 300 },
-                    { id: 103, name: "Sihirli Yüzük", icon: "💍", type: "ring", strBonus: 3, vitBonus: 3, price: 500 },
-                    { id: 104, name: "Deriden Çizme", icon: "👢", type: "boots", strBonus: 1, vitBonus: 2, price: 100 },
-                    { id: 105, name: "Şövalye Kalkanı", icon: "🛡️", type: "shield", strBonus: 0, vitBonus: 10, price: 450 }
-                ];
-                
-                let shopHTML = `
-                    <div class="quest-log" id="shopLogResult" style="margin-bottom: 15px; color: #f3cf7a; text-align: center;">Tüccar: "Altının varsa, en iyi mallar bende!"</div>
-                    <div class="inventory-grid" style="gap: 15px;">
-                `;
-                
-                shopItems.forEach(item => {
-                    let statsText = [];
-                    if(item.strBonus) statsText.push(`+${item.strBonus} Güç`);
-                    if(item.vitBonus) statsText.push(`+${item.vitBonus} Can`);
-
-                    shopHTML += `
-                        <div class="inventory-item-card" style="flex-direction: column; align-items: stretch; padding: 12px;">
-                            <div class="item-info-area" style="margin-bottom: 10px; justify-content: center; flex-direction: column; text-align: center;">
-                                <div class="item-icon-box" style="width: 48px; height: 48px; font-size: 24px; margin: 0 auto;">${item.icon}</div>
-                                <div class="item-details" style="margin-top: 5px;">
-                                    <span class="item-name" style="font-size: 14px; margin-bottom: 3px;">${item.name}</span>
-                                    <span class="item-bonus" style="font-size: 11px;">${statsText.join(' | ')}</span>
-                                </div>
-                            </div>
-                            <button class="btn-quest" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="playSound('click'); socket.emit('buyItem', ${item.id})">
-                                🪙 ${item.price} Altın
-                            </button>
-                        </div>
-                    `;
-                });
-                
-                shopHTML += `</div>`;
-                body.innerHTML = shopHTML;
-            }
-
-
-                
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
@@ -709,7 +664,7 @@
         }
 
         // Socket Dinleyicileri (Anlık Veri Güncellemeleri)
-                socket.on('statUpdated', (updatedUser) => {
+        socket.on('statUpdated', (updatedUser) => {
             currentUserData = updatedUser;
             updateHeader(updatedUser);
             if(activeTab === 'overview') renderPanelContent();
@@ -722,30 +677,24 @@
             }
             if(res.success) playSound('success');
             const log = document.getElementById('questLogResult');
-            if(log) log.innerText = res.message;
+            if(log) {
+                log.innerText = res.message;
+                log.style.color = res.success ? '#9c8e7b' : '#ef4444';
+            }
             if(activeTab === 'overview' || activeTab === 'work') renderPanelContent();
         });
 
-        socket.on('shopResult', (res) => {
-            if (res.success) playSound('success');
-            const log = document.getElementById('shopLogResult');
-            if (log) {
-                log.innerText = res.message;
-                log.style.color = res.success ? '#22c55e' : '#ef4444';
-            }
-        });
-
+        // Market ve Tımar işlemleri için birleştirilmiş dinleyici
         socket.on('marketResult', (res) => {
             if(res.userData) {
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
-            // Alert yerine HTML içinde bir ID arayalım, yoksa geçici olarak alert kullansın
+            if(res.success) playSound('success');
             const log = document.getElementById('marketLogResult');
             if(log) {
                 log.innerText = res.message;
-            } else {
-                alert(res.message); 
+                log.style.color = res.success ? '#22c55e' : '#ef4444';
             }
             if(activeTab === 'market' || activeTab === 'timar') renderPanelContent();
         });
@@ -756,12 +705,10 @@
                 updateHeader(res.userData);
             }
             if(res.success) playSound('success');
-            
             const log = document.getElementById('forgeLogResult');
             if(log) {
                 log.innerText = res.message;
-            } else {
-                alert(res.message); 
+                log.style.color = res.success ? '#22c55e' : '#ef4444';
             }
             if(activeTab === 'blacksmith') renderPanelContent();
         });
@@ -781,8 +728,10 @@
             }
             if(res.success) playSound('success');
             const log = document.getElementById('dungeonLogResult');
-            if(log) log.innerText = res.message;
-            // Zindandaysa Zindan ekranını, Genel Durumdaysa Genel Durum'u yenile
+            if(log) {
+                log.innerText = res.message;
+                log.style.color = res.success ? '#9c8e7b' : '#ef4444';
+            }
             if(activeTab === 'overview' || activeTab === 'dungeon') renderPanelContent();
         });
 
@@ -800,7 +749,6 @@
         function startSeferTimer() {
             // Sefer yenilenme mekanikleri buraya eklenebilir
         }
-   </script>
+    </script>
 </body>
 </html>
-        
