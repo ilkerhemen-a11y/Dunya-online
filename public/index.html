@@ -461,6 +461,13 @@
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
                         <h3 style="color: #f3cf7a; font-size: 14px;">Usta Demirci Örfü</h3>
                     </div>
+
+        <div class="usta-demirci-box">
+    <div class="demirci-frame">
+        <img src="https://i.hizliresim.com/wyd96lik.jpg" alt="Usta Demirci Örsü">
+    </div>
+    <span>Usta Demirci Örsü</span>
+</div>
                     <div class="forge-list">
                         ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
                             const currentLvl = item.level || 0;
@@ -564,6 +571,47 @@
 
         function logout() { socket.emit('logout'); }
         socket.on('logoutSuccess', () => { document.getElementById('mainApp').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; currentUserData = null; });
+   
+    
+    .usta-demirci-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: #1c1510; /* Mevcut kutu arkaplan rengin */
+    border: 1px solid #d4af37;  /* Altın renkli çerçeve */
+    border-radius: 8px;
+    padding: 10px 15px;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+/* Örs görseli için şık çerçeve */
+.demirci-frame {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #d4af37; /* Çerçeve kalınlığı ve rengi */
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 0 6px rgba(212, 175, 55, 0.5); /* Hafif parıltı efekti */
+    flex-shrink: 0;
+}
+
+.demirci-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.usta-demirci-box span {
+    color: #f0e6d2;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+        }
+    
+    
     </script>
 </body>
 </html>
