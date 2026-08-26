@@ -625,15 +625,48 @@
                     </div>
                 `;
             }
-        }
-
-        else if(activeTab === 'dungeon') {
-    body.innerHTML = `
-        <div style="text-align: center; padding: 50px;">
-            <h3 style="color: #f3cf7a;">Zindan Adası</h3>
-            <p style="color: #9c8e7b;">Burası çok yakında tehlikeli canavarlarla dolacak. İlk adımı başarıyla attık!</p>
-        </div>
-    `;
+                } else if(activeTab === 'dungeon') {
+                body.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
+                        <h3 style="color: #f3cf7a; font-size: 14px; margin-top: 4px;">Zindan Katları ve Tehlikeli Mahluklar</h3>
+                        <p style="color: #9c8e7b; font-size: 11px;">Katları tırmanarak büyük ödüllerin ve şan dolu ganimetlerin sahibi ol!</p>
+                    </div>
+                    <div class="quest-list">
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Kat 1: İskelet Savaşçı</h4>
+                                <p>Zindanın karanlık koridorlarını tutan huzursuz iskelet.</p>
+                                <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ef4444;">-20 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 1 })">Saldır</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Kat 2: Zombi Muhafız</h4>
+                                <p>Yüzyıllardır çürümüş ama hâlâ ölümcül bir güç.</p>
+                                <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ef4444;">-45 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 2 })">Saldır</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>Kat 3: Ork Şampiyonu</h4>
+                                <p>Vahşi kasları ve dev baltasıyla yolu kapatıyor.</p>
+                                <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ef4444;">-90 HP</span></div>
+                            </div>
+                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 3 })">Saldır</button>
+                        </div>
+                        <div class="quest-card" style="border-color: #b38b4d; background: linear-gradient(135deg, #221510 0%, #120e0c 100%);">
+                            <div class="quest-info">
+                                <h4 style="color: #ffdf73;">Kat 4 (BOSS): Zindan Ejderhası</h4>
+                                <p>Zindanın hakimi, devasa ve acımasız ejderha.</p>
+                                <div class="quest-rewards"><span>+1500 Altın</span><span>+500 Tecrübe</span><span style="color:#22c55e;">+2 Yakut Şansı</span></div>
+                            </div>
+                            <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171;" onclick="socket.emit('doDungeon', { floor: 4 })">Boss'a Saldır</button>
+                        </div>
+                    </div>
+                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları burada görünecektir...</div>
+                `;
         }
         function unequip(slot) {
             socket.emit('unequipItem', { slot: slot });
