@@ -140,7 +140,6 @@
         .inventory-container { margin-top: 20px; background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
         .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
         .inventory-item-card { background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%); border: 1px solid #38291e; border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
-        .inventory-item-card:hover { border-color: #b38b4d; background: linear-gradient(135deg, #221a14 0%, #140f0c 100%); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.7); }
         .item-info-area { display: flex; align-items: center; gap: 8px; }
         .item-icon-box { width: 36px; height: 36px; background: #0b0806; border: 1px solid #2d2017; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; }
         .item-icon-box img { width: 100%; height: 100%; object-fit: cover; }
@@ -153,7 +152,6 @@
 
         .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
         .quest-card, .market-card, .forge-card { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .quest-card:hover, .market-card:hover, .forge-card:hover { border-color: #b38b4d; background: #1a130f; }
         
         .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 13px; margin-bottom: 3px; }
         .quest-info p, .market-info p, .forge-info p { color: #9c8e7b; font-size: 11px; margin-bottom: 6px; }
@@ -172,13 +170,11 @@
         .chat-msg span { color: #f3cf7a; font-weight: bold; }
         .chat-input-area { display: flex; gap: 8px; }
         .chat-input-area input { flex: 1; background: #0d0a08; border: 1px solid #3d2f23; border-radius: 4px; padding: 8px; color: #d4c5b9; font-size: 12px; }
-        .chat-input-area input:focus { outline: none; border-color: #d4af37; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(8, 6, 5, 0.95); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .box { background: #140f0c; padding: 30px; border-radius: 6px; border: 2px solid #b38b4d; width: 90%; max-width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
         .box h2 { color: #f3cf7a; margin-bottom: 8px; font-size: 20px; text-align: center;}
         
-        /* AUTH TABS CSS */
         .auth-tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid #3d2f23; }
         .auth-tab { flex: 1; padding: 10px; text-align: center; color: #9c8e7b; cursor: pointer; font-size: 14px; font-weight: bold; border-bottom: 2px solid transparent; }
         .auth-tab.active { color: #f3cf7a; border-bottom-color: #d4af37; }
@@ -198,27 +194,20 @@
 </head>
 <body>
 
-    <!-- GİRİŞ VE KAYIT EKRANI -->
     <div id="loginModal" class="modal-overlay">
         <div class="box">
             <h2>Antik Diyara Adım At</h2>
-            
             <div class="auth-tabs">
                 <div class="auth-tab active" onclick="switchAuthTab('login')">Giriş Yap</div>
                 <div class="auth-tab" onclick="switchAuthTab('register')">Kayıt Ol</div>
             </div>
-
             <div id="authMessage"></div>
-
-            <!-- Giriş Formu -->
             <div id="loginForm" class="auth-form active">
                 <p>Savaşa geri dön lordum.</p>
                 <input type="text" id="loginUsername" placeholder="Gladyatör Adı" maxlength="15">
                 <input type="password" id="loginPassword" placeholder="Şifreniz">
                 <button class="btn-primary" onclick="login()">MEYDANA İN</button>
             </div>
-
-            <!-- Kayıt Formu -->
             <div id="registerForm" class="auth-form">
                 <p>Yeni bir efsane doğuyor...</p>
                 <input type="text" id="regUsername" placeholder="Yeni Gladyatör Adı" maxlength="15">
@@ -228,7 +217,6 @@
         </div>
     </div>
 
-    <!-- Üst Bilgi Çubuğu -->
     <header class="game-header">
         <div class="header-section">
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
@@ -250,9 +238,7 @@
         </div>
     </header>
 
-    <!-- Ana Oyun Çerçevesi -->
     <div class="main-wrapper" id="mainApp" style="display: none;">
-        
         <nav class="sidebar-menu">
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
@@ -280,20 +266,11 @@
         const socket = io();
         let currentUserData = null;
         let activeTab = 'overview';
-        let seferTimerInterval = null;
 
-        // Gelecekte ses dosyası eklersen diye hata vermemesi için boş fonksiyon eklendi.
-        function playSound(type) {
-            // Örnek: if(type === 'success') new Audio('success.mp3').play();
-            console.log('Ses tetiklendi:', type);
-        }
-
-        // AUTH FONKSİYONLARI
         function switchAuthTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
             document.getElementById('authMessage').innerText = "";
-            
             if(tab === 'login') {
                 document.querySelector('.auth-tab:nth-child(1)').classList.add('active');
                 document.getElementById('loginForm').classList.add('active');
@@ -330,49 +307,37 @@
             }
         });
 
-        // OYUN İÇİ GİRİŞ VE VERİ YÖNETİMİ
         socket.on('userData', (data) => {
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
             currentUserData = data;
             updateHeader(data);
             switchTab('overview');
-            startSeferTimer();
         });
 
         function updateHeader(data) {
             if(!data) return;
             currentUserData = data;
-            
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
             const maxHp = (data.vit || 5) * 20;
             const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
-
-            const hpBarFill = document.getElementById('hpBarFill');
-            const hpLabel = document.getElementById('hpLabel');
-            if(hpBarFill) hpBarFill.style.width = `${hpPercent}%`;
-            if(hpLabel) hpLabel.innerText = `Can (${currentHp}/${maxHp})`;
+            document.getElementById('hpBarFill').style.width = `${hpPercent}%`;
+            document.getElementById('hpLabel').innerText = `Can (${currentHp}/${maxHp})`;
 
             const maxExp = (data.level || 1) * 100;
             const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
+            document.getElementById('expBarFill').style.width = `${expPercent}%`;
+            document.getElementById('expLabel').innerText = `Tecrübe (${data.exp || 0}/${maxExp})`;
 
-            const expBarFill = document.getElementById('expBarFill');
-            const expLabel = document.getElementById('expLabel');
-            if(expBarFill) expBarFill.style.width = `${expPercent}%`;
-            if(expLabel) expLabel.innerText = `Tecrübe (${data.exp || 0}/${maxExp})`;
-
-            const seferBarFill = document.getElementById('seferBarFill');
-            const seferLabel = document.getElementById('seferLabel');
             const seferLimit = (data.seferLimiti !== undefined) ? data.seferLimiti : 20;
             const seferPercent = Math.max(0, Math.min(100, (seferLimit / 20) * 100));
-            if(seferBarFill) seferBarFill.style.width = `${seferPercent}%`;
-            if(seferLabel) seferLabel.innerText = `Sefer Limiti (${seferLimit}/20)`;
+            document.getElementById('seferBarFill').style.width = `${seferPercent}%`;
+            document.getElementById('seferLabel').innerText = `Sefer Limiti (${seferLimit}/20)`;
         }
 
-        // Sekme Değiştirme ve Arayüz Çizme
         function switchTab(tab) {
             activeTab = tab;
             const titles = {
@@ -394,21 +359,14 @@
             if(!u) return;
 
             if(activeTab === 'overview') {
-                let bonusStr = 0;
-                let bonusVit = 0;
-
+                let bonusStr = 0, bonusVit = 0;
                 if (u.equipped) {
                     Object.values(u.equipped).forEach(item => {
-                        if (item) {
-                            bonusStr += (item.strBonus || 0);
-                            bonusVit += (item.vitBonus || 0);
-                        }
+                        if (item) { bonusStr += (item.strBonus || 0); bonusVit += (item.vitBonus || 0); }
                     });
                 }
-
                 const totalStr = (u.str || 5) + bonusStr;
                 const totalVit = (u.vit || 5) + bonusVit;
-                const maxHp = totalVit * 20;
                 const maxExp = (u.level || 1) * 100;
                 
                 body.innerHTML = `
@@ -417,45 +375,34 @@
                             <h3>Nitelikler</h3>
                             <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
                             <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
-                            <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${maxHp}</span></div>
+                            <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${totalVit * 20}</span></div>
                             <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
                             <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
-                            <div class="stat-row">
-                                <span>Güç (STR):</span>
-                                <span>${totalStr} ${bonusStr > 0 ? `<span style="color:#22c55e;">(+${bonusStr})</span>` : ''}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Dayanıklılık (VIT):</span>
-                                <span>${totalVit} ${bonusVit > 0 ? `<span style="color:#22c55e;">(+${bonusVit})</span>` : ''}</span>
-                            </div>
-                            <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
+                            <div class="stat-row"><span>Güç (STR):</span><span>${totalStr} ${bonusStr > 0 ? `(+${bonusStr})` : ''}</span></div>
+                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${totalVit} ${bonusVit > 0 ? `(+${bonusVit})` : ''}</span></div>
+                            <div class="stat-row"><span>Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
                             ${u.statPoints > 0 ? `
                                 <div style="display:flex; gap:10px; margin-top:10px;">
                                     <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
                                     <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
                                 </div>
                             ` : ''}
-
-                            <div class="char-portrait">
-                                <img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter Portresi">
-                            </div>
+                            <div class="char-portrait"><img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter"></div>
                         </div>
-
                         <div class="equipment-wrapper">
                             <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
                             <div class="eq-slots-grid">
-                                <div class="eq-slot ${u.equipped?.helmet ? 'filled' : ''}" onclick="unequip('helmet')">${u.equipped?.helmet ? u.equipped.helmet.icon : '🪖'}</div>
-                                <div class="eq-slot ${u.equipped?.necklace ? 'filled' : ''}" onclick="unequip('necklace')">${u.equipped?.necklace ? u.equipped.necklace.icon : '📿'}</div>
-                                <div class="eq-slot ${u.equipped?.armor ? 'filled' : ''}" onclick="unequip('armor')">${u.equipped?.armor ? u.equipped.armor.icon : '🛡️'}</div>
-                                <div class="eq-slot ${u.equipped?.weapon ? 'filled' : ''}" onclick="unequip('weapon')">${u.equipped?.weapon ? u.equipped.weapon.icon : '🗡️'}</div>
-                                <div class="eq-slot ${u.equipped?.shield ? 'filled' : ''}" onclick="unequip('shield')">${u.equipped?.shield ? u.equipped.shield.icon : '🛡'}</div>
-                                <div class="eq-slot ${u.equipped?.ring ? 'filled' : ''}" onclick="unequip('ring')">${u.equipped?.ring ? u.equipped.ring.icon : '💍'}</div>
-                                <div class="eq-slot ${u.equipped?.gloves ? 'filled' : ''}" onclick="unequip('gloves')">${u.equipped?.gloves ? u.equipped.gloves.icon : '🧤'}</div>
-                                <div class="eq-slot ${u.equipped?.boots ? 'filled' : ''}" onclick="unequip('boots')">${u.equipped?.boots ? u.equipped.boots.icon : '👢'}</div>
+                                <div class="eq-slot ${u.equipped?.helmet ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'helmet' })">${u.equipped?.helmet ? u.equipped.helmet.icon : '🪖'}</div>
+                                <div class="eq-slot ${u.equipped?.necklace ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'necklace' })">${u.equipped?.necklace ? u.equipped.necklace.icon : '📿'}</div>
+                                <div class="eq-slot ${u.equipped?.armor ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'armor' })">${u.equipped?.armor ? u.equipped.armor.icon : '🛡️'}</div>
+                                <div class="eq-slot ${u.equipped?.weapon ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'weapon' })">${u.equipped?.weapon ? u.equipped.weapon.icon : '🗡️'}</div>
+                                <div class="eq-slot ${u.equipped?.shield ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'shield' })">${u.equipped?.shield ? u.equipped.shield.icon : '🛡'}</div>
+                                <div class="eq-slot ${u.equipped?.ring ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'ring' })">${u.equipped?.ring ? u.equipped.ring.icon : '💍'}</div>
+                                <div class="eq-slot ${u.equipped?.gloves ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'gloves' })">${u.equipped?.gloves ? u.equipped.gloves.icon : '🧤'}</div>
+                                <div class="eq-slot ${u.equipped?.boots ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'boots' })">${u.equipped?.boots ? u.equipped.boots.icon : '👢'}</div>
                             </div>
                         </div>
                     </div>
-
                     <div class="inventory-container">
                         <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 8px;">Envanter / Çanta</h3>
                         <div class="inventory-grid">
@@ -470,7 +417,7 @@
                                     </div>
                                     <div style="display: flex; gap: 5px;">
                                         <button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
-                                        <button class="btn-delete" onclick="if(confirm('${item.name} eşyasını silmek istediğinize emin misiniz?')) socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Sil</button>
+                                        <button onclick="socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Sil</button>
                                     </div>
                                 </div>
                             `).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
@@ -480,120 +427,49 @@
             } else if(activeTab === 'work') {
                 body.innerHTML = `
                     <div class="quest-list">
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Karanlık Orman Seferi</h4>
-                                <p>Ormandaki gölgelerle savaş ve ganimet topla.</p>
-                                <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Unutulmuş Tapınak</h4>
-                                <p>Antik tapınaktakı tehlikeli mahlukları alt et.</p>
-                                <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Ejderha Dağı</h4>
-                                <p>Zirvedeki ejderhanın yuvasını yağmala.</p>
-                                <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
-                        </div>
+                        <div class="quest-card"><div class="quest-info"><h4>Karanlık Orman</h4><p>Ormandaki gölgelerle savaş.</p><div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div></div><button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button></div>
+                        <div class="quest-card"><div class="quest-info"><h4>Unutulmuş Tapınak</h4><p>Antik tapınaktaki mahluklar.</p><div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div></div><button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button></div>
+                        <div class="quest-card"><div class="quest-info"><h4>Ejderha Dağı</h4><p>Zirvedeki ejderha yuvası.</p><div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div></div><button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button></div>
                     </div>
                     <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
                 `;
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Can İksiri (Sağlık Yenileme)</h4>
-                                <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
-                                <span class="forge-cost">Maliyet: 50 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
-                        </div>
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Sefer İksiri (Hak Yenileme)</h4>
-                                <p>Sefer limitinizi anında 20/20 yapar.</p>
-                                <span class="forge-cost">Maliyet: 50 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
-                        </div>
+                        <div class="market-card"><div class="market-info"><h4>Can İksiri</h4><p>HP'yi tamamen doldurur.</p><span class="forge-cost">Maliyet: 50 Altın</span></div><button class="btn-quest" onclick="socket.emit('usePotion')">Satın Al ve İç</button></div>
+                        <div class="market-card"><div class="market-info"><h4>Sefer İksiri</h4><p>Sefer limitini anında 20/20 yapar.</p><span class="forge-cost">Maliyet: 50 Altın</span></div><button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al</button></div>
+                        <div class="market-card" style="border-color: #d4af37;"><div class="market-info"><h4>Ganimet Sandığı</h4><p>Rasgele güçlü bir ekipman düşürme şansı!</p><span class="forge-cost" style="color: #d4af37;">Maliyet: 300 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyMysteryBox')">Sandığı Aç</button></div>
                     </div>
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Pazar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'timar') {
                 body.innerHTML = `
                     <div class="market-list">
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Küçük Çiftlik Tımarı</h4>
-                                <p>Düzenli pasif altın geliri sağlar.</p>
-                                <div class="market-income">Gelir: +10 Altın / dk</div>
-                                <span class="forge-cost">Maliyet: 500 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 1 })">${u.estates.includes(1) ? 'Sahipsiniz' : 'Satın Al'}</button>
-                        </div>
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Kervansaray Tımarı</h4>
-                                <p>İmparatorluk ticaret yolları üzerinden kazanç getirir.</p>
-                                <div class="market-income">Gelir: +45 Altın / dk</div>
-                                <span class="forge-cost">Maliyet: 2000 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button>
-                        </div>
-                        <div class="market-card">
-                            <div class="market-info">
-                                <h4>Altın Madeni</h4>
-                                <p>Zengin cevher yataklarından devasa gelir akışı.</p>
-                                <div class="market-income">Gelir: +180 Altın / dk</div>
-                                <span class="forge-cost">Maliyet: 7500 Altın</span>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button>
-                        </div>
+                        <div class="market-card"><div class="market-info"><h4>Küçük Çiftlik</h4><div class="market-income">Gelir: +10 Altın / dk</div><span class="forge-cost">Maliyet: 500 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 1 })">${u.estates.includes(1) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
+                        <div class="market-card"><div class="market-info"><h4>Kervansaray</h4><div class="market-income">Gelir: +45 Altın / dk</div><span class="forge-cost">Maliyet: 2000 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
+                        <div class="market-card"><div class="market-info"><h4>Altın Madeni</h4><div class="market-income">Gelir: +180 Altın / dk</div><span class="forge-cost">Maliyet: 7500 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
                     </div>
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Tımar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'blacksmith') {
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
-                        <img src="https://i.hizliresim.com/75en0pnj.jpg" alt="Demirci Usta" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #433222;">
-                        <h3 style="color: #f3cf7a; font-size: 14px; margin-top: 8px;">Usta Demirci Örfü</h3>
-                        <p style="color: #9c8e7b; font-size: 11px;">Envanterindeki eşyaları seçerek altın karşılığında güçlerini artırabilirsin.</p>
+                        <h3 style="color: #f3cf7a; font-size: 14px;">Usta Demirci Örfü</h3>
                     </div>
-
                     <div class="forge-list">
                         ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
-                            const currentLvl = item.level || 0;
-                            const nextLvl = currentLvl + 1;
+                            const nextLvl = (item.level || 0) + 1;
                             const cost = nextLvl * 150;
-
                             return `
                                 <div class="forge-card">
                                     <div class="item-info-area">
-                                        <div class="item-icon-box" style="width:42px; height:42px; font-size:22px;">
-                                            ${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}
-                                        </div>
-                                        <div class="forge-info">
-                                            <h4>${item.name}</h4>
-                                            <p style="margin:0;">Mevcut Bonus: Güç +${item.strBonus || 0} | Vit +${item.vitBonus || 0}</p>
-                                            <span class="forge-cost">Geliştirme Maliyeti: ${cost} Altın</span>
-                                        </div>
+                                        <div class="item-icon-box">${item.icon || '📦'}</div>
+                                        <div class="forge-info"><h4>${item.name}</h4><p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p><span class="forge-cost">Maliyet: ${cost} Altın</span></div>
                                     </div>
-                                    <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">
-                                        +${nextLvl} Bas
-                                    </button>
+                                    <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
                                 </div>
                             `;
-                        }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center; padding:20px;">Demirhanede geliştirebilmek için envanterinizde eşya bulunmalıdır.</p>'}
+                        }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center;">Geliştirilecek eşya yok.</p>'}
                     </div>
                     <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
                 `;
@@ -602,58 +478,22 @@
                     <div class="chat-container">
                         <div class="chat-messages" id="chatMessagesBox"></div>
                         <div class="chat-input-area">
-                            <input type="text" id="chatInputMsg" placeholder="Diyara bir mesaj fısılda..." onkeydown="if(event.key==='Enter') sendChat()">
+                            <input type="text" id="chatInputMsg" placeholder="Diyara mesaj yaz..." onkeydown="if(event.key==='Enter') sendChat()">
                             <button class="btn-quest" onclick="sendChat()">Gönder</button>
                         </div>
                     </div>
                 `;
             } else if(activeTab === 'dungeon') {
                 body.innerHTML = `
-                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
-                        <h3 style="color: #f3cf7a; font-size: 14px; margin-top: 4px;">Zindan Katları ve Tehlikeli Mahluklar</h3>
-                        <p style="color: #9c8e7b; font-size: 11px;">Katları tırmanarak büyük ödüllerin ve şan dolu ganimetlerin sahibi ol!</p>
-                    </div>
                     <div class="quest-list">
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Kat 1: İskelet Savaşçı</h4>
-                                <p>Zindanın karanlık koridorlarını tutan huzursuz iskelet.</p>
-                                <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ef4444;">-20 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 1 })">Saldır</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Kat 2: Zombi Muhafız</h4>
-                                <p>Yüzyıllardır çürümüş ama hâlâ ölümcül bir güç.</p>
-                                <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ef4444;">-45 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 2 })">Saldır</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>Kat 3: Ork Şampiyonu</h4>
-                                <p>Vahşi kasları ve dev baltasıyla yolu kapatıyor.</p>
-                                <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ef4444;">-90 HP</span></div>
-                            </div>
-                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 3 })">Saldır</button>
-                        </div>
-                        <div class="quest-card" style="border-color: #b38b4d; background: linear-gradient(135deg, #221510 0%, #120e0c 100%);">
-                            <div class="quest-info">
-                                <h4 style="color: #ffdf73;">Kat 4 (BOSS): Zindan Ejderhası</h4>
-                                <p>Zindanın hakimi, devasa ve acımasız ejderha.</p>
-                                <div class="quest-rewards"><span>+1500 Altın</span><span>+500 Tecrübe</span><span style="color:#22c55e;">+2 Yakut Şansı</span></div>
-                            </div>
-                            <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171;" onclick="socket.emit('doDungeon', { floor: 4 })">Boss'a Saldır</button>
-                        </div>
+                        <div class="quest-card"><div class="quest-info"><h4>Kat 1: İskelet Savaşçı</h4><div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span></div></div><button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 1 })">Saldır</button></div>
+                        <div class="quest-card"><div class="quest-info"><h4>Kat 2: Zombi Muhafız</h4><div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span></div></div><button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 2 })">Saldır</button></div>
+                        <div class="quest-card"><div class="quest-info"><h4>Kat 3: Ork Şampiyonu</h4><div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span></div></div><button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 3 })">Saldır</button></div>
+                        <div class="quest-card" style="border-color: #b38b4d;"><div class="quest-info"><h4 style="color: #ffdf73;">Kat 4 (BOSS): Ejderha</h4><div class="quest-rewards"><span>+1500 Altın</span><span>+2 Yakut</span></div></div><button class="btn-quest" style="background: #ef4444; color:white;" onclick="socket.emit('doDungeon', { floor: 4 })">Boss'a Saldır</button></div>
                     </div>
-                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları burada görünecektir...</div>
+                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan raporları...</div>
                 `;
             }
-        }
-
-        function unequip(slot) {
-            socket.emit('unequipItem', { slot: slot });
         }
 
         function sendChat() {
@@ -663,92 +503,18 @@
             input.value = '';
         }
 
-        // Socket Dinleyicileri (Anlık Veri Güncellemeleri)
-        socket.on('statUpdated', (updatedUser) => {
-            currentUserData = updatedUser;
-            updateHeader(updatedUser);
-            if(activeTab === 'overview') renderPanelContent();
-        });
-
-        socket.on('questResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            if(res.success) playSound('success');
-            const log = document.getElementById('questLogResult');
-            if(log) {
-                log.innerText = res.message;
-                log.style.color = res.success ? '#9c8e7b' : '#ef4444';
-            }
-            if(activeTab === 'overview' || activeTab === 'work') renderPanelContent();
-        });
-
-        // Market ve Tımar işlemleri için birleştirilmiş dinleyici
-        socket.on('marketResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            if(res.success) playSound('success');
-            const log = document.getElementById('marketLogResult');
-            if(log) {
-                log.innerText = res.message;
-                log.style.color = res.success ? '#22c55e' : '#ef4444';
-            }
-            if(activeTab === 'market' || activeTab === 'timar') renderPanelContent();
-        });
-
-        socket.on('forgeResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            if(res.success) playSound('success');
-            const log = document.getElementById('forgeLogResult');
-            if(log) {
-                log.innerText = res.message;
-                log.style.color = res.success ? '#22c55e' : '#ef4444';
-            }
-            if(activeTab === 'blacksmith') renderPanelContent();
-        });
-
+        socket.on('statUpdated', (u) => { updateHeader(u); if(activeTab === 'overview') renderPanelContent(); });
+        socket.on('questResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('questLogResult').innerText = res.message; });
+        socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
+        socket.on('forgeResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('forgeLogResult').innerText = res.message; if(activeTab === 'blacksmith') renderPanelContent(); });
+        socket.on('dungeonResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('dungeonLogResult').innerText = res.message; });
         socket.on('receiveChatMessage', (data) => {
             const box = document.getElementById('chatMessagesBox');
-            if(box) {
-                box.innerHTML += `<div class="chat-msg"><span>${data.username || 'Gezgin'}:</span> ${data.message}</div>`;
-                box.scrollTop = box.scrollHeight;
-            }
+            if(box) { box.innerHTML += `<div class="chat-msg"><span>${data.username}:</span> ${data.message}</div>`; box.scrollTop = box.scrollHeight; }
         });
 
-        socket.on('dungeonResult', (res) => {
-            if(res.userData) {
-                currentUserData = res.userData;
-                updateHeader(res.userData);
-            }
-            if(res.success) playSound('success');
-            const log = document.getElementById('dungeonLogResult');
-            if(log) {
-                log.innerText = res.message;
-                log.style.color = res.success ? '#9c8e7b' : '#ef4444';
-            }
-            if(activeTab === 'overview' || activeTab === 'dungeon') renderPanelContent();
-        });
-
-        function logout() {
-            playSound('click');
-            socket.emit('logout');
-        }
-
-        socket.on('logoutSuccess', () => {
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('loginModal').style.display = 'flex';
-            currentUserData = null;
-        });
-
-        function startSeferTimer() {
-            // Sefer yenilenme mekanikleri buraya eklenebilir
-        }
+        function logout() { socket.emit('logout'); }
+        socket.on('logoutSuccess', () => { document.getElementById('mainApp').style.display = 'none'; document.getElementById('loginModal').style.display = 'flex'; currentUserData = null; });
     </script>
 </body>
 </html>
