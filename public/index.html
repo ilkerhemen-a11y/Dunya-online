@@ -282,52 +282,8 @@
         let activeTab = 'overview';
         let seferTimerInterval = null;
 
-        // --- WEB AUDIO API SES SENTEZLEYİCİSİ ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        function playSound(type) {
-            if (!audioCtx) return;
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            const now = audioCtx.currentTime;
-
-            if (type === 'click') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
-                gain.gain.setValueAtTime(0.05, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
-                osc.start(now);
-                osc.stop(now + 0.05);
-            } else if (type === 'success') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.setValueAtTime(450, now + 0.08);
-                osc.frequency.setValueAtTime(600, now + 0.16);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now);
-                osc.stop(now + 0.3);
-            } else if (type === 'error') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.linearRampToValueAtTime(100, now + 0.15);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            }
-        }
-
         // AUTH FONKSİYONLARI
         function switchAuthTab(tab) {
-            playSound('click');
             document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
             document.getElementById('authMessage').innerText = "";
@@ -348,7 +304,6 @@
         }
 
         function login() {
-            playSound('click');
             const u = document.getElementById('loginUsername').value;
             const p = document.getElementById('loginPassword').value;
             if(!u || !p) return showAuthError("Bilgileri eksiksiz giriniz.");
@@ -356,7 +311,6 @@
         }
 
         function register() {
-            playSound('click');
             const u = document.getElementById('regUsername').value;
             const p = document.getElementById('regPassword').value;
             if(!u || !p) return showAuthError("Bilgileri eksiksiz giriniz.");
@@ -365,13 +319,8 @@
 
         socket.on('authResult', (data) => {
             showAuthError(data.message, data.success);
-            if(data.success) {
-                playSound('success');
-                if(document.getElementById('registerForm').classList.contains('active')) {
-                    setTimeout(() => switchAuthTab('login'), 2000);
-                }
-            } else {
-                playSound('error');
+            if(data.success && document.getElementById('registerForm').classList.contains('active')) {
+                setTimeout(() => switchAuthTab('login'), 2000);
             }
         });
 
@@ -419,7 +368,6 @@
 
         // Sekme Değiştirme ve Arayüz Çizme
         function switchTab(tab) {
-            playSound('click');
             activeTab = tab;
             const titles = {
                 'overview': 'Genel Durum & Karakter',
@@ -477,8 +425,8 @@
                             <div class="stat-row"><span>Dağıtılacak Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
                             ${u.statPoints > 0 ? `
                                 <div style="display:flex; gap:10px; margin-top:10px;">
-                                    <button class="btn-stat" onclick="playSound('click'); socket.emit('distributeStat', 'str')">+ Güç Ver</button>
-                                    <button class="btn-stat" onclick="playSound('click'); socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
+                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
+                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
                                 </div>
                             ` : ''}
 
@@ -515,8 +463,8 @@
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 5px;">
-                                        <button class="btn-equip" onclick="playSound('click'); socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
-                                        <button class="btn-delete" onclick="playSound('error'); if(confirm('${item.name} eşyasını silmek istediğinize emin misiniz?')) socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Sil</button>
+                                        <button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
+                                        <button class="btn-delete" onclick="if(confirm('${item.name} eşyasını silmek istediğinize emin misiniz?')) socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Sil</button>
                                     </div>
                                 </div>
                             `).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
@@ -532,7 +480,7 @@
                                 <p>Ormandaki gölgelerle savaş ve ganimet topla.</p>
                                 <div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div>
                             </div>
-                            <button class="btn-quest" onclick="playSound('click'); socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 1 })">Sefer Et</button>
                         </div>
                         <div class="quest-card">
                             <div class="quest-info">
@@ -540,7 +488,7 @@
                                 <p>Antik tapınaktakı tehlikeli mahlukları alt et.</p>
                                 <div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div>
                             </div>
-                            <button class="btn-quest" onclick="playSound('click'); socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 2 })">Sefer Et</button>
                         </div>
                         <div class="quest-card">
                             <div class="quest-info">
@@ -548,7 +496,7 @@
                                 <p>Zirvedeki ejderhanın yuvasını yağmala.</p>
                                 <div class="quest-rewards"><span>+300 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div>
                             </div>
-                            <button class="btn-quest" onclick="playSound('click'); socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
+                            <button class="btn-quest" onclick="socket.emit('doQuest', { questId: 3 })">Sefer Et</button>
                         </div>
                     </div>
                     <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
@@ -562,7 +510,7 @@
                                 <p>Yaralarınızı sarar ve HP'yi tamamen doldurur.</p>
                                 <span class="forge-cost">Maliyet: 50 Altın</span>
                             </div>
-                            <button class="btn-quest" onclick="playSound('success'); socket.emit('usePotion')">İksiri İç</button>
+                            <button class="btn-quest" onclick="socket.emit('usePotion')">İksiri İç</button>
                         </div>
                         <div class="market-card">
                             <div class="market-info">
@@ -570,7 +518,7 @@
                                 <p>Sefer limitinizi anında 20/20 yapar.</p>
                                 <span class="forge-cost">Maliyet: 50 Altın</span>
                             </div>
-                            <button class="btn-quest" onclick="playSound('success'); socket.emit('refillSefer')">Satın Al ve Yenile</button>
+                            <button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al ve Yenile</button>
                         </div>
                     </div>
                 `;
@@ -584,7 +532,7 @@
                                 <div class="market-income">Gelir: +10 Altın / dk</div>
                                 <span class="forge-cost">Maliyet: 500 Altın</span>
                             </div>
-                            <button class="btn-quest" onclick="playSound('success'); socket.emit('buyEstate', { estateId: 1 })">${u.estates.includes(1) ? 'Sahipsiniz' : 'Satın Al'}</button>
+                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 1 })">${u.estates.includes(1) ? 'Sahipsiniz' : 'Satın Al'}</button>
                         </div>
                         <div class="market-card">
                             <div class="market-info">
@@ -593,7 +541,7 @@
                                 <div class="market-income">Gelir: +45 Altın / dk</div>
                                 <span class="forge-cost">Maliyet: 2000 Altın</span>
                             </div>
-                            <button class="btn-quest" onclick="playSound('success'); socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button>
+                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button>
                         </div>
                         <div class="market-card">
                             <div class="market-info">
@@ -602,7 +550,7 @@
                                 <div class="market-income">Gelir: +180 Altın / dk</div>
                                 <span class="forge-cost">Maliyet: 7500 Altın</span>
                             </div>
-                            <button class="btn-quest" onclick="playSound('success'); socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button>
+                            <button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button>
                         </div>
                     </div>
                 `;
@@ -632,7 +580,7 @@
                                             <span class="forge-cost">Geliştirme Maliyeti: ${cost} Altın</span>
                                         </div>
                                     </div>
-                                    <button class="btn-quest" onclick="playSound('success'); socket.emit('upgradeItem', { itemIndex: ${index} })">
+                                    <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">
                                         +${nextLvl} Bas
                                     </button>
                                 </div>
@@ -663,7 +611,7 @@
                                 <p>Zindanın karanlık koridorlarını tutan huzursuz iskelet.</p>
                                 <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ef4444;">-20 HP</span></div>
                             </div>
-                            <button class="btn-quest" onclick="playSound('click'); socket.emit('doDungeon', { floor: 1 })">Saldır</button>
+                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 1 })">Saldır</button>
                         </div>
                         <div class="quest-card">
                             <div class="quest-info">
@@ -671,7 +619,7 @@
                                 <p>Yüzyıllardır çürümüş ama hâlâ ölümcül bir güç.</p>
                                 <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ef4444;">-45 HP</span></div>
                             </div>
-                            <button class="btn-quest" onclick="playSound('click'); socket.emit('doDungeon', { floor: 2 })">Saldır</button>
+                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 2 })">Saldır</button>
                         </div>
                         <div class="quest-card">
                             <div class="quest-info">
@@ -679,7 +627,7 @@
                                 <p>Vahşi kasları ve dev baltasıyla yolu kapatıyor.</p>
                                 <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ef4444;">-90 HP</span></div>
                             </div>
-                            <button class="btn-quest" onclick="playSound('click'); socket.emit('doDungeon', { floor: 3 })">Saldır</button>
+                            <button class="btn-quest" onclick="socket.emit('doDungeon', { floor: 3 })">Saldır</button>
                         </div>
                         <div class="quest-card" style="border-color: #b38b4d; background: linear-gradient(135deg, #221510 0%, #120e0c 100%);">
                             <div class="quest-info">
@@ -687,7 +635,7 @@
                                 <p>Zindanın hakimi, devasa ve acımasız ejderha.</p>
                                 <div class="quest-rewards"><span>+1500 Altın</span><span>+500 Tecrübe</span><span style="color:#22c55e;">+2 Yakut Şansı</span></div>
                             </div>
-                            <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171;" onclick="playSound('click'); socket.emit('doDungeon', { floor: 4 })">Boss'a Saldır</button>
+                            <button class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); border-color: #f87171;" onclick="socket.emit('doDungeon', { floor: 4 })">Boss'a Saldır</button>
                         </div>
                     </div>
                     <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları burada görünecektir...</div>
@@ -696,12 +644,10 @@
         }
 
         function unequip(slot) {
-            playSound('click');
             socket.emit('unequipItem', { slot: slot });
         }
 
         function sendChat() {
-            playSound('click');
             const input = document.getElementById('chatInputMsg');
             if(!input || !input.value.trim()) return;
             socket.emit('sendChatMessage', { message: input.value.trim() });
@@ -720,7 +666,6 @@
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
-            if(res.success !== false) playSound('success');
             const log = document.getElementById('questLogResult');
             if(log) log.innerText = res.message;
             if(activeTab === 'overview') renderPanelContent();
@@ -757,14 +702,12 @@
                 currentUserData = res.userData;
                 updateHeader(res.userData);
             }
-            if(res.success !== false) playSound('success');
             const log = document.getElementById('dungeonLogResult');
             if(log) log.innerText = res.message;
             if(activeTab === 'overview') renderPanelContent();
         });
 
         function logout() {
-            playSound('click');
             socket.emit('logout');
         }
 
@@ -775,10 +718,7 @@
         });
 
         function startSeferTimer() {
-            if (seferTimerInterval) clearInterval(seferTimerInterval);
-            seferTimerInterval = setInterval(() => {
-                // Sefer limiti otomatik yenilenme kontrolü veya istemci tarafı sayaç mantığı buraya entegre edilebilir.
-            }, 1000);
+            // Sefer yenilenme mekanikleri buraya eklenebilir
         }
     </script>
 </body>
