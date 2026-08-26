@@ -138,7 +138,7 @@
         .eq-slot img { width: 100%; height: 100%; object-fit: cover; }
 
         .inventory-container { margin-top: 20px; background: #120e0c; border: 1px solid #33241b; padding: 15px; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
-        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
         .inventory-item-card { background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%); border: 1px solid #38291e; border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
         .item-info-area { display: flex; align-items: center; gap: 8px; }
         .item-icon-box { width: 36px; height: 36px; background: #0b0806; border: 1px solid #2d2017; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; }
@@ -411,7 +411,7 @@
                                     <div class="item-info-area">
                                         <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
                                         <div class="item-details">
-                                            <span class="item-name">${item.name}</span>
+                                            <span class="item-name">${item.name} +${item.level || 0}</span>
                                             <span class="item-bonus">Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</span>
                                         </div>
                                     </div>
@@ -438,7 +438,7 @@
                     <div class="market-list">
                         <div class="market-card"><div class="market-info"><h4>Can İksiri</h4><p>HP'yi tamamen doldurur.</p><span class="forge-cost">Maliyet: 50 Altın</span></div><button class="btn-quest" onclick="socket.emit('usePotion')">Satın Al ve İç</button></div>
                         <div class="market-card"><div class="market-info"><h4>Sefer İksiri</h4><p>Sefer limitini anında 20/20 yapar.</p><span class="forge-cost">Maliyet: 50 Altın</span></div><button class="btn-quest" onclick="socket.emit('refillSefer')">Satın Al</button></div>
-                        <div class="market-card" style="border-color: #d4af37;"><div class="market-info"><h4>Ganimet Sandığı</h4><p>Rasgele güçlü bir ekipman düşürme şansı!</p><span class="forge-cost" style="color: #d4af37;">Maliyet: 300 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyMysteryBox')">Sandığı Aç</button></div>
+                        <div class="market-card" style="border-color: #d4af37;"><div class="market-info"><h4>Ganimet Sandığı</h4><p>Rasgele güçlü bir ekipman düşürme şansı (+0, +1 veya +2) !</p><span class="forge-cost" style="color: #d4af37;">Maliyet: 300 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyMysteryBox')">Sandığı Aç</button></div>
                     </div>
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Pazar işlemleri burada görünecektir...</div>
                 `;
@@ -458,13 +458,14 @@
                     </div>
                     <div class="forge-list">
                         ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
-                            const nextLvl = (item.level || 0) + 1;
+                            const currentLvl = item.level || 0;
+                            const nextLvl = currentLvl + 1;
                             const cost = nextLvl * 150;
                             return `
                                 <div class="forge-card">
                                     <div class="item-info-area">
                                         <div class="item-icon-box">${item.icon || '📦'}</div>
-                                        <div class="forge-info"><h4>${item.name}</h4><p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p><span class="forge-cost">Maliyet: ${cost} Altın</span></div>
+                                        <div class="forge-info"><h4>${item.name} +${currentLvl}</h4><p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p><span class="forge-cost">Maliyet: ${cost} Altın</span></div>
                                     </div>
                                     <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
                                 </div>
