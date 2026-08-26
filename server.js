@@ -204,6 +204,58 @@ io.on('connection', (socket) => {
         });
     });
 
+    // Zindan Katları Sistemi
+    socket.on('doDungeon', async (data) => {
+        try {
+            const user = users[socket.id];
+            if (!user) return;
+
+            const floors = {
+                1: { hpCost: 20, gold: 100, exp: 40, name: "İskelet Savaşçı" },
+                2: { hpCost: 45, gold: 250, exp: 90, name: "Zombi Muhafız" },
+                3: { hpCost: 90, gold: 600, exp: 200, name: "Ork Şampiyonu" },
+                4: { hpCost: 150, gold: 1500, exp: 500, rubies: 2, name: "Zindan Ejderhası" }
+            };
+
+            const dungeon = floors[data.floor];
+            if (!dungeon) return;
+
+            const maxHp = (user.vit || 5) * 20;
+            if (user.hp === undefined) user.hp = maxHp;
+
+            if (user.hp < dungeon.hpCost) {
+                return socket.emit('dungeonResult', { 
+                    success: false, 
+                    message: `Canınız yetersiz! Zindana girmek için en az ${dungeon.hpCost} HP'ye ihtiyacınız var.`, 
+                    userData: user 
+                });
+            }
+
+            user.hp -= dungeon.hpCost;
+            user.balance += dungeon.gold;
+            user.exp += dungeon.exp;
+            if (dungeon.rubies) user.rubies += dungeon.rubies;
+
+            const maxExp = user.level * 100;
+            if (user.exp >= maxExp) {
+                user.level += 1;
+                user.exp -= maxExp;
+                user.statPoints = (user.statPoints || 0) + 3;
+            }
+
+            await user.save();
+
+            socket.emit('dungeonResult', {
+                success: true,
+                message: `Zafer! ${dungeon.name}'nı alt ettin! Kazanç: +${dungeon.gold} Altın, +${dungeon.exp} Tecrübe.`,
+                userData: user
+            });
+
+        } catch (err) {
+            console.error("Zindan hatası:", err);
+        }
+    });
+
     // Tımar Satın Alma
     socket.on('buyEstate', async (data) => {
         const user = users[socket.id];
@@ -241,7 +293,6 @@ io.on('connection', (socket) => {
 
             const { itemIndex } = data;
 
-            // Envanter ve eşya geçerlilik kontrolü
             if (!user.inventory || !user.inventory[itemIndex]) {
                 return socket.emit('forgeResult', { 
                     success: false, 
@@ -252,9 +303,8 @@ io.on('connection', (socket) => {
             const item = user.inventory[itemIndex];
             const currentLevel = item.level || 0;
             const nextLevel = currentLevel + 1;
-            const cost = nextLevel * 150; // Seviye arttıkça + basma maliyeti artar
+            const cost = nextLevel * 150;
 
-            // Altın kontrolü
             if ((user.balance || 0) < cost) {
                 return socket.emit('forgeResult', { 
                     success: false, 
@@ -262,23 +312,18 @@ io.on('connection', (socket) => {
                 });
             }
 
-            // Altını düş
             user.balance -= cost;
 
-            // Eşya ismindeki eski + seviyesini temizle ve yenisini ekle
             let baseName = item.name.replace(/\s\+\d+$/, '');
             item.name = `${baseName} +${nextLevel}`;
             item.level = nextLevel;
 
-            // Stat bonuslarını artır (+1 basıldığında mevcut bonusa ekleme yapılır)
             item.strBonus = (item.strBonus || 0) + 2;
             item.vitBonus = (item.vitBonus || 0) + 2;
 
-            // Envanter dizisini güncellendi olarak işaretle
             user.markModified('inventory');
             await user.save();
 
-            // Oturum bilgilerini güncelle
             users[socket.id] = user;
 
             socket.emit('forgeResult', {
@@ -347,18 +392,15 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
-        // Eşya Silme İşlemi
+    // Eşya Silme İşlemi
     socket.on('deleteItem', async (data) => {
         const user = users[socket.id];
         if (!user || data.itemIndex === undefined || data.itemIndex < 0 || data.itemIndex >= user.inventory.length) return;
 
-        // Eşyayı envanter dizisinden kaldır
         user.inventory.splice(data.itemIndex, 1);
-        
         user.markModified('inventory');
         await user.save();
 
-        // Güncel veriyi istemciye gönder
         socket.emit('statUpdated', user);
     });
 
@@ -379,64 +421,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => delete users[socket.id]);
-}); // PARANTEZ KAPANDI
-
-
-socket.on('doDungeon', async (data) => {
-    try {
-        let dbUser = await User.findOne({ socketId: socket.id });
-        if (!dbUser) return;
-
-        // Kat seviyelerine göre maliyet ve ödüller
-        const floors = {
-            1: { hpCost: 20, gold: 100, exp: 40, name: "İskelet Savaşçı" },
-            2: { hpCost: 45, gold: 250, exp: 90, name: "Zombi Muhafız" },
-            3: { hpCost: 90, gold: 600, exp: 200, name: "Ork Şampiyonu" },
-            4: { hpCost: 150, gold: 1500, exp: 500, rubies: 2, name: "Zindan Ejderhası" }
-        };
-
-        const dungeon = floors[data.floor];
-        if (!dungeon) return;
-
-        // Can kontrolü
-        const maxHp = (dbUser.vit || 5) * 20;
-        if (dbUser.hp === undefined) dbUser.hp = maxHp;
-
-        if (dbUser.hp < dungeon.hpCost) {
-            return socket.emit('dungeonResult', { 
-                success: false, 
-                message: `Canınız yetersiz! Zindana girmek için en az ${dungeon.hpCost} HP'ye ihtiyacınız var.`, 
-                userData: dbUser ._doc 
-            });
-        }
-
-        // Savaş simülasyonu (Güç kontrolü eklenebilir veya direkt başarı)
-        dbUser.hp -= dungeon.hpCost;
-        dbUser.balance += dungeon.gold;
-        dbUser.exp += dungeon.exp;
-        if (dungeon.rubies) dbUser.rubies += dungeon.rubies;
-
-        // Seviye atlama kontrolü
-        const maxExp = dbUser.level * 100;
-        if (dbUser.exp >= maxExp) {
-            dbUser.level += 1;
-            dbUser.exp -= maxExp;
-            dbUser.statPoints = (dbUser.statPoints || 0) + 3;
-        }
-
-        await dbUser.save();
-
-        socket.emit('dungeonResult', {
-            success: true,
-            message: `Zafer! ${dungeon.name}'nı alt ettin! Kazanç: +${dungeon.gold} Altın, +${dungeon.exp} Tecrübe.`,
-            userData: dbUser
-        });
-
-    } catch (err) {
-        console.error("Zindan hatası:", err);
-    }
 });
-
 
 // PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
@@ -444,7 +429,6 @@ setInterval(async () => {
         const user = users[socketId];
         let isUpdated = false;
 
-        // 1. Pasif Gelir Hesabı
         let income = 0;
         if (user.estates.includes(1)) income += 10;
         if (user.estates.includes(2)) income += 45;
@@ -455,17 +439,14 @@ setInterval(async () => {
             isUpdated = true;
         }
 
-        // 2. Otomatik Can Yenileme (Maksimum Can: Dayanıklılık * 20)
         const maxHp = user.vit * 20;
         if (user.hp < maxHp) {
             user.hp = Math.min(maxHp, user.hp + 10);
             isUpdated = true;
         }
 
-        // Herhangi bir değişiklik gerçekleştiyse GÜVENLİ KAYDET ve istemciyi güncelle
         if (isUpdated) {
             try {
-                // user.save() yerine User.updateOne() kullanarak ParallelSaveError hatasını önlüyoruz
                 await User.updateOne(
                     { _id: user._id }, 
                     { $set: { balance: user.balance, hp: user.hp } }
