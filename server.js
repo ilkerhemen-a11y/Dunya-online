@@ -381,6 +381,63 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => delete users[socket.id]);
 }); // PARANTEZ KAPANDI
 
+
+socket.on('doDungeon', async (data) => {
+    try {
+        let dbUser = await User.findOne({ socketId: socket.id });
+        if (!dbUser) return;
+
+        // Kat seviyelerine göre maliyet ve ödüller
+        const floors = {
+            1: { hpCost: 20, gold: 100, exp: 40, name: "İskelet Savaşçı" },
+            2: { hpCost: 45, gold: 250, exp: 90, name: "Zombi Muhafız" },
+            3: { hpCost: 90, gold: 600, exp: 200, name: "Ork Şampiyonu" },
+            4: { hpCost: 150, gold: 1500, exp: 500, rubies: 2, name: "Zindan Ejderhası" }
+        };
+
+        const dungeon = floors[data.floor];
+        if (!dungeon) return;
+
+        // Can kontrolü
+        const maxHp = (dbUser.vit || 5) * 20;
+        if (dbUser.hp === undefined) dbUser.hp = maxHp;
+
+        if (dbUser.hp < dungeon.hpCost) {
+            return socket.emit('dungeonResult', { 
+                success: false, 
+                message: `Canınız yetersiz! Zindana girmek için en az ${dungeon.hpCost} HP'ye ihtiyacınız var.`, 
+                userData: dbUser ._doc 
+            });
+        }
+
+        // Savaş simülasyonu (Güç kontrolü eklenebilir veya direkt başarı)
+        dbUser.hp -= dungeon.hpCost;
+        dbUser.balance += dungeon.gold;
+        dbUser.exp += dungeon.exp;
+        if (dungeon.rubies) dbUser.rubies += dungeon.rubies;
+
+        // Seviye atlama kontrolü
+        const maxExp = dbUser.level * 100;
+        if (dbUser.exp >= maxExp) {
+            dbUser.level += 1;
+            dbUser.exp -= maxExp;
+            dbUser.statPoints = (dbUser.statPoints || 0) + 3;
+        }
+
+        await dbUser.save();
+
+        socket.emit('dungeonResult', {
+            success: true,
+            message: `Zafer! ${dungeon.name}'nı alt ettin! Kazanç: +${dungeon.gold} Altın, +${dungeon.exp} Tecrübe.`,
+            userData: dbUser
+        });
+
+    } catch (err) {
+        console.error("Zindan hatası:", err);
+    }
+});
+
+
 // PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
     for (const socketId in users) {
