@@ -155,13 +155,12 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitiniz yenilendi!" });
     });
 
-    // RASTGELE SEVİYELİ SANDIK SİSTEMİ (+0, +1 veya +2)
     socket.on('buyMysteryBox', async () => {
         const user = users[socket.id];
         if (!user || user.balance < 300) return socket.emit('marketResult', { success: false, userData: user, message: "Sandık için 300 altın gerekli!" });
         
         user.balance -= 300;
-        const randomLevel = Math.floor(Math.random() * 3); // 0, 1 veya 2 seviye rastgele gelir
+        const randomLevel = Math.floor(Math.random() * 3); // 0, 1 veya 2
         
         const baseItems = [
             { id: 'item_sword', name: 'Savaş Baltası', icon: '🪓', type: 'weapon', baseStr: 7, baseVit: 2 },
@@ -172,7 +171,7 @@ io.on('connection', (socket) => {
         
         const wonItem = {
             id: base.id,
-            name: base.name,
+            name: base.name.replace(/\s*\+\d+$/, ''),
             icon: base.icon,
             type: base.type,
             level: randomLevel,
@@ -207,6 +206,7 @@ io.on('connection', (socket) => {
         if (user.balance < cost) return socket.emit('forgeResult', { success: false, userData: user, message: "Yetersiz altın!" });
 
         user.balance -= cost;
+        item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, ''); // Adındaki eski artıkları temizle
         item.level = nextLvl;
         item.strBonus = (item.strBonus || 0) + 2;
         item.vitBonus = (item.vitBonus || 0) + 2;
@@ -219,7 +219,10 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user || !user.inventory[data.itemIndex]) return;
         const item = user.inventory[data.itemIndex];
+        item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
         const old = user.equipped[item.type];
+        if (old) old.name = (old.name || 'Eşya').replace(/\s*\+\d+$/, '');
+        
         user.inventory.splice(data.itemIndex, 1);
         if (old) user.inventory.push(old);
         user.equipped[item.type] = item;
@@ -231,7 +234,9 @@ io.on('connection', (socket) => {
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
-        user.inventory.push(user.equipped[data.slot]);
+        const item = user.equipped[data.slot];
+        item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+        user.inventory.push(item);
         user.equipped[data.slot] = null;
         user.markModified('equipped'); user.markModified('inventory');
         await user.save();
