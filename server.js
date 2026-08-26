@@ -383,6 +383,8 @@ io.on('connection', (socket) => {
 
 // PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
 setInterval(async () => {
+// PASİF GELİR VE OTOMATİK CAN YENİLEME DÖNGÜSÜ (60 Saniyede Bir)
+setInterval(async () => {
     for (const socketId in users) {
         const user = users[socketId];
         let isUpdated = false;
@@ -405,10 +407,19 @@ setInterval(async () => {
             isUpdated = true;
         }
 
-        // Herhangi bir değişiklik gerçekleştiyse kaydet ve istemciyi güncelle
+        // Herhangi bir değişiklik gerçekleştiyse GÜVENLİ KAYDET ve istemciyi güncelle
         if (isUpdated) {
-            await user.save();
-            io.to(socketId).emit('statUpdated', user);
+            try {
+                // user.save() yerine User.updateOne() kullanıyoruz. 
+                // Bu yöntem, belgenin Mongoose kilitlerine takılmadan doğrudan veritabanında güncellenmesini sağlar (ParallelSaveError'u önler).
+                await User.updateOne(
+                    { _id: user._id }, 
+                    { $set: { balance: user.balance, hp: user.hp } }
+                );
+                io.to(socketId).emit('statUpdated', user);
+            } catch (err) {
+                console.error("Pasif gelir döngüsünde kaydetme hatası:", err);
+            }
         }
     }
 }, 60000);
