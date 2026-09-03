@@ -231,13 +231,23 @@ io.on('connection', (socket) => {
         socket.emit('questResult', { success: true, userData: user, message: "Sefer başarıyla tamamlandı!" });
     });
 
-    // Zindan Katı İlerleme (Yakut Maliyetli Sistem)
+    // Zindan Katı İlerleme (Sürekli Yakut Karşılığı Yapılabilen Sistem)
     socket.on('advanceDungeonFloor', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (!user) return;
 
         const currentFloor = user.dungeonFloor || 1;
+        
+        // Eğer zaten maksimum sınıra (10. kata) ulaşıldıysa daha fazla ilerlenemez
+        if (currentFloor >= 10) {
+            return socket.emit('dungeonResult', { 
+                success: false, 
+                userData: user, 
+                message: "Zaten son kata ulaştınız!" 
+            });
+        }
+
         const requiredRubies = currentFloor * 5;
 
         if ((user.rubies || 0) < requiredRubies) {
