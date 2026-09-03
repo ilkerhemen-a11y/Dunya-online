@@ -522,7 +522,8 @@
                             if (item.type === 'key') return '';
                             const currentLvl = item.level || 0;
                             const nextLvl = currentLvl + 1;
-                            const cost = nextLvl * 150;
+                            const goldCost = nextLvl * 150;
+                            const rubyCost = nextLvl * 1;
                             const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
                             const rarityClass = item.rarity ? `rarity-${item.rarity}` : 'rarity-Sıradan';
                             return `
@@ -532,7 +533,7 @@
                                         <div class="forge-info">
                                             <h4 class="${rarityClass}">${cleanName} +${currentLvl}</h4>
                                             <p>${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}</p>
-                                            <span class="forge-cost">Maliyet: ${cost} Altın</span>
+                                            <span class="forge-cost" style="color: #f3cf7a;">Maliyet: ${goldCost} Altın 🪙 | ${rubyCost} Yakut 💎</span>
                                         </div>
                                     </div>
                                     <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
