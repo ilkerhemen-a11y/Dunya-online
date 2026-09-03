@@ -73,6 +73,7 @@ const userSchema = new mongoose.Schema({
     exp: { type: Number, default: 0 },
     balance: { type: Number, default: 100 },
     rubies: { type: Number, default: 10 },
+    goldKeys: { type: Number, default: 0 },
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
@@ -235,10 +236,16 @@ io.on('connection', (socket) => {
         if (!user) return;
         
         const floors = { 
-            1: [20, 100, 40], 
-            2: [45, 250, 90], 
-            3: [90, 600, 200], 
-            4: [150, 1500, 500] 
+            1: [20, 100, 40, 1], 
+            2: [45, 250, 90, 1], 
+            3: [90, 600, 200, 1], 
+            4: [120, 900, 320, 1],
+            5: [150, 1200, 400, 1],
+            6: [190, 1600, 550, 1],
+            7: [240, 2100, 700, 1],
+            8: [300, 2800, 900, 1],
+            9: [370, 3600, 1150, 1],
+            10: [450, 5000, 1800, 2] 
         };
         const f = floors[data.floor];
         if (!f) return socket.emit('dungeonResult', { success: false, message: "Geçersiz zindan katı!" });
@@ -251,11 +258,15 @@ io.on('connection', (socket) => {
         user.balance += f[1]; 
         user.exp += f[2];
         
-        let bonusMessage = "";
+        // Altın Anahtar Ödülü Entegrasyonu
+        const keysEarned = f[3];
+        user.goldKeys = (user.goldKeys || 0) + keysEarned;
 
-        if (data.floor === 4) {
+        let bonusMessage = ` 🔑 +${keysEarned} Altın Anahtar kazandın!`;
+
+        if (data.floor === 10) {
             user.rubies += 2;
-            bonusMessage = " 💎 +2 Yakut kazandın!";
+            bonusMessage += " 💎 +2 Yakut kazandın!";
         }
 
         if (Math.random() < 0.35) {
@@ -291,6 +302,24 @@ io.on('connection', (socket) => {
 
         await user.save();
         socket.emit('dungeonResult', { success: true, userData: user, message: `Zindan Kat ${data.floor} başarıyla temizlendi! +${f[1]} Altın, +${f[2]} Tecrübe.${bonusMessage}` });
+    });
+
+    // Pazar Yeri - Altın Sandık Açma Sistemi
+    socket.on('openGoldChest', async () => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        if ((user.goldKeys || 0) < 1) {
+            return socket.emit('marketResult', { success: false, userData: user, message: "Altın Sandığı açmak için en az 1 adet Altın Anahtarınız olmalı! (Zindan katlarını tamamlayarak anahtar kazanabilirsiniz)" });
+        }
+
+        user.goldKeys -= 1;
+        const rubyWon = 10;
+        user.rubies += rubyWon;
+
+        await user.save();
+        socket.emit('marketResult', { success: true, userData: user, message: `📦 Altın Sandık açıldı! Envanterinize ${rubyWon} adet Yakut 💎 eklendi!` });
     });
 
     socket.on('getArenaOpponents', async () => {
