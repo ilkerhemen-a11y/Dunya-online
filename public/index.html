@@ -502,10 +502,15 @@
                     </div>
                 `;
             } else if(activeTab === 'dungeon') {
+                const userDungeonFloor = u.dungeonFloor || 1;
+                const nextCost = userDungeonFloor * 5;
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #b38b4d; border-radius: 6px; padding: 12px;">
-                        <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve Katlar</h3>
-                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Her katı tamamladığında <strong style="color: #ffdf73;">1x Altın Anahtar</strong> kazanırsın! Bu anahtarlarla pazar yerindeki Altın Sandıkları açarak yakut elde edebilirsin.</p>
+                        <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve İlerleme Sistemi</h3>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Mevcut Zindan Katın: <strong style="color: #22c55e;">Kat ${userDungeonFloor}</strong> | Sonraki kata geçmek için <strong style="color: #ef4444;">${nextCost} Yakut 💎</strong> gereklidir.</p>
+                        <div style="margin-top: 10px;">
+                            <button class="btn-quest" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border-color: #60a5fa;" onclick="doAction('advanceDungeonFloor', {}, 'advFloorBtn')" id="advFloorBtn">🚀 Sonraki Kata İlerle (${nextCost} Yakut)</button>
+                        </div>
                     </div>
                     <div class="quest-list">
                         <div class="quest-card">
@@ -580,7 +585,7 @@
                             <button id="d10Btn" class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:white; border-color: #f87171;" onclick="doAction('doDungeon', { floor: 10 }, 'd10Btn')">Boss'a Meydan Oku</button>
                         </div>
                     </div>
-                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları ve ganimet bilgileri burada raporlanacaktır...</div>
+                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları ve ilerleme durumları burada raporlanacaktır...</div>
                 `;
             }
         }
@@ -603,7 +608,11 @@
         socket.on('questResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('questLogResult').innerText = res.message; });
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
         socket.on('forgeResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('forgeLogResult').innerText = res.message; if(activeTab === 'blacksmith') renderPanelContent(); });
-        socket.on('dungeonResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('dungeonLogResult').innerText = res.message; });
+        socket.on('dungeonResult', (res) => { 
+            if(res.userData) updateHeader(res.userData); 
+            document.getElementById('dungeonLogResult').innerText = res.message; 
+            if(activeTab === 'dungeon') renderPanelContent();
+        });
         
         socket.on('arenaOpponentsList', (opponents) => {
             const listEl = document.getElementById('arenaOpponentsList');
