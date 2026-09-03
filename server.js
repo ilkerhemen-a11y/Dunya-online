@@ -352,7 +352,6 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { success: true, userData: user, message: `📦 Altın Sandık açıldı! Envanterinize ${rubyWon} adet Yakut 💎 eklendi!` });
     });
 
-    // Suluhan Antik Çarşısı - Altın ve Yakut ile Eşya Satın Alma Sistemi
     socket.on('buySuluhanItem', async (data) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
@@ -557,6 +556,7 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { success: true, userData: user, message: "Tımar başarıyla satın alındı!" });
     });
 
+    // Güncellenmiş Demirhane Eşya Geliştirme (Altın + Yakut Kontrolü)
     socket.on('upgradeItem', async (data) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
@@ -564,10 +564,20 @@ io.on('connection', (socket) => {
         const item = user.inventory[data.itemIndex];
         const currentLvl = item.level || 0;
         const nextLvl = currentLvl + 1;
-        const cost = nextLvl * 150;
-        if (user.balance < cost) return socket.emit('forgeResult', { success: false, userData: user, message: "Yetersiz altın!" });
+        
+        const goldCost = nextLvl * 150;
+        const rubyCost = nextLvl * 1; // Her seviye başına 1 Yakut maliyeti
 
-        user.balance -= cost;
+        if (user.balance < goldCost || (user.rubies || 0) < rubyCost) {
+            return socket.emit('forgeResult', { 
+                success: false, 
+                userData: user, 
+                message: `Yetersiz Altın veya Yakut! Gerekli: ${goldCost} Altın 🪙 ve ${rubyCost} Yakut 💎` 
+            });
+        }
+
+        user.balance -= goldCost;
+        user.rubies -= rubyCost;
         item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
         item.level = nextLvl;
         
@@ -578,7 +588,7 @@ io.on('connection', (socket) => {
         
         user.markModified('inventory');
         await user.save();
-        socket.emit('forgeResult', { success: true, userData: user, message: `Eşya +${item.level} seviyesine geliştirildi!` });
+        socket.emit('forgeResult', { success: true, userData: user, message: `Eşya +${item.level} seviyesine geliştirildi! (${goldCost} Altın, ${rubyCost} Yakut harcandı)` });
     });
 
     socket.on('equipItem', async (data) => {
