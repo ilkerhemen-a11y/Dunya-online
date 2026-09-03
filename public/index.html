@@ -179,6 +179,7 @@
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
             <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
+            <button class="menu-btn" onclick="switchTab('suluhan')">🏛️ Suluhan Çarşısı</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
             <button class="menu-btn" onclick="switchTab('arena')">🏟️ PvP Arena</button>
@@ -321,6 +322,7 @@
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
                 'market': 'Pazar Yeri ve Sandıklar',
+                'suluhan': 'Suluhan Antik Çarşısı',
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
@@ -433,6 +435,71 @@
                     </div>
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Pazar işlemleri burada görünecektir...</div>
                 `;
+            } else if(activeTab === 'suluhan') {
+                body.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #d4af37; border-radius: 6px; padding: 12px;">
+                        <h3 style="color: #ffdf73; font-size: 15px;">🏛️ Tarihi Suluhan Çarşısı</h3>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Diyar'ın en usta tüccarlarının buluştuğu nokta. <strong style="color: #f3cf7a;">Altın 🪙 ve Yakut 💎</strong> ile eşsiz teçhizatlar satın alabilirsin!</p>
+                    </div>
+                    <div class="market-list">
+                        <div class="market-card" style="border-color: #a855f7;">
+                            <div class="item-info-area">
+                                <div class="item-icon-box">⚔️</div>
+                                <div class="market-info">
+                                    <h4 class="rarity-Epik">Güneş Kılıcı +1</h4>
+                                    <p>Güç: +12 | Dayanıklılık: +4</p>
+                                    <span class="forge-cost" style="color: #f3cf7a;">Maliyet: 500 Altın 🪙 | 5 Yakut 💎</span>
+                                </div>
+                            </div>
+                            <button id="sul1Btn" class="btn-quest" onclick="doAction('buySuluhanItem', { itemId: 1 }, 'sul1Btn')">Satın Al</button>
+                        </div>
+                        <div class="market-card" style="border-color: #a855f7;">
+                            <div class="item-info-area">
+                                <div class="item-icon-box">🛡️</div>
+                                <div class="market-info">
+                                    <h4 class="rarity-Epik">Vezir Zırhı +1</h4>
+                                    <p>Güç: +5 | Dayanıklılık: +15</p>
+                                    <span class="forge-cost" style="color: #f3cf7a;">Maliyet: 800 Altın 🪙 | 8 Yakut 💎</span>
+                                </div>
+                            </div>
+                            <button id="sul2Btn" class="btn-quest" onclick="doAction('buySuluhanItem', { itemId: 2 }, 'sul2Btn')">Satın Al</button>
+                        </div>
+                        <div class="market-card" style="border-color: #3b82f6;">
+                            <div class="item-info-area">
+                                <div class="item-icon-box">👑</div>
+                                <div class="market-info">
+                                    <h4 class="rarity-Nadir">Sultan Tacı +1</h4>
+                                    <p>Güç: +4 | Dayanıklılık: +10</p>
+                                    <span class="forge-cost" style="color: #f3cf7a;">Maliyet: 400 Altın 🪙 | 4 Yakut 💎</span>
+                                </div>
+                            </div>
+                            <button id="sul3Btn" class="btn-quest" onclick="doAction('buySuluhanItem', { itemId: 3 }, 'sul3Btn')">Satın Al</button>
+                        </div>
+                        <div class="market-card" style="border-color: #3b82f6;">
+                            <div class="item-info-area">
+                                <div class="item-icon-box">💍</div>
+                                <div class="market-info">
+                                    <h4 class="rarity-Nadir">Hünkar Yüzüğü +1</h4>
+                                    <p>Güç: +8 | Dayanıklılık: +8</p>
+                                    <span class="forge-cost" style="color: #f3cf7a;">Maliyet: 300 Altın 🪙 | 3 Yakut 💎</span>
+                                </div>
+                            </div>
+                            <button id="sul4Btn" class="btn-quest" onclick="doAction('buySuluhanItem', { itemId: 4 }, 'sul4Btn')">Satın Al</button>
+                        </div>
+                        <div class="market-card">
+                            <div class="item-info-area">
+                                <div class="item-icon-box">👢</div>
+                                <div class="market-info">
+                                    <h4 class="rarity-Sıradan">Şehzade Çizmesi +1</h4>
+                                    <p>Güç: +6 | Dayanıklılık: +6</p>
+                                    <span class="forge-cost" style="color: #f3cf7a;">Maliyet: 250 Altın 🪙 | 2 Yakut 💎</span>
+                                </div>
+                            </div>
+                            <button id="sul5Btn" class="btn-quest" onclick="doAction('buySuluhanItem', { itemId: 5 }, 'sul5Btn')">Satın Al</button>
+                        </div>
+                    </div>
+                    <div id="suluhanLogResult" class="quest-log" style="margin-top: 15px;">Suluhan çarşı işlemleri burada raporlanacaktır...</div>
+                `;
             } else if(activeTab === 'timar') {
                 body.innerHTML = `
                     <div class="market-list">
@@ -520,12 +587,11 @@
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #b38b4d; border-radius: 6px; padding: 12px;">
                         <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve İlerleme Sistemi</h3>
-                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Mevcut Zindan Katın: <strong style="color: #22c55e;">Kat ${userDungeonFloor}</strong> | İstediğin zaman yakut ödeyerek sonraki kata geçiş yapabilirsin.</p>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Mevcut Zindan Katın: <strong style="color: #22c55e;">Kat ${userDungeonFloor}</strong> | Yeni katların kilidini açmak için alt katlardaki ilerleme butonlarını kullanabilirsin.</p>
                     </div>
                     <div class="quest-list">
                         ${dungeonsData.map(d => {
                             const isUnlocked = d.floor <= userDungeonFloor;
-                            const isCurrent = d.floor === userDungeonFloor;
                             const nextCost = d.floor * 5;
                             
                             let actionButtonHTML = '';
@@ -579,6 +645,7 @@
         socket.on('statUpdated', (u) => { updateHeader(u); if(activeTab === 'overview') renderPanelContent(); });
         socket.on('questResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('questLogResult').innerText = res.message; });
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
+        socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
         socket.on('forgeResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('forgeLogResult').innerText = res.message; if(activeTab === 'blacksmith') renderPanelContent(); });
         socket.on('dungeonResult', (res) => { 
             if(res.userData) updateHeader(res.userData); 
