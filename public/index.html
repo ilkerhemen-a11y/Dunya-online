@@ -155,6 +155,7 @@
         <div class="header-section">
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
             <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">0</span> Yakut</div>
+            <div class="resource-item" style="color: #f3cf7a;">🔑 <span id="headerKeys">0</span> Altın Anahtar</div>
         </div>
         <div class="header-section">
             <div class="bar-container">
@@ -294,6 +295,7 @@
             currentUserData = data;
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('headerRubies').innerText = (data.rubies || 0).toLocaleString('tr-TR');
+            document.getElementById('headerKeys').innerText = (data.goldKeys || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
             const maxHp = (data.vit || 5) * 20;
@@ -318,7 +320,7 @@
             const titles = {
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
-                'market': 'Pazar Yeri ve İksirler',
+                'market': 'Pazar Yeri ve Sandıklar',
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
@@ -354,6 +356,7 @@
                             <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${totalVit * 20}</span></div>
                             <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
                             <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
+                            <div class="stat-row"><span>Altın Anahtar:</span><span>${u.goldKeys || 0} 🔑</span></div>
                             <div class="stat-row"><span>Onur Puanı:</span><span>${u.honor || 0} 🌟</span></div>
                             <div class="stat-row"><span>Güç (STR):</span><span>${totalStr} ${bonusStr > 0 ? `(+${bonusStr})` : ''}</span></div>
                             <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${totalVit} ${bonusVit > 0 ? `(+${bonusVit})` : ''}</span></div>
@@ -391,12 +394,12 @@
                                     <div class="item-info-area">
                                         <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
                                         <div class="item-details">
-                                            <span class="item-name ${rarityClass}">${cleanName} +${item.level || 0}</span>
-                                            <span class="item-bonus">Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</span>
+                                            <span class="item-name ${rarityClass}">${cleanName} ${item.level ? '+' + item.level : ''}</span>
+                                            <span class="item-bonus">${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}</span>
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 5px;">
-                                        <button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>
+                                        ${item.type !== 'key' ? `<button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>` : ''}
                                         <button onclick="socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Sil</button>
                                     </div>
                                 </div>
@@ -416,6 +419,14 @@
             } else if(activeTab === 'market') {
                 body.innerHTML = `
                     <div class="market-list">
+                        <div class="market-card" style="border-color: #d4af37; background: linear-gradient(135deg, #1f170e 0%, #120e0c 100%);">
+                            <div class="market-info">
+                                <h4 style="color: #ffdf73;">📦 Altın Sandık</h4>
+                                <p>1 adet Altın Anahtar harcayarak açılır. İçinden kesin veya şansa bağlı <strong style="color:#ef4444;">10 adet Yakut</strong> kazanma şansı yakala!</p>
+                                <span class="forge-cost" style="color: #ffdf73;">Gereksinim: 1x Altın Anahtar (🔑 Mevcut: ${u.goldKeys || 0})</span>
+                            </div>
+                            <button id="goldChestBtn" class="btn-quest" style="background: linear-gradient(135deg, #d4af37 0%, #997415 100%);" onclick="doAction('openGoldChest', {}, 'goldChestBtn')">Sandığı Aç</button>
+                        </div>
                         <div class="market-card"><div class="market-info"><h4>Can İksiri</h4><p>HP'yi tamamen doldurur.</p><span class="forge-cost">Maliyet: 50 Altın</span></div><button id="m1Btn" class="btn-quest" onclick="doAction('usePotion', {}, 'm1Btn')">Satın Al ve İç</button></div>
                         <div class="market-card"><div class="market-info"><h4>Sefer İksiri</h4><p>Sefer limitini anında 20/20 yapar.</p><span class="forge-cost">Maliyet: 50 Altın</span></div><button id="m2Btn" class="btn-quest" onclick="doAction('refillSefer', {}, 'm2Btn')">Satın Al</button></div>
                         <div class="market-card" style="border-color: #d4af37;"><div class="market-info"><h4 style="color: #ffdf73;">Ganimet Sandığı</h4><p>Nadir veya Epik seviye eşya düşürme şansı!</p><span class="forge-cost" style="color: #d4af37;">Maliyet: 300 Altın</span></div><button id="m3Btn" class="btn-quest" onclick="doAction('buyMysteryBox', {}, 'm3Btn')">Sandığı Aç</button></div>
@@ -441,6 +452,7 @@
                     </div>
                     <div class="forge-list">
                         ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
+                            if (item.type === 'key') return '';
                             const currentLvl = item.level || 0;
                             const nextLvl = currentLvl + 1;
                             const cost = nextLvl * 150;
@@ -452,7 +464,7 @@
                                         <div class="item-icon-box">${item.icon || '📦'}</div>
                                         <div class="forge-info">
                                             <h4 class="${rarityClass}">${cleanName} +${currentLvl}</h4>
-                                            <p>Güç: +${item.strBonus || 0} | Vit: +${item.vitBonus || 0}</p>
+                                            <p>${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}</p>
                                             <span class="forge-cost">Maliyet: ${cost} Altın</span>
                                         </div>
                                     </div>
@@ -492,41 +504,80 @@
             } else if(activeTab === 'dungeon') {
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #b38b4d; border-radius: 6px; padding: 12px;">
-                        <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve Ejderha Yuvası</h3>
-                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Karanlığın derinliklerine in, en güçlü yaratıkları alt et ve efsanevi ganimetlerin sahibi ol!</p>
+                        <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve Katlar</h3>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Her katı tamamladığında <strong style="color: #ffdf73;">1x Altın Anahtar</strong> kazanırsın! Bu anahtarlarla pazar yerindeki Altın Sandıkları açarak yakut elde edebilirsin.</p>
                     </div>
                     <div class="quest-list">
                         <div class="quest-card">
                             <div class="quest-info">
-                                <h4>💀 Kat 1: İskelet Savaşçıların Mezarı</h4>
-                                <p>Karanlık koridorlarda dolaşan huzursuz kemikler.</p>
-                                <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ef4444;">-20 HP</span></div>
+                                <h4>1. Kat: İskelet Savaşçıların Mezarı</h4>
+                                <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-20 HP</span></div>
                             </div>
                             <button id="d1Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 1 }, 'd1Btn')">Keşfet</button>
                         </div>
                         <div class="quest-card">
                             <div class="quest-info">
-                                <h4>🧟 Kat 2: Zombi Muhafız Salonu</h4>
-                                <p>Antik krallığın çürümüş muhafızları yolu kapatıyor.</p>
-                                <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ef4444;">-45 HP</span></div>
+                                <h4>2. Kat: Zombi Muhafız Salonu</h4>
+                                <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-45 HP</span></div>
                             </div>
                             <button id="d2Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 2 }, 'd2Btn')">İlerle</button>
                         </div>
                         <div class="quest-card">
                             <div class="quest-info">
-                                <h4>👹 Kat 3: Ork Şampiyonunun Arenası</h4>
-                                <p>Vahşi bir ork lideri ölümüne dövüşmek için bekliyor.</p>
-                                <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ef4444;">-90 HP</span></div>
+                                <h4>3. Kat: Ork Şampiyonunun Arenası</h4>
+                                <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-90 HP</span></div>
                             </div>
                             <button id="d3Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 3 }, 'd3Btn')">Savaş</button>
                         </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>4. Kat: Gözcü Kulesi</h4>
+                                <div class="quest-rewards"><span>+900 Altın</span><span>+320 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-120 HP</span></div>
+                            </div>
+                            <button id="d4Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 4 }, 'd4Btn')">İlerle</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>5. Kat: Yarı Kat Bonus Alanı</h4>
+                                <div class="quest-rewards"><span>+1200 Altın</span><span>+400 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-150 HP</span></div>
+                            </div>
+                            <button id="d5Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 5 }, 'd5Btn')">Temizle</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>6. Kat: Değerli Taşlar Mağarası</h4>
+                                <div class="quest-rewards"><span>+1600 Altın</span><span>+550 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-190 HP</span></div>
+                            </div>
+                            <button id="d6Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 6 }, 'd6Btn')">Keşfet</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>7. Kat: Yüksek Değerli Ganimet Koridoru</h4>
+                                <div class="quest-rewards"><span>+2100 Altın</span><span>+700 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-240 HP</span></div>
+                            </div>
+                            <button id="d7Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 7 }, 'd7Btn')">İlerle</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>8. Kat: Usta Sınıfı Sandık Odası</h4>
+                                <div class="quest-rewards"><span>+2800 Altın</span><span>+900 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-300 HP</span></div>
+                            </div>
+                            <button id="d8Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 8 }, 'd8Btn')">Savaş</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>9. Kat: Epik Ekipman Salonu</h4>
+                                <div class="quest-rewards"><span>+3600 Altın</span><span>+1150 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-370 HP</span></div>
+                            </div>
+                            <button id="d9Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 9 }, 'd9Btn')">İlerle</button>
+                        </div>
                         <div class="quest-card" style="border-color: #d4af37; background: linear-gradient(135deg, #1f140f 0%, #120e0c 100%);">
                             <div class="quest-info">
-                                <h4 style="color: #ffdf73;">🔥 Kat 4 (BOSS): Alev Ejderhası'nın İni</h4>
-                                <p>Diyar'ın en korkunç varlığı. Sadece en cesur lordlar buradan sağ çıkabilir.</p>
-                                <div class="quest-rewards"><span>+1500 Altın</span><span>+500 Tecrübe</span><span>+2 Yakut 💎</span></div>
+                                <h4 style="color: #ffdf73;">🔥 Kat 10 (FINAL BOSS): Alev Ejderhası'nın İni</h4>
+                                <p>Diyar'ın en korkunç varlığı. Özel unvan ve 2x Altın Anahtar!</p>
+                                <div class="quest-rewards"><span>+5000 Altın</span><span>+1800 Tecrübe</span><span style="color:#ffdf73;">+2x Altın Anahtar 🔑</span><span>+2 Yakut 💎</span></div>
                             </div>
-                            <button id="d4Btn" class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:white; border-color: #f87171;" onclick="doAction('doDungeon', { floor: 4 }, 'd4Btn')">Boss'a Meydan Oku</button>
+                            <button id="d10Btn" class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:white; border-color: #f87171;" onclick="doAction('doDungeon', { floor: 10 }, 'd10Btn')">Boss'a Meydan Oku</button>
                         </div>
                     </div>
                     <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları ve ganimet bilgileri burada raporlanacaktır...</div>
