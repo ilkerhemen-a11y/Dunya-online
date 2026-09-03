@@ -99,6 +99,17 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
+
+// Kavşak Pazarı Karakter Tezgahları Şeması
+const stallSchema = new mongoose.Schema({
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true },
+    characterName: { type: String, required: true },
+    locationRank: { type: Number, default: 1 }, // 1: Ana Giriş (En İyi), 2: Orta Sokak, 3: Arka Sokak
+    inventory: { type: Array, default: [] }, // [{ item, price }]
+    gold: { type: Number, default: 0 } // Tezgahn kasasındaki biriken altın
+});
+const Stall = mongoose.model('Stall', stallSchema);
+
 const users = {}; 
 
 const rateLimits = {};
@@ -335,6 +346,143 @@ io.on('connection', (socket) => {
         socket.emit('dungeonResult', { success: true, userData: user, message: `Zindan Kat ${data.floor} başarıyla temizlendi! +${f[1]} Altın, +${f[2]} Tecrübe.${bonusMessage}` });
     });
 
+    // --- KAVŞAK PAZARI (OYUNCU TEZGAHLARI) SİSTEMİ ---
+    socket.on('getCharacterMarket', async () => {
+        const user = users[socket.id];
+        try {
+            const stalls = await Stall.find().sort({ locationRank: 1 });
+            const myStall = user ? await Stall.findOne({ ownerId: user._id }) : null;
+            socket.emit('characterMarketData', { stalls, myStall });
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
+    socket.on('createStall', async ({ locationRank }) => {
+        const user = users[socket.id];
+        if (!user) return;
+        try {
+            let existing = await Stall.findOne({ ownerId: user._id });
+            if (existing) return socket.emit('marketMessage', { success: false, userData: user, message: "Zaten bir tezgahınız var!" });
+            
+            const newStall = new Stall({
+                ownerId: user._id,
+                characterName: user.username,
+                locationRank: parseInt(locationRank) || 1,
+                inventory: [],
+                gold: 0
+            });
+            await newStall.save();
+            socket.emit('marketMessage', { success: true, userData: user, message: "Kavşak Pazarı'nda tezgahınız başarıyla kuruldu!" });
+        } catch (err) {
+            socket.emit('marketMessage', { success: false, userData: user, message: "Tezgah kurulurken bir hata oluştu." });
+        }
+    });
+
+    socket.on('addItemToStall', async ({ itemIndex, price }) => {
+        const user = users[socket.id];
+        if (!user || user.inventory[itemIndex] === undefined) return;
+        try {
+            const stall = await Stall.findOne({ ownerId: user._id });
+            if (!stall) return socket.emit('marketMessage', { success: false, userData: user, message: "Önce bir tezgah açmalısınız!" });
+            
+            const item = user.inventory.splice(itemIndex, 1)[0];
+            stall.inventory.push({ item, price: parseInt(price) || 10 });
+            user.markModified('inventory');
+            await user.save();
+            await stall.save();
+
+            socket.emit('marketMessage', { success: true, userData: user, message: `${item.name} tezgaha satışa konuldu!` });
+            socket.emit('statUpdated', user);
+        } catch (err) {
+            socket.emit('marketMessage', { success: false, userData: user, message: "İşlem başarısız." });
+        }
+    });
+
+    socket.on('removeItemFromStall', async ({ stallItemIndex }) => {
+        const user = users[socket.id];
+        if (!user) return;
+        try {
+            const stall = await Stall.findOne({ ownerId: user._id });
+            if (!stall || !stall.inventory[stallItemIndex]) return;
+
+            const soldObj = stall.inventory.splice(stallItemIndex, 1)[0];
+            user.inventory.push(soldObj.item);
+            user.markModified('inventory');
+            await user.save();
+            await stall.save();
+
+            socket.emit('marketMessage', { success: true, userData: user, message: `${soldObj.item.name} tezgahtan geri alındı!` });
+            socket.emit('statUpdated', user);
+        } catch (err) {
+            socket.emit('marketMessage', { success: false, userData: user, message: "İşlem başarısız." });
+        }
+    });
+
+    socket.on('buyStallItem', async ({ stallId, stallItemIndex }) => {
+        const buyer = users[socket.id];
+        if (!buyer) return;
+        try {
+            const stall = await Stall.findById(stallId);
+            if (!stall || !stall.inventory[stallItemIndex]) {
+                return socket.emit('marketMessage', { success: false, userData: buyer, message: "Bu ürün artık mevcut değil!" });
+            }
+
+            if (stall.ownerId.toString() === buyer._id.toString()) {
+                return socket.emit('marketMessage', { success: false, userData: buyer, message: "Kendi ürününüzü satın alamazsınız!" });
+            }
+
+            const targetObj = stall.inventory[stallItemIndex];
+            if (buyer.balance < targetObj.price) {
+                return socket.emit('marketMessage', { success: false, userData: buyer, message: "Yetersiz altın!" });
+            }
+
+            buyer.balance -= targetObj.price;
+            stall.gold += targetObj.price;
+            stall.inventory.splice(stallItemIndex, 1);
+            buyer.inventory.push(targetObj.item);
+
+            buyer.markModified('inventory');
+            await buyer.save();
+            await stall.save();
+
+            // Satıcı çevrimiçiyse bilgilendir
+            for (let sId in users) {
+                if (users[sId]._id.toString() === stall.ownerId.toString()) {
+                    io.to(sId).emit('marketMessage', { success: true, message: `Tezgahınızdan ${targetObj.item.name} ${targetObj.price} altına satıldı!` });
+                }
+            }
+
+            socket.emit('marketMessage', { success: true, userData: buyer, message: `${targetObj.item.name} başarıyla satın alındı!` });
+            socket.emit('statUpdated', buyer);
+        } catch (err) {
+            socket.emit('marketMessage', { success: false, userData: buyer, message: "Satın alma işleminde hata oluştu." });
+        }
+    });
+
+    socket.on('collectStallGold', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+        try {
+            const stall = await Stall.findOne({ ownerId: user._id });
+            if (!stall || stall.gold <= 0) {
+                return socket.emit('marketMessage', { success: false, userData: user, message: "Toplanacak altın yok!" });
+            }
+
+            const collected = stall.gold;
+            stall.gold = 0;
+            user.balance += collected;
+            await user.save();
+            await stall.save();
+
+            socket.emit('marketMessage', { success: true, userData: user, message: `${collected} altın tezgah kasasından toplandı!` });
+            socket.emit('statUpdated', user);
+        } catch (err) {
+            socket.emit('marketMessage', { success: false, userData: user, message: "Altınlar toplanamadı." });
+        }
+    });
+    // --- KAVŞAK PAZARI BİTİŞ ---
+
     socket.on('openGoldChest', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
@@ -556,7 +704,6 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { success: true, userData: user, message: "Tımar başarıyla satın alındı!" });
     });
 
-    // Güncellenmiş Demirhane Eşya Geliştirme (Altın + Yakut Kontrolü)
     socket.on('upgradeItem', async (data) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
@@ -566,7 +713,7 @@ io.on('connection', (socket) => {
         const nextLvl = currentLvl + 1;
         
         const goldCost = nextLvl * 150;
-        const rubyCost = nextLvl * 1; // Her seviye başına 1 Yakut maliyeti
+        const rubyCost = nextLvl * 1; 
 
         if (user.balance < goldCost || (user.rubies || 0) < rubyCost) {
             return socket.emit('forgeResult', { 
