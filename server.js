@@ -72,9 +72,9 @@ const userSchema = new mongoose.Schema({
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
     balance: { type: Number, default: 100 },
-    rubies: { type: Number, default: 15 }, // Test için başlangıç yakutu eklendi
+    rubies: { type: Number, default: 15 },
     goldKeys: { type: Number, default: 0 },
-    dungeonFloor: { type: Number, default: 1 }, // Zindan katı takibi
+    dungeonFloor: { type: Number, default: 1 },
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
@@ -238,7 +238,7 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         const currentFloor = user.dungeonFloor || 1;
-        const requiredRubies = currentFloor * 5; // 1. kattan 2. kata geçiş 5 yakut, 2'den 3'e 10 yakut vb.
+        const requiredRubies = currentFloor * 5;
 
         if ((user.rubies || 0) < requiredRubies) {
             return socket.emit('dungeonResult', { 
@@ -264,6 +264,10 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user) return;
         
+        if (data.floor > (user.dungeonFloor || 1)) {
+            return socket.emit('dungeonResult', { success: false, userData: user, message: "Bu kata henüz erişiminiz yok! Önceki katları açmalısınız." });
+        }
+
         const floors = { 
             1: [20, 100, 40, 1], 
             2: [45, 250, 90, 1], 
