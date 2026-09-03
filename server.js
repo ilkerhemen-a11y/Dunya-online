@@ -231,23 +231,12 @@ io.on('connection', (socket) => {
         socket.emit('questResult', { success: true, userData: user, message: "Sefer başarıyla tamamlandı!" });
     });
 
-    // Zindan Katı İlerleme (Sürekli Yakut Karşılığı Yapılabilen Sistem)
     socket.on('advanceDungeonFloor', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (!user) return;
 
         const currentFloor = user.dungeonFloor || 1;
-        
-        // Eğer zaten maksimum sınıra (10. kata) ulaşıldıysa daha fazla ilerlenemez
-        if (currentFloor >= 10) {
-            return socket.emit('dungeonResult', { 
-                success: false, 
-                userData: user, 
-                message: "Zaten son kata ulaştınız!" 
-            });
-        }
-
         const requiredRubies = currentFloor * 5;
 
         if ((user.rubies || 0) < requiredRubies) {
@@ -361,6 +350,58 @@ io.on('connection', (socket) => {
 
         await user.save();
         socket.emit('marketResult', { success: true, userData: user, message: `📦 Altın Sandık açıldı! Envanterinize ${rubyWon} adet Yakut 💎 eklendi!` });
+    });
+
+    // Suluhan Antik Çarşısı - Altın ve Yakut ile Eşya Satın Alma Sistemi
+    socket.on('buySuluhanItem', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        const suluhanItems = {
+            1: { name: 'Güneş Kılıcı', icon: '⚔️', type: 'weapon', rarity: 'Epik', goldCost: 500, rubyCost: 5, strBonus: 12, vitBonus: 4, level: 1 },
+            2: { name: 'Vezir Zırhı', icon: '🛡️', type: 'armor', rarity: 'Epik', goldCost: 800, rubyCost: 8, strBonus: 5, vitBonus: 15, level: 1 },
+            3: { name: 'Sultan Tacı', icon: '👑', type: 'helmet', rarity: 'Nadir', goldCost: 400, rubyCost: 4, strBonus: 4, vitBonus: 10, level: 1 },
+            4: { name: 'Hünkar Yüzüğü', icon: '💍', type: 'ring', rarity: 'Nadir', goldCost: 300, rubyCost: 3, strBonus: 8, vitBonus: 8, level: 1 },
+            5: { name: 'Şehzade Çizmesi', icon: '👢', type: 'boots', rarity: 'Sıradan', goldCost: 250, rubyCost: 2, strBonus: 6, vitBonus: 6, level: 1 }
+        };
+
+        const itemTemplate = suluhanItems[data.itemId];
+        if (!itemTemplate) {
+            return socket.emit('suluhanResult', { success: false, userData: user, message: "Geçersiz eşya seçimi!" });
+        }
+
+        if (user.balance < itemTemplate.goldCost || (user.rubies || 0) < itemTemplate.rubyCost) {
+            return socket.emit('suluhanResult', { 
+                success: false, 
+                userData: user, 
+                message: `Yetersiz kaynak! Bu eşya için ${itemTemplate.goldCost} Altın ve ${itemTemplate.rubyCost} Yakut gerekiyor.` 
+            });
+        }
+
+        user.balance -= itemTemplate.goldCost;
+        user.rubies -= itemTemplate.rubyCost;
+
+        const newItem = {
+            id: `suluhan_${data.itemId}_${Date.now()}`,
+            name: itemTemplate.name,
+            icon: itemTemplate.icon,
+            type: itemTemplate.type,
+            level: itemTemplate.level,
+            rarity: itemTemplate.rarity,
+            strBonus: itemTemplate.strBonus,
+            vitBonus: itemTemplate.vitBonus
+        };
+
+        user.inventory.push(newItem);
+        user.markModified('inventory');
+        await user.save();
+
+        socket.emit('suluhanResult', { 
+            success: true, 
+            userData: user, 
+            message: `🏛️ Suluhan Çarşısı'ndan [${itemTemplate.rarity}] ${itemTemplate.name} satın alındı!` 
+        });
     });
 
     socket.on('getArenaOpponents', async () => {
