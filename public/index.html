@@ -80,7 +80,6 @@
         .item-icon-box { width: 36px; height: 36px; background: #0b0806; border: 1px solid #2d2017; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
         .item-details { display: flex; flex-direction: column; gap: 2px; }
         
-        /* Nadirlik Renkleri */
         .rarity-Sıradan { color: #d4c5b9; }
         .rarity-Nadir { color: #3b82f6; text-shadow: 0 0 5px rgba(59,130,246,0.5); }
         .rarity-Epik { color: #a855f7; font-weight: bold; text-shadow: 0 0 8px rgba(168,85,247,0.7); }
@@ -203,13 +202,11 @@
         let currentUserData = null;
         let activeTab = 'overview';
 
-        // Güvenlik: HTML taglerini etkisizleştirme (XSS Koruması)
         function escapeHTML(str) {
             if (!str) return "";
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        // Spam Koruması: Butonları kısa süre devre dışı bırakma
         function cooldownButton(btnId, duration = 1500) {
             const btn = document.getElementById(btnId);
             if (btn) {
@@ -223,7 +220,6 @@
             }
         }
 
-        // Otomatik Giriş (Token kontrolü)
         socket.on('connect', () => {
             const token = localStorage.getItem('throne_token');
             if (token) {
@@ -270,13 +266,13 @@
         socket.on('authResult', (data) => {
             showAuthError(data.message, data.success);
             if (data.token) {
-                localStorage.setItem('throne_token', data.token); // Token'ı kaydet
+                localStorage.setItem('throne_token', data.token);
             }
             if(data.success && document.getElementById('registerForm').classList.contains('active')) {
                 setTimeout(() => switchAuthTab('login'), 2000);
             }
             if (!data.success && data.clearToken) {
-                localStorage.removeItem('throne_token'); // Hatalı token ise sil
+                localStorage.removeItem('throne_token');
             }
         });
 
@@ -284,7 +280,6 @@
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').style.display = 'grid';
             
-            // Eğer çevrimdışı altın kazanılmışsa bildirim göster
             if (data.offlineGoldEarned > 0) {
                 alert(`İmparatorluğun sen yokken çalışmaya devam etti!\nTımarlarından toplam ${data.offlineGoldEarned} Altın topladın.`);
             }
@@ -507,7 +502,6 @@
             }
         }
 
-        // Spam Korumalı İşlem Fonksiyonu
         function doAction(event, payload, btnId) {
             cooldownButton(btnId, 1000);
             socket.emit(event, payload);
@@ -564,7 +558,7 @@
         });
 
         function logout() { 
-            localStorage.removeItem('throne_token'); // Çıkış yapınca token'ı sil
+            localStorage.removeItem('throne_token');
             socket.emit('logout'); 
         }
 
@@ -575,7 +569,6 @@
             document.getElementById('authMessage').innerText = "Başarıyla çıkış yapıldı.";
         });
 
-        // Hata mesajlarını yakalama (rate limit vs)
         socket.on('errorMessage', (msg) => {
             alert(msg);
         });
