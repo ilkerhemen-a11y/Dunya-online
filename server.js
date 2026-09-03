@@ -234,14 +234,63 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user) return;
         
-        const floors = { 1: [20, 100, 40], 2: [45, 250, 90], 3: [90, 600, 200], 4: [150, 1500, 500] };
+        const floors = { 
+            1: [20, 100, 40], 
+            2: [45, 250, 90], 
+            3: [90, 600, 200], 
+            4: [150, 1500, 500] 
+        };
         const f = floors[data.floor];
-        if (!f || user.hp < f[0]) return socket.emit('dungeonResult', { success: false, message: "Canınız yetersiz!" });
+        if (!f) return socket.emit('dungeonResult', { success: false, message: "Geçersiz zindan katı!" });
+        
+        if (user.hp < f[0]) {
+            return socket.emit('dungeonResult', { success: false, userData: user, message: `Canın çok az! Zindana girmek için en az ${f[0]} HP gerekiyor. İksir içmelisin.` });
+        }
 
-        user.hp -= f[0]; user.balance += f[1]; user.exp += f[2];
-        if(data.floor === 4) user.rubies += 2;
+        user.hp -= f[0]; 
+        user.balance += f[1]; 
+        user.exp += f[2];
+        
+        let bonusMessage = "";
+
+        if (data.floor === 4) {
+            user.rubies += 2;
+            bonusMessage = " 💎 +2 Yakut kazandın!";
+        }
+
+        if (Math.random() < 0.35) {
+            const dungeonItems = [
+                { id: 'dg_sword', name: 'Zindan Kılıcı', icon: '🗡️', type: 'weapon', baseStr: 6, baseVit: 2 },
+                { id: 'dg_shield', name: 'Karanlık Kalkan', icon: '🛡', type: 'shield', baseStr: 2, baseVit: 6 },
+                { id: 'dg_ring', name: 'Ruh Yüzüğü', icon: '💍', type: 'ring', baseStr: 4, baseVit: 4 }
+            ];
+            const base = dungeonItems[Math.floor(Math.random() * dungeonItems.length)];
+            const wonItem = {
+                id: base.id,
+                name: base.name,
+                icon: base.icon,
+                type: base.type,
+                level: 1,
+                rarity: 'Nadir',
+                strBonus: base.baseStr * 2,
+                vitBonus: base.baseVit * 2
+            };
+            user.inventory.push(wonItem);
+            user.markModified('inventory');
+            bonusMessage += ` 🎁 Ganimet düştü: [Nadir] ${wonItem.name} +1!`;
+        }
+
+        const maxExp = user.level * 100;
+        if (user.exp >= maxExp) { 
+            user.level += 1; 
+            user.exp -= maxExp; 
+            user.statPoints += 3; 
+            user.hp = user.vit * 20; 
+            bonusMessage += ` ✨ Tebrikler, Seviye ${user.level} oldun!`;
+        }
+
         await user.save();
-        socket.emit('dungeonResult', { success: true, userData: user, message: "Zindan katı temizlendi!" });
+        socket.emit('dungeonResult', { success: true, userData: user, message: `Zindan Kat ${data.floor} başarıyla temizlendi! +${f[1]} Altın, +${f[2]} Tecrübe.${bonusMessage}` });
     });
 
     socket.on('getArenaOpponents', async () => {
