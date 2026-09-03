@@ -503,87 +503,59 @@
                 `;
             } else if(activeTab === 'dungeon') {
                 const userDungeonFloor = u.dungeonFloor || 1;
-                const nextCost = userDungeonFloor * 5;
+                
+                const dungeonsData = [
+                    { floor: 1, name: "1. Kat: İskelet Savaşçıların Mezarı", gold: 100, exp: 40, hp: 20 },
+                    { floor: 2, name: "2. Kat: Zombi Muhafız Salonu", gold: 250, exp: 90, hp: 45 },
+                    { floor: 3, name: "3. Kat: Ork Şampiyonunun Arenası", gold: 600, exp: 200, hp: 90 },
+                    { floor: 4, name: "4. Kat: Gözcü Kulesi", gold: 900, exp: 320, hp: 120 },
+                    { floor: 5, name: "5. Kat: Yarı Kat Bonus Alanı", gold: 1200, exp: 400, hp: 150 },
+                    { floor: 6, name: "6. Kat: Değerli Taşlar Mağarası", gold: 1600, exp: 550, hp: 190 },
+                    { floor: 7, name: "7. Kat: Yüksek Değerli Ganimet Koridoru", gold: 2100, exp: 700, hp: 240 },
+                    { floor: 8, name: "8. Kat: Usta Sınıfı Sandık Odası", gold: 2800, exp: 900, hp: 300 },
+                    { floor: 9, name: "9. Kat: Epik Ekipman Salonu", gold: 3600, exp: 1150, hp: 370 },
+                    { floor: 10, name: "10. Kat (FINAL BOSS): Alev Ejderhası'nın İni", gold: 5000, exp: 1800, hp: 450, isBoss: true }
+                ];
+
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #b38b4d; border-radius: 6px; padding: 12px;">
                         <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve İlerleme Sistemi</h3>
-                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Mevcut Zindan Katın: <strong style="color: #22c55e;">Kat ${userDungeonFloor}</strong> | Sonraki kata geçmek için <strong style="color: #ef4444;">${nextCost} Yakut 💎</strong> gereklidir.</p>
-                        <div style="margin-top: 10px;">
-                            <button class="btn-quest" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border-color: #60a5fa;" onclick="doAction('advanceDungeonFloor', {}, 'advFloorBtn')" id="advFloorBtn">🚀 Sonraki Kata İlerle (${nextCost} Yakut)</button>
-                        </div>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Mevcut Zindan Katın: <strong style="color: #22c55e;">Kat ${userDungeonFloor}</strong> | Yeni katların kilidini açmak için alt katlardaki ilerleme butonlarını kullanabilirsin.</p>
                     </div>
                     <div class="quest-list">
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>1. Kat: İskelet Savaşçıların Mezarı</h4>
-                                <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-20 HP</span></div>
-                            </div>
-                            <button id="d1Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 1 }, 'd1Btn')">Keşfet</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>2. Kat: Zombi Muhafız Salonu</h4>
-                                <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-45 HP</span></div>
-                            </div>
-                            <button id="d2Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 2 }, 'd2Btn')">İlerle</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>3. Kat: Ork Şampiyonunun Arenası</h4>
-                                <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-90 HP</span></div>
-                            </div>
-                            <button id="d3Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 3 }, 'd3Btn')">Savaş</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>4. Kat: Gözcü Kulesi</h4>
-                                <div class="quest-rewards"><span>+900 Altın</span><span>+320 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-120 HP</span></div>
-                            </div>
-                            <button id="d4Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 4 }, 'd4Btn')">İlerle</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>5. Kat: Yarı Kat Bonus Alanı</h4>
-                                <div class="quest-rewards"><span>+1200 Altın</span><span>+400 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-150 HP</span></div>
-                            </div>
-                            <button id="d5Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 5 }, 'd5Btn')">Temizle</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>6. Kat: Değerli Taşlar Mağarası</h4>
-                                <div class="quest-rewards"><span>+1600 Altın</span><span>+550 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-190 HP</span></div>
-                            </div>
-                            <button id="d6Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 6 }, 'd6Btn')">Keşfet</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>7. Kat: Yüksek Değerli Ganimet Koridoru</h4>
-                                <div class="quest-rewards"><span>+2100 Altın</span><span>+700 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-240 HP</span></div>
-                            </div>
-                            <button id="d7Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 7 }, 'd7Btn')">İlerle</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>8. Kat: Usta Sınıfı Sandık Odası</h4>
-                                <div class="quest-rewards"><span>+2800 Altın</span><span>+900 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-300 HP</span></div>
-                            </div>
-                            <button id="d8Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 8 }, 'd8Btn')">Savaş</button>
-                        </div>
-                        <div class="quest-card">
-                            <div class="quest-info">
-                                <h4>9. Kat: Epik Ekipman Salonu</h4>
-                                <div class="quest-rewards"><span>+3600 Altın</span><span>+1150 Tecrübe</span><span style="color:#ffdf73;">+1x Altın Anahtar 🔑</span><span style="color:#ef4444;">-370 HP</span></div>
-                            </div>
-                            <button id="d9Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 9 }, 'd9Btn')">İlerle</button>
-                        </div>
-                        <div class="quest-card" style="border-color: #d4af37; background: linear-gradient(135deg, #1f140f 0%, #120e0c 100%);">
-                            <div class="quest-info">
-                                <h4 style="color: #ffdf73;">🔥 Kat 10 (FINAL BOSS): Alev Ejderhası'nın İni</h4>
-                                <p>Diyar'ın en korkunç varlığı. Özel unvan ve 2x Altın Anahtar!</p>
-                                <div class="quest-rewards"><span>+5000 Altın</span><span>+1800 Tecrübe</span><span style="color:#ffdf73;">+2x Altın Anahtar 🔑</span><span>+2 Yakut 💎</span></div>
-                            </div>
-                            <button id="d10Btn" class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:white; border-color: #f87171;" onclick="doAction('doDungeon', { floor: 10 }, 'd10Btn')">Boss'a Meydan Oku</button>
-                        </div>
+                        ${dungeonsData.map(d => {
+                            const isUnlocked = d.floor <= userDungeonFloor;
+                            const isCurrent = d.floor === userDungeonFloor;
+                            const nextCost = d.floor * 5;
+                            
+                            let actionButtonHTML = '';
+                            if (isUnlocked) {
+                                const btnText = d.isBoss ? "Boss'a Meydan Oku" : (d.floor === 1 ? "Keşfet" : "İlerle");
+                                const btnStyle = d.isBoss ? "background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:white; border-color: #f87171;" : "";
+                                actionButtonHTML = `<button id="d${d.floor}Btn" class="btn-quest" style="${btnStyle}" onclick="doAction('doDungeon', { floor: ${d.floor} }, 'd${d.floor}Btn')">${btnText}</button>`;
+                            } else {
+                                actionButtonHTML = `<button id="adv${d.floor}Btn" class="btn-quest" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border-color: #60a5fa;" onclick="doAction('advanceDungeonFloor', {}, 'adv${d.floor}Btn')">🚀 Kata İlerle (${nextCost} Yakut 💎)</button>`;
+                            }
+
+                            const cardStyle = d.isBoss ? 'border-color: #d4af37; background: linear-gradient(135deg, #1f140f 0%, #120e0c 100%);' : (!isUnlocked ? 'opacity: 0.6;' : '');
+
+                            return `
+                                <div class="quest-card" style="${cardStyle}">
+                                    <div class="quest-info">
+                                        <h4 style="${d.isBoss ? 'color: #ffdf73;' : ''}">${d.name}</h4>
+                                        ${d.isBoss ? '<p>Diyar\'ın en korkunç varlığı. Özel unvan ve 2x Altın Anahtar!</p>' : ''}
+                                        <div class="quest-rewards">
+                                            <span>+${d.gold} Altın</span>
+                                            <span>+${d.exp} Tecrübe</span>
+                                            <span style="color:#ffdf73;">+${d.isBoss ? 2 : 1}x Altın Anahtar 🔑</span>
+                                            <span style="color:#ef4444;">-${d.hp} HP</span>
+                                            ${d.isBoss ? '<span style="color:#38bdf8;">+2 Yakut 💎</span>' : ''}
+                                        </div>
+                                    </div>
+                                    ${actionButtonHTML}
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                     <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları ve ilerleme durumları burada raporlanacaktır...</div>
                 `;
