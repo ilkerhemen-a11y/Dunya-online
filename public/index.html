@@ -491,13 +491,45 @@
                 `;
             } else if(activeTab === 'dungeon') {
                 body.innerHTML = `
-                    <div class="quest-list">
-                        <div class="quest-card"><div class="quest-info"><h4>Kat 1: İskelet Savaşçı</h4><div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span></div></div><button id="d1Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 1 }, 'd1Btn')">Saldır</button></div>
-                        <div class="quest-card"><div class="quest-info"><h4>Kat 2: Zombi Muhafız</h4><div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span></div></div><button id="d2Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 2 }, 'd2Btn')">Saldır</button></div>
-                        <div class="quest-card"><div class="quest-info"><h4>Kat 3: Ork Şampiyonu</h4><div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span></div></div><button id="d3Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 3 }, 'd3Btn')">Saldır</button></div>
-                        <div class="quest-card" style="border-color: #b38b4d;"><div class="quest-info"><h4 style="color: #ffdf73;">Kat 4 (BOSS): Ejderha</h4><div class="quest-rewards"><span>+1500 Altın</span><span>+2 Yakut</span></div></div><button id="d4Btn" class="btn-quest" style="background: #ef4444; color:white;" onclick="doAction('doDungeon', { floor: 4 }, 'd4Btn')">Boss'a Saldır</button></div>
+                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #b38b4d; border-radius: 6px; padding: 12px;">
+                        <h3 style="color: #ffdf73; font-size: 15px;">🌋 Zindan Adası ve Ejderha Yuvası</h3>
+                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Karanlığın derinliklerine in, en güçlü yaratıkları alt et ve efsanevi ganimetlerin sahibi ol!</p>
                     </div>
-                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan raporları...</div>
+                    <div class="quest-list">
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>💀 Kat 1: İskelet Savaşçıların Mezarı</h4>
+                                <p>Karanlık koridorlarda dolaşan huzursuz kemikler.</p>
+                                <div class="quest-rewards"><span>+100 Altın</span><span>+40 Tecrübe</span><span style="color:#ef4444;">-20 HP</span></div>
+                            </div>
+                            <button id="d1Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 1 }, 'd1Btn')">Keşfet</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>🧟 Kat 2: Zombi Muhafız Salonu</h4>
+                                <p>Antik krallığın çürümüş muhafızları yolu kapatıyor.</p>
+                                <div class="quest-rewards"><span>+250 Altın</span><span>+90 Tecrübe</span><span style="color:#ef4444;">-45 HP</span></div>
+                            </div>
+                            <button id="d2Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 2 }, 'd2Btn')">İlerle</button>
+                        </div>
+                        <div class="quest-card">
+                            <div class="quest-info">
+                                <h4>👹 Kat 3: Ork Şampiyonunun Arenası</h4>
+                                <p>Vahşi bir ork lideri ölümüne dövüşmek için bekliyor.</p>
+                                <div class="quest-rewards"><span>+600 Altın</span><span>+200 Tecrübe</span><span style="color:#ef4444;">-90 HP</span></div>
+                            </div>
+                            <button id="d3Btn" class="btn-quest" onclick="doAction('doDungeon', { floor: 3 }, 'd3Btn')">Savaş</button>
+                        </div>
+                        <div class="quest-card" style="border-color: #d4af37; background: linear-gradient(135deg, #1f140f 0%, #120e0c 100%);">
+                            <div class="quest-info">
+                                <h4 style="color: #ffdf73;">🔥 Kat 4 (BOSS): Alev Ejderhası'nın İni</h4>
+                                <p>Diyar'ın en korkunç varlığı. Sadece en cesur lordlar buradan sağ çıkabilir.</p>
+                                <div class="quest-rewards"><span>+1500 Altın</span><span>+500 Tecrübe</span><span>+2 Yakut 💎</span></div>
+                            </div>
+                            <button id="d4Btn" class="btn-quest" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color:white; border-color: #f87171;" onclick="doAction('doDungeon', { floor: 4 }, 'd4Btn')">Boss'a Meydan Oku</button>
+                        </div>
+                    </div>
+                    <div id="dungeonLogResult" class="quest-log" style="margin-top: 15px;">Zindan savaş raporları ve ganimet bilgileri burada raporlanacaktır...</div>
                 `;
             }
         }
