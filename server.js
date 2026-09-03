@@ -72,8 +72,9 @@ const userSchema = new mongoose.Schema({
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
     balance: { type: Number, default: 100 },
-    rubies: { type: Number, default: 10 },
+    rubies: { type: Number, default: 15 }, // Test için başlangıç yakutu eklendi
     goldKeys: { type: Number, default: 0 },
+    dungeonFloor: { type: Number, default: 1 }, // Zindan katı takibi
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
@@ -230,6 +231,34 @@ io.on('connection', (socket) => {
         socket.emit('questResult', { success: true, userData: user, message: "Sefer başarıyla tamamlandı!" });
     });
 
+    // Zindan Katı İlerleme (Yakut Maliyetli Sistem)
+    socket.on('advanceDungeonFloor', async () => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        const currentFloor = user.dungeonFloor || 1;
+        const requiredRubies = currentFloor * 5; // 1. kattan 2. kata geçiş 5 yakut, 2'den 3'e 10 yakut vb.
+
+        if ((user.rubies || 0) < requiredRubies) {
+            return socket.emit('dungeonResult', { 
+                success: false, 
+                userData: user, 
+                message: `Yetersiz Yakut! ${currentFloor}. kattan bir üst kata geçmek için ${requiredRubies} Yakut 💎 gerekiyor. (Mevcut: ${user.rubies || 0} Yakut)` 
+            });
+        }
+
+        user.rubies -= requiredRubies;
+        user.dungeonFloor = currentFloor + 1;
+
+        await user.save();
+        socket.emit('dungeonResult', { 
+            success: true, 
+            userData: user, 
+            message: `🚀 Başarıyla Kat ${user.dungeonFloor}'e yükseldiniz! Harcanan Yakut: ${requiredRubies} 💎` 
+        });
+    });
+
     socket.on('doDungeon', async (data) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
@@ -258,7 +287,6 @@ io.on('connection', (socket) => {
         user.balance += f[1]; 
         user.exp += f[2];
         
-        // Altın Anahtar Ödülü Entegrasyonu
         const keysEarned = f[3];
         user.goldKeys = (user.goldKeys || 0) + keysEarned;
 
@@ -304,14 +332,13 @@ io.on('connection', (socket) => {
         socket.emit('dungeonResult', { success: true, userData: user, message: `Zindan Kat ${data.floor} başarıyla temizlendi! +${f[1]} Altın, +${f[2]} Tecrübe.${bonusMessage}` });
     });
 
-    // Pazar Yeri - Altın Sandık Açma Sistemi
     socket.on('openGoldChest', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (!user) return;
 
         if ((user.goldKeys || 0) < 1) {
-            return socket.emit('marketResult', { success: false, userData: user, message: "Altın Sandığı açmak için en az 1 adet Altın Anahtarınız olmalı! (Zindan katlarını tamamlayarak anahtar kazanabilirsiniz)" });
+            return socket.emit('marketResult', { success: false, userData: user, message: "Altın Sandığı açmak için en az 1 adet Altın Anahtarınız olmalı!" });
         }
 
         user.goldKeys -= 1;
@@ -343,7 +370,7 @@ io.on('connection', (socket) => {
 
         checkArenaReset(attacker);
         if (attacker.arenaLimit <= 0) {
-            return socket.emit('arenaResult', { success: false, userData: attacker, message: "Günlük 5 arena hakkın doldu! Yarın tekrar bekleriz." });
+            return socket.emit('arenaResult', { success: false, userData: attacker, message: "Günlük 5 arena hakkın doldu!" });
         }
 
         try {
@@ -377,7 +404,7 @@ io.on('connection', (socket) => {
                 socket.emit('arenaResult', { 
                     success: true, 
                     userData: attacker, 
-                    message: `🏆 Zafer! ${defender.username} adlı gladyatörü alt ettin. Ödül: +${goldReward} Altın, +15 Onur! (Kalan Hak: ${attacker.arenaLimit}/5)` 
+                    message: `🏆 Zafer! ${defender.username} adlı gladyatörü alt ettin. Ödül: +${goldReward} Altın, +15 Onur!` 
                 });
             } else {
                 attacker.honor = Math.max(0, (attacker.honor || 0) - 5);
@@ -386,7 +413,7 @@ io.on('connection', (socket) => {
                 socket.emit('arenaResult', { 
                     success: false, 
                     userData: attacker, 
-                    message: `💀 Mağlubiyet! ${defender.username} direncini kırdı. 5 Onur kaybettin. (Kalan Hak: ${attacker.arenaLimit}/5)` 
+                    message: `💀 Mağlubiyet! ${defender.username} direncini kırdı. 5 Onur kaybettin.` 
                 });
             }
         } catch (err) {
