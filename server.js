@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto'); // Token üretimi için
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,7 +34,6 @@ function checkArenaReset(user) {
     return false;
 }
 
-// Çevrimdışı (Offline) Altın Kazanımı Hesaplama
 function calculateOfflineGold(user) {
     if (!user.lastCollected) { 
         user.lastCollected = Date.now(); 
@@ -51,7 +50,7 @@ function calculateOfflineGold(user) {
     if (user.estates.includes(3)) incomePerMin += 180;
 
     const totalEarned = minutesPassed * incomePerMin;
-    user.lastCollected += minutesPassed * 60000; // Son toplama zamanını güncelle
+    user.lastCollected += minutesPassed * 60000;
     
     if (totalEarned > 0) {
         user.balance += totalEarned;
@@ -68,8 +67,8 @@ mongoose.connect(MONGO_URI)
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    token: { type: String, default: null }, // Otomatik giriş için
-    lastCollected: { type: Number, default: Date.now }, // Tımar idle geliri için
+    token: { type: String, default: null },
+    lastCollected: { type: Number, default: Date.now },
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
     balance: { type: Number, default: 100 },
@@ -100,11 +99,10 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const users = {}; 
 
-// Rate Limit (Spam engelleme) Haritası
 const rateLimits = {};
 function checkRateLimit(socketId) {
     const now = Date.now();
-    if (rateLimits[socketId] && now - rateLimits[socketId] < 800) { // 800ms limit
+    if (rateLimits[socketId] && now - rateLimits[socketId] < 800) {
         return false;
     }
     rateLimits[socketId] = now;
@@ -166,7 +164,6 @@ io.on('connection', (socket) => {
         } catch (err) { socket.emit('authResult', { success: false, message: "Giriş hatası." }); }
     });
 
-    // Otomatik Giriş (Token ile)
     socket.on('tokenLogin', async (data) => {
         const { token } = data;
         if (!token) return;
@@ -344,27 +341,30 @@ io.on('connection', (socket) => {
         
         user.balance -= 300;
         
-        // Gacha (Şans) Sistemi ve Nadirlik Mekaniği
         const randRarity = Math.random();
         let rarity = 'Sıradan';
         let statMultiplier = 1;
-        let bonusLevel = Math.floor(Math.random() * 2); // +0 veya +1
+        let bonusLevel = Math.floor(Math.random() * 2);
         
-        if (randRarity > 0.90) { // %10 Şans
+        if (randRarity > 0.90) {
             rarity = 'Epik';
             statMultiplier = 3;
-            bonusLevel = 2; // Kesin +2
-        } else if (randRarity > 0.60) { // %30 Şans
+            bonusLevel = 2;
+        } else if (randRarity > 0.60) {
             rarity = 'Nadir';
             statMultiplier = 2;
-            bonusLevel = Math.floor(Math.random() * 2) + 1; // +1 veya +2
+            bonusLevel = Math.floor(Math.random() * 2) + 1;
         }
         
         const baseItems = [
             { id: 'item_sword', name: 'Savaş Baltası', icon: '🪓', type: 'weapon', baseStr: 7, baseVit: 2 },
             { id: 'item_shield', name: 'Demir Kalkan', icon: '🛡', type: 'shield', baseStr: 2, baseVit: 6 },
             { id: 'item_ring', name: 'Kudret Yüzüğü', icon: '💍', type: 'ring', baseStr: 4, baseVit: 4 },
-            { id: 'item_helmet', name: 'Çelik Miğfer', icon: '🪖', type: 'helmet', baseStr: 1, baseVit: 5 }
+            { id: 'item_helmet', name: 'Çelik Miğfer', icon: '🪖', type: 'helmet', baseStr: 1, baseVit: 5 },
+            { id: 'item_armor', name: 'Savaş Zırhı', icon: '🛡️', type: 'armor', baseStr: 3, baseVit: 7 },
+            { id: 'item_boots', name: 'Demir Çizmeler', icon: '👢', type: 'boots', baseStr: 2, baseVit: 4 },
+            { id: 'item_gloves', name: 'Deri Eldiven', icon: '🧤', type: 'gloves', baseStr: 3, baseVit: 3 },
+            { id: 'item_necklace', name: 'Antik Kolye', icon: '📿', type: 'necklace', baseStr: 5, baseVit: 2 }
         ];
         const base = baseItems[Math.floor(Math.random() * baseItems.length)];
         
@@ -411,7 +411,6 @@ io.on('connection', (socket) => {
         item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
         item.level = nextLvl;
         
-        // Nadirliğe göre basım statları da artabilir
         const statBoost = item.rarity === 'Epik' ? 4 : (item.rarity === 'Nadir' ? 3 : 2);
         
         item.strBonus = (item.strBonus || 0) + statBoost;
@@ -461,7 +460,6 @@ io.on('connection', (socket) => {
 
     socket.on('sendChatMessage', (data) => {
         if (!checkRateLimit(socket.id)) return socket.emit('errorMessage', "Çok hızlı mesaj gönderiyorsun!");
-        // HTML Injection / XSS koruması (Ekstra olarak backend'de de kırpıyoruz)
         const safeMsg = data.message.substring(0, 100); 
         io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: safeMsg });
     });
@@ -469,7 +467,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => delete users[socket.id]);
 });
 
-// Tımarların oyunda aktif olanlara periyodik altın vermesi
 setInterval(async () => {
     for (const id in users) {
         const u = users[id];
@@ -479,7 +476,7 @@ setInterval(async () => {
         if (u.estates.includes(3)) inc += 180;
         if (inc > 0) {
             u.balance += inc;
-            u.lastCollected = Date.now(); // Periyodik gelirde zamanı güncelle
+            u.lastCollected = Date.now();
             await User.updateOne({ _id: u._id }, { $set: { balance: u.balance, lastCollected: u.lastCollected } });
             io.to(id).emit('statUpdated', u);
         }
