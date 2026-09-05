@@ -518,8 +518,8 @@
                 body.innerHTML = `
                     <div class="market-list">
                         <div class="market-card"><div class="market-info"><h4>Küçük Çiftlik</h4><div class="market-income">Gelir: +10 Altın / dk</div><span class="forge-cost">Maliyet: 500 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 1 })">${u.estates.includes(1) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
-                        <div class="market-card"><div class="market-info"><h4>Kervansaray</h4><div class="market-income">Gelir: +45 Altın / dk</div><span class="forge-cost">Maliyet: 2000 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
-                        <div class="market-card"><div class="market-info"><h4>Altın Madeni</h4><div class="market-income">Gelir: +180 Altın / dk</div><span class="forge-cost">Maliyet: 7500 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
+                        <div class="market-card"><div class="market-info"><h4>Kervansaray</h4><div class="market-income">Gelir: +15 Altın / dk</div><span class="forge-cost">Maliyet: 2000 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 2 })">${u.estates.includes(2) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
+                        <div class="market-card"><div class="market-info"><h4>Altın Madeni</h4><div class="market-income">Gelir: +20 Altın / dk</div><span class="forge-cost">Maliyet: 7500 Altın</span></div><button class="btn-quest" onclick="socket.emit('buyEstate', { estateId: 3 })">${u.estates.includes(3) ? 'Sahipsiniz' : 'Satın Al'}</button></div>
                     </div>
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Tımar işlemleri burada görünecektir...</div>
                 `;
