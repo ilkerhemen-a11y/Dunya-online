@@ -35,6 +35,7 @@
 
         .header-section { display: flex; align-items: center; gap: 15px; }
         .resource-item { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #f3cf7a; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .title-badge { display:inline-block; color:#e9d5ff; background:rgba(168,85,247,0.12); border:1px solid #7e22ce; border-radius:4px; padding:2px 6px; font-size:10px; font-weight:bold; letter-spacing:0.3px; }
         .bar-container { display: flex; flex-direction: column; gap: 2px; }
         .stat-bar-mini { width: 110px; height: 12px; background: #080605; border: 1px solid #33241b; border-radius: 3px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
         .stat-bar-fill { height: 100%; background: linear-gradient(to right, #22c55e, #15803d); width: 100%; transition: width 0.3s ease; }
@@ -210,6 +211,33 @@
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
+        const MAX_LEVEL = 99;
+        const TITLE_TIERS = [
+            { level: 99, title: 'Tahtın Efendisi' },
+            { level: 90, title: 'Efsane' },
+            { level: 80, title: 'İmparator' },
+            { level: 70, title: 'Fatih' },
+            { level: 60, title: 'Büyük Kumandan' },
+            { level: 50, title: 'Savaş Lordu' },
+            { level: 40, title: 'Komutan' },
+            { level: 30, title: 'Şampiyon' },
+            { level: 20, title: 'Muhafız' },
+            { level: 10, title: 'Savaşçı' },
+            { level: 1, title: 'Çaylak' }
+        ];
+
+        function getTitleByLevel(level) {
+            const safeLevel = Math.max(1, Math.min(MAX_LEVEL, Number(level) || 1));
+            return TITLE_TIERS.find(tier => safeLevel >= tier.level)?.title || 'Çaylak';
+        }
+
+        function getNextTitle(level) {
+            const safeLevel = Math.max(1, Math.min(MAX_LEVEL, Number(level) || 1));
+            return [...TITLE_TIERS]
+                .sort((a, b) => a.level - b.level)
+                .find(tier => tier.level > safeLevel) || null;
+        }
+
         function cooldownButton(btnId, duration = 1500) {
             const btn = document.getElementById(btnId);
             if (btn) {
@@ -298,7 +326,9 @@
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('headerRubies').innerText = (data.rubies || 0).toLocaleString('tr-TR');
             document.getElementById('headerKeys').innerText = (data.goldKeys || 0).toLocaleString('tr-TR');
-            document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
+            const playerLevel = Math.max(1, Math.min(MAX_LEVEL, Number(data.level) || 1));
+            const playerTitle = getTitleByLevel(playerLevel);
+            document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} • ${playerTitle} (Seviye ${playerLevel}/${MAX_LEVEL})`;
 
             let headerBonusVit = 0;
             if (data.equipped) {
@@ -313,10 +343,16 @@
             document.getElementById('hpBarFill').style.width = `${hpPercent}%`;
             document.getElementById('hpLabel').innerText = `Can (${currentHp}/${maxHp})`;
 
-            const maxExp = (data.level || 1) * 100;
-            const expPercent = Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
+            const isMaxLevel = playerLevel >= MAX_LEVEL;
+            const maxExp = playerLevel * 100;
+            const expPercent = isMaxLevel
+                ? 100
+                : Math.max(0, Math.min(100, ((data.exp || 0) / maxExp) * 100));
+
             document.getElementById('expBarFill').style.width = `${expPercent}%`;
-            document.getElementById('expLabel').innerText = `Tecrübe (${data.exp || 0}/${maxExp})`;
+            document.getElementById('expLabel').innerText = isMaxLevel
+                ? `Tecrübe (MAX SEVİYE ${MAX_LEVEL})`
+                : `Tecrübe (${data.exp || 0}/${maxExp})`;
 
             const seferLimit = (data.seferLimiti !== undefined) ? data.seferLimiti : 20;
             const seferPercent = Math.max(0, Math.min(100, (seferLimit / 20) * 100));
@@ -356,14 +392,19 @@
                 }
                 const totalStr = (u.str || 5) + bonusStr;
                 const totalVit = (u.vit || 5) + bonusVit;
-                const maxExp = (u.level || 1) * 100;
-                
+                const currentLevel = Math.max(1, Math.min(MAX_LEVEL, Number(u.level) || 1));
+                const currentTitle = getTitleByLevel(currentLevel);
+                const nextTitle = getNextTitle(currentLevel);
+                const maxExp = currentLevel * 100;
+
                 body.innerHTML = `
                     <div class="character-screen">
                         <div class="char-stats-box">
                             <h3>Nitelikler</h3>
-                            <div class="stat-row"><span>Seviye:</span><span>${u.level}</span></div>
-                            <div class="stat-row"><span>Tecrübe:</span><span>${u.exp} / ${maxExp}</span></div>
+                            <div class="stat-row"><span>Seviye:</span><span>${currentLevel} / ${MAX_LEVEL}</span></div>
+                            <div class="stat-row"><span>Ünvan:</span><span><span class="title-badge">🏅 ${currentTitle}</span></span></div>
+                            <div class="stat-row"><span>Sonraki Ünvan:</span><span>${nextTitle ? `${nextTitle.title} (Lv ${nextTitle.level})` : '👑 En yüksek ünvan'}</span></div>
+                            <div class="stat-row"><span>Tecrübe:</span><span>${currentLevel >= MAX_LEVEL ? 'MAX' : `${u.exp} / ${maxExp}`}</span></div>
                             <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${totalVit * 20}</span></div>
                             <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
                             <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
@@ -874,8 +915,8 @@
             listEl.innerHTML = opponents.map(op => `
                 <div class="quest-card">
                     <div class="quest-info">
-                        <h4>⚔️ ${escapeHTML(op.username)} (Seviye ${op.level || 1})</h4>
-                        <p>Onur: ${op.honor || 0} 🌟</p>
+                        <h4>⚔️ ${escapeHTML(op.username)} (Seviye ${Math.min(MAX_LEVEL, op.level || 1)})</h4>
+                        <p><span class="title-badge">🏅 ${getTitleByLevel(op.level || 1)}</span> &nbsp; Onur: ${op.honor || 0} 🌟</p>
                     </div>
                     <button id="atkBtn_${op._id}" class="btn-quest" style="background: #ef4444; color: white; border-color: #f87171;" onclick="doAction('attackPlayer', { defenderId: '${op._id}' }, 'atkBtn_${op._id}')">Saldır</button>
                 </div>
