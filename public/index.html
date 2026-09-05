@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taht Savaşı — İmparatorluk Sistemi & Kavşak Pazarı</title>
+    <title>Taht Savaşı — İmparatorluk Sistemi & Beypazarı</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
@@ -179,7 +179,7 @@
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
             <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
             <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
-            <button class="menu-btn" onclick="switchTab('playerMarket')">⛺ Kavşak Pazarı</button>
+            <button class="menu-btn" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
             <button class="menu-btn" onclick="switchTab('suluhan')">🏛️ Suluhan Çarşısı</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
@@ -323,7 +323,7 @@
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
                 'market': 'Pazar Yeri ve Sandıklar',
-                'playerMarket': 'Kavşak Pazarı (Oyuncu Tezgahları)',
+                'playerMarket': 'Beypazarı (Oyuncu Tezgahları)',
                 'suluhan': 'Suluhan Antik Çarşısı',
                 'timar': 'İmparatorluk Tımarları',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
@@ -440,7 +440,7 @@
             } else if(activeTab === 'playerMarket') {
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #d4af37; border-radius: 6px; padding: 12px;">
-                        <h3 style="color: #ffdf73; font-size: 15px;">⛺ Kavşak Pazarı - Oyuncu Tezgahları</h3>
+                        <h3 style="color: #ffdf73; font-size: 15px;">⛺ Beypazarı - Oyuncu Tezgahları</h3>
                         <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Karakterlerin kendi ganimetlerini doğrudan diğer oyunculara sattığı vahşi pazar alanı!</p>
                     </div>
                     <div id="playerMarketContainer">
@@ -734,7 +734,7 @@
                             <div style="display:flex; flex-wrap:wrap; gap:8px;">
                                 ${myStall.inventory.length > 0 ? myStall.inventory.map((itemObj, idx) => `
                                     <div style="background:#0d0a08; border:1px solid #33241b; padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; font-size:11px;">
-                                        <span>${itemObj.item.icon || '📦'} ${itemObj.item.name} (${itemObj.price} 🪙)</span>
+                                        <span>${itemObj.item.icon || '📦'} ${escapeHTML(itemObj.item.name)} <strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong> (${itemObj.price} 🪙)</span>
                                         <button onclick="socket.emit('removeItemFromStall', { stallItemIndex: ${idx} })" style="background:#dc2626; color:white; border:none; padding:2px 6px; border-radius:3px; cursor:pointer;">Geri Al</button>
                                     </div>
                                 `).join('') : '<span style="color:#9c8e7b; font-size:11px;">Tezgahınızda satışta ürün yok.</span>'}
@@ -744,7 +744,7 @@
                             <h5 style="color:#f3cf7a; font-size:12px; margin-bottom:6px;">Envanterden Tezgahına Ürün Koy:</h5>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <select id="inventoryItemSelect" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
-                                    ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${it.name} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
+                                    ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${escapeHTML(it.name)} +${Number(it.level) || 0} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
                                 </select>
                                 <input type="number" id="stallItemPrice" placeholder="Fiyat (Altın)" value="100" style="width:100px; padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
                                 <button class="btn-quest" onclick="addItemToStallSubmit()">Tezgaha Koy</button>
@@ -770,7 +770,7 @@
                                         <div style="display:flex; align-items:center; gap:8px;">
                                             <span>${itemObj.item.icon || '📦'}</span>
                                             <div>
-                                                <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)}</strong>
+                                                <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)} +${Number(itemObj.item.level) || 0}</strong>
                                                 <div style="color:#22c55e;">${itemObj.price} Altın 🪙</div>
                                             </div>
                                         </div>
