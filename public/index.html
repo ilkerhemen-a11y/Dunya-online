@@ -178,7 +178,7 @@
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
             <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
-            <button class="menu-btn" onclick="switchTab('market')">🛒 Pazar Yeri</button>
+            <button class="menu-btn" onclick="switchTab('market')">🛒 Market</button>
             <button class="menu-btn" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
             <button class="menu-btn" onclick="switchTab('suluhan')">🏛️ Suluhan Çarşısı</button>
             <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
@@ -300,7 +300,14 @@
             document.getElementById('headerKeys').innerText = (data.goldKeys || 0).toLocaleString('tr-TR');
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} (Seviye ${data.level || 1})`;
 
-            const maxHp = (data.vit || 5) * 20;
+            let headerBonusVit = 0;
+            if (data.equipped) {
+                Object.values(data.equipped).forEach(item => {
+                    if (item) headerBonusVit += Number(item.vitBonus) || 0;
+                });
+            }
+            const headerTotalVit = (data.vit || 5) + headerBonusVit;
+            const maxHp = headerTotalVit * 20;
             const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
             document.getElementById('hpBarFill').style.width = `${hpPercent}%`;
@@ -322,7 +329,7 @@
             const titles = {
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
-                'market': 'Pazar Yeri ve Sandıklar',
+                'market': 'Market ve Sandıklar',
                 'playerMarket': 'Beypazarı (Oyuncu Tezgahları)',
                 'suluhan': 'Suluhan Antik Çarşısı',
                 'timar': 'İmparatorluk Tımarları',
@@ -435,7 +442,7 @@
                         <div class="market-card"><div class="market-info"><h4>Sefer İksiri</h4><p>Sefer limitini anında 20/20 yapar.</p><span class="forge-cost">Maliyet: 25.000 Altın</span></div><button id="m2Btn" class="btn-quest" onclick="doAction('refillSefer', {}, 'm2Btn')">Satın Al</button></div>
                         <div class="market-card" style="border-color: #d4af37;"><div class="market-info"><h4 style="color: #ffdf73;">Ganimet Sandığı</h4><p>Nadir veya Epik seviye eşya düşürme şansı!</p><span class="forge-cost" style="color: #d4af37;">Maliyet: 10.000 Altın</span></div><button id="m3Btn" class="btn-quest" onclick="doAction('buyMysteryBox', {}, 'm3Btn')">Sandığı Aç</button></div>
                     </div>
-                    <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Pazar işlemleri burada görünecektir...</div>
+                    <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Market işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'playerMarket') {
                 body.innerHTML = `
