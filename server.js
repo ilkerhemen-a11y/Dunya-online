@@ -13,6 +13,91 @@ app.use(express.static(__dirname + '/public'));
 
 const MAX_SEFER_LIMITI = 20;
 const REFILL_INTERVAL = 30 * 60 * 1000;
+const MAX_LEVEL = 99;
+
+const TITLE_TIERS = [
+    { level: 99, title: 'Tahtın Efendisi' },
+    { level: 90, title: 'Efsane' },
+    { level: 80, title: 'İmparator' },
+    { level: 70, title: 'Fatih' },
+    { level: 60, title: 'Büyük Kumandan' },
+    { level: 50, title: 'Savaş Lordu' },
+    { level: 40, title: 'Komutan' },
+    { level: 30, title: 'Şampiyon' },
+    { level: 20, title: 'Muhafız' },
+    { level: 10, title: 'Savaşçı' },
+    { level: 1, title: 'Çaylak' }
+];
+
+function getTitleByLevel(level) {
+    const safeLevel = Math.max(1, Math.min(MAX_LEVEL, Number(level) || 1));
+    return TITLE_TIERS.find(tier => safeLevel >= tier.level)?.title || 'Çaylak';
+}
+
+function calculateMaxHpForProgression(user) {
+    let totalVit = Number(user.vit) || 5;
+    if (user.equipped) {
+        Object.values(user.equipped).forEach(item => {
+            if (item) totalVit += Number(item.vitBonus) || 0;
+        });
+    }
+    return Math.max(20, totalVit * 20);
+}
+
+function normalizePlayerLevel(user) {
+    let changed = false;
+    let level = Number.parseInt(user.level, 10);
+
+    if (!Number.isInteger(level) || level < 1) level = 1;
+    if (level > MAX_LEVEL) level = MAX_LEVEL;
+
+    if (user.level !== level) {
+        user.level = level;
+        changed = true;
+    }
+
+    if (user.level >= MAX_LEVEL && (Number(user.exp) || 0) !== 0) {
+        user.exp = 0;
+        changed = true;
+    }
+
+    return changed;
+}
+
+function processLevelUps(user) {
+    normalizePlayerLevel(user);
+
+    const startLevel = user.level;
+    const oldTitle = getTitleByLevel(startLevel);
+    let levelUps = 0;
+
+    while (user.level < MAX_LEVEL && user.exp >= user.level * 100) {
+        user.exp -= user.level * 100;
+        user.level += 1;
+        user.statPoints += 3;
+        levelUps += 1;
+    }
+
+    if (user.level >= MAX_LEVEL) {
+        user.level = MAX_LEVEL;
+        user.exp = 0;
+    }
+
+    if (levelUps > 0) {
+        user.hp = calculateMaxHpForProgression(user);
+    }
+
+    const newTitle = getTitleByLevel(user.level);
+
+    return {
+        levelUps,
+        level: user.level,
+        oldTitle,
+        newTitle,
+        titleChanged: oldTitle !== newTitle,
+        reachedMax: user.level >= MAX_LEVEL
+    };
+}
 
 function checkSeferRefill(user) {
     const now = Date.now();
@@ -214,6 +299,7 @@ io.on('connection', (socket) => {
             checkSeferRefill(dbUser);
             checkArenaReset(dbUser);
             checkDungeonDailyReset(dbUser);
+            normalizePlayerLevel(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -238,6 +324,7 @@ io.on('connection', (socket) => {
             checkSeferRefill(dbUser);
             checkArenaReset(dbUser);
             checkDungeonDailyReset(dbUser);
+            normalizePlayerLevel(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -281,14 +368,24 @@ io.on('connection', (socket) => {
         const q = quests[data.questId] || quests[1];
 
         user.balance += q[0];
-        user.exp += q[1];
+        if (user.level < MAX_LEVEL) user.exp += q[1];
         user.hp = Math.max(0, user.hp - q[2]);
 
-        const maxExp = user.level * 100;
-        if (user.exp >= maxExp) { user.level += 1; user.exp -= maxExp; user.statPoints += 3; user.hp = user.vit * 20; }
+        const progression = processLevelUps(user);
+
+        let questMessage = "Sefer başarıyla tamamlandı!";
+        if (progression.levelUps > 0) {
+            questMessage += ` ✨ ${progression.levelUps} seviye atladın! Yeni seviyen: ${progression.level}.`;
+        }
+        if (progression.titleChanged) {
+            questMessage += ` 🏅 Yeni Ünvan kazandın: ${progression.newTitle}!`;
+        }
+        if (progression.reachedMax) {
+            questMessage += ` 👑 Maksimum seviye ${MAX_LEVEL}!`;
+        }
 
         await user.save();
-        socket.emit('questResult', { success: true, userData: user, message: "Sefer başarıyla tamamlandı!" });
+        socket.emit('questResult', { success: true, userData: user, message: questMessage });
     });
 
     socket.on('advanceDungeonFloor', async () => {
@@ -410,7 +507,7 @@ io.on('connection', (socket) => {
         }
 
         user.balance += f.gold;
-        user.exp += f.exp;
+        if (user.level < MAX_LEVEL) user.exp += f.exp;
         user.goldKeys = (user.goldKeys || 0) + f.keys;
         let bonusMessage = ` 🔑 +${f.keys} Altın Anahtar!`;
 
@@ -435,16 +532,15 @@ io.on('connection', (socket) => {
             bonusMessage += ` 🎁 [Nadir] ${wonItem.name} +1 düştü!`;
         }
 
-        let levelUps = 0;
-        while (user.exp >= user.level * 100) {
-            user.exp -= user.level * 100;
-            user.level += 1;
-            user.statPoints += 3;
-            levelUps++;
+        const progression = processLevelUps(user);
+        if (progression.levelUps > 0) {
+            bonusMessage += ` ✨ ${progression.levelUps} seviye atladın! Yeni seviyen: ${progression.level}.`;
         }
-        if (levelUps > 0) {
-            user.hp = user.vit * 20;
-            bonusMessage += ` ✨ ${levelUps} seviye atladın! Yeni seviyen: ${user.level}.`;
+        if (progression.titleChanged) {
+            bonusMessage += ` 🏅 Yeni Ünvan: ${progression.newTitle}!`;
+        }
+        if (progression.reachedMax) {
+            bonusMessage += ` 👑 Maksimum seviye ${MAX_LEVEL}!`;
         }
 
         await user.save();
