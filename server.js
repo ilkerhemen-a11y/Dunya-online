@@ -34,6 +34,50 @@ function checkArenaReset(user) {
     return false;
 }
 
+
+const DUNGEON_DAILY_LIMIT = 5;
+
+function getTurkeyDayKey() {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Istanbul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+}
+
+function checkDungeonDailyReset(user) {
+    const today = getTurkeyDayKey();
+    const current = Array.isArray(user.dungeonDailyAttempts)
+        ? Array.from(user.dungeonDailyAttempts)
+        : [];
+
+    while (current.length < 10) current.push(0);
+    if (current.length > 10) current.length = 10;
+
+    let changed = false;
+
+    if (user.dungeonResetDate !== today) {
+        for (let i = 0; i < 10; i++) current[i] = 0;
+        user.dungeonResetDate = today;
+        changed = true;
+    }
+
+    for (let i = 0; i < 10; i++) {
+        const safeValue = Number.isFinite(Number(current[i]))
+            ? Math.max(0, Math.min(DUNGEON_DAILY_LIMIT, Math.floor(Number(current[i]))))
+            : 0;
+        if (current[i] !== safeValue) {
+            current[i] = safeValue;
+            changed = true;
+        }
+    }
+
+    user.dungeonDailyAttempts = current;
+    if (changed) user.markModified('dungeonDailyAttempts');
+    return changed;
+}
+
 function calculateOfflineGold(user) {
     if (!user.lastCollected) { 
         user.lastCollected = Date.now(); 
@@ -46,8 +90,8 @@ function calculateOfflineGold(user) {
 
     let incomePerMin = 0;
     if (user.estates.includes(1)) incomePerMin += 10;
-    if (user.estates.includes(2)) incomePerMin += 45;
-    if (user.estates.includes(3)) incomePerMin += 180;
+    if (user.estates.includes(2)) incomePerMin += 15;
+    if (user.estates.includes(3)) incomePerMin += 20;
 
     const totalEarned = minutesPassed * incomePerMin;
     user.lastCollected += minutesPassed * 60000;
@@ -75,6 +119,8 @@ const userSchema = new mongoose.Schema({
     rubies: { type: Number, default: 15 },
     goldKeys: { type: Number, default: 0 },
     dungeonFloor: { type: Number, default: 1 },
+    dungeonDailyAttempts: { type: [Number], default: () => Array(10).fill(0) },
+    dungeonResetDate: { type: String, default: "" },
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
@@ -166,6 +212,7 @@ io.on('connection', (socket) => {
             const offlineGold = calculateOfflineGold(dbUser);
             checkSeferRefill(dbUser);
             checkArenaReset(dbUser);
+            checkDungeonDailyReset(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -189,6 +236,7 @@ io.on('connection', (socket) => {
             const offlineGold = calculateOfflineGold(dbUser);
             checkSeferRefill(dbUser);
             checkArenaReset(dbUser);
+            checkDungeonDailyReset(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -273,42 +321,101 @@ io.on('connection', (socket) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (!user) return;
-        
-        if (data.floor > (user.dungeonFloor || 1)) {
-            return socket.emit('dungeonResult', { success: false, userData: user, message: "Bu kata henüz erişiminiz yok! Önceki katları açmalısınız." });
+
+        checkDungeonDailyReset(user);
+
+        const floor = Number.parseInt(data?.floor, 10);
+        if (!Number.isInteger(floor) || floor < 1 || floor > 10) {
+            return socket.emit('dungeonResult', { success: false, userData: user, outcome: 'invalid', message: "Geçersiz zindan katı!" });
         }
 
-        const floors = { 
-            1: [20, 100, 40, 1], 
-            2: [45, 250, 90, 1], 
-            3: [90, 600, 200, 1], 
-            4: [120, 900, 320, 1],
-            5: [150, 1200, 400, 1],
-            6: [190, 1600, 550, 1],
-            7: [240, 2100, 700, 1],
-            8: [300, 2800, 900, 1],
-            9: [370, 3600, 1150, 1],
-            10: [450, 5000, 1800, 2] 
+        const floorAttemptIndex = floor - 1;
+        const usedAttempts = Number(user.dungeonDailyAttempts?.[floorAttemptIndex]) || 0;
+        const remainingAttempts = Math.max(0, DUNGEON_DAILY_LIMIT - usedAttempts);
+
+        if (remainingAttempts <= 0) {
+            return socket.emit('dungeonResult', {
+                success: false,
+                userData: user,
+                floor,
+                outcome: 'daily_limit',
+                remainingAttempts: 0,
+                message: `⏳ GÜNLÜK SALDIRI LİMİTİ DOLDU! ${floor}. kat için bugün 5 saldırı hakkını kullandın. Hakların Türkiye saatiyle yeni günde tekrar 5 olur.`
+            });
+        }
+
+        if (floor > (user.dungeonFloor || 1)) {
+            return socket.emit('dungeonResult', { success: false, userData: user, floor, outcome: 'locked', message: "🔒 Bu kata henüz erişiminiz yok! Önce katın kilidini açmalısınız." });
+        }
+
+        const floors = {
+            1:  { requiredStr: 50,   hp: 20,  gold: 100,  exp: 40,   keys: 1 },
+            2:  { requiredStr: 100,  hp: 45,  gold: 250,  exp: 90,   keys: 1 },
+            3:  { requiredStr: 250,  hp: 90,  gold: 600,  exp: 200,  keys: 1 },
+            4:  { requiredStr: 500,  hp: 120, gold: 900,  exp: 320,  keys: 1 },
+            5:  { requiredStr: 750,  hp: 150, gold: 1200, exp: 400,  keys: 1 },
+            6:  { requiredStr: 1000, hp: 190, gold: 1600, exp: 550,  keys: 1 },
+            7:  { requiredStr: 1500, hp: 240, gold: 2100, exp: 700,  keys: 1 },
+            8:  { requiredStr: 2000, hp: 300, gold: 2800, exp: 900,  keys: 1 },
+            9:  { requiredStr: 3000, hp: 370, gold: 3600, exp: 1150, keys: 1 },
+            10: { requiredStr: 5000, hp: 450, gold: 5000, exp: 1800, keys: 2 }
         };
-        const f = floors[data.floor];
-        if (!f) return socket.emit('dungeonResult', { success: false, message: "Geçersiz zindan katı!" });
-        
-        if (user.hp < f[0]) {
-            return socket.emit('dungeonResult', { success: false, userData: user, message: `Canın çok az! Zindana girmek için en az ${f[0]} HP gerekiyor. İksir içmelisin.` });
+        const f = floors[floor];
+
+        let totalStr = user.str || 5;
+        if (user.equipped) {
+            Object.values(user.equipped).forEach(item => {
+                if (item) totalStr += Number(item.strBonus) || 0;
+            });
         }
 
-        user.hp -= f[0]; 
-        user.balance += f[1]; 
-        user.exp += f[2];
-        
-        const keysEarned = f[3];
-        user.goldKeys = (user.goldKeys || 0) + keysEarned;
+        if (totalStr < f.requiredStr) {
+            return socket.emit('dungeonResult', {
+                success: false, userData: user, floor, totalStr, requiredStr: f.requiredStr,
+                successChance: 0, outcome: 'insufficient_str',
+                message: `⛔ SALDIRI BAŞLATILAMADI! ${floor}. kat için en az ${f.requiredStr} STR gerekiyor. Senin toplam gücün: ${totalStr} STR.`
+            });
+        }
 
-        let bonusMessage = ` 🔑 +${keysEarned} Altın Anahtar kazandın!`;
+        if (user.hp < f.hp) {
+            return socket.emit('dungeonResult', {
+                success: false, userData: user, floor, totalStr, requiredStr: f.requiredStr,
+                successChance: 0, outcome: 'insufficient_hp',
+                message: `❤️ Canın çok az! ${floor}. kata saldırmak için en az ${f.hp} HP gerekiyor. Mevcut HP: ${user.hp}.`
+            });
+        }
 
-        if (data.floor === 10) {
+        // Gerçek saldırı bu noktada başlar; başarılı veya başarısız her savaş 1 günlük hak tüketir.
+        user.dungeonDailyAttempts[floorAttemptIndex] = usedAttempts + 1;
+        user.markModified('dungeonDailyAttempts');
+
+        const remainingAfterAttack = Math.max(0, DUNGEON_DAILY_LIMIT - user.dungeonDailyAttempts[floorAttemptIndex]);
+
+        const ratio = totalStr / f.requiredStr;
+        const successChance = Math.min(95, Math.max(55, 55 + ((ratio - 1) * 35)));
+        const roll = Math.random() * 100;
+        const won = roll <= successChance;
+
+        user.hp = Math.max(0, user.hp - f.hp);
+
+        if (!won) {
+            await user.save();
+            return socket.emit('dungeonResult', {
+                success: false, userData: user, floor, totalStr, requiredStr: f.requiredStr,
+                successChance: Number(successChance.toFixed(1)), roll: Number(roll.toFixed(1)), outcome: 'defeat',
+                remainingAttempts: remainingAfterAttack,
+                message: `💀 KAT TEMİZLEME BAŞARISIZ! ${floor}. katta geri püskürtüldün. ⚔️ Gücün: ${totalStr} STR | 🎯 Başarı: %${successChance.toFixed(1)} | 🎲 Savaş atışı: %${roll.toFixed(1)} | ❤️ -${f.hp} HP | ❌ Ödül kazanılmadı. | 🕒 Bugün kalan saldırı: ${remainingAfterAttack}/5`
+            });
+        }
+
+        user.balance += f.gold;
+        user.exp += f.exp;
+        user.goldKeys = (user.goldKeys || 0) + f.keys;
+        let bonusMessage = ` 🔑 +${f.keys} Altın Anahtar!`;
+
+        if (floor === 10) {
             user.rubies += 2;
-            bonusMessage += " 💎 +2 Yakut kazandın!";
+            bonusMessage += " 💎 +2 Yakut!";
         }
 
         if (Math.random() < 0.35) {
@@ -319,31 +426,33 @@ io.on('connection', (socket) => {
             ];
             const base = dungeonItems[Math.floor(Math.random() * dungeonItems.length)];
             const wonItem = {
-                id: base.id,
-                name: base.name,
-                icon: base.icon,
-                type: base.type,
-                level: 1,
-                rarity: 'Nadir',
-                strBonus: base.baseStr * 2,
-                vitBonus: base.baseVit * 2
+                id: `${base.id}_${Date.now()}`, name: base.name, icon: base.icon, type: base.type,
+                level: 1, rarity: 'Nadir', strBonus: base.baseStr * 2, vitBonus: base.baseVit * 2
             };
             user.inventory.push(wonItem);
             user.markModified('inventory');
-            bonusMessage += ` 🎁 Ganimet düştü: [Nadir] ${wonItem.name} +1!`;
+            bonusMessage += ` 🎁 [Nadir] ${wonItem.name} +1 düştü!`;
         }
 
-        const maxExp = user.level * 100;
-        if (user.exp >= maxExp) { 
-            user.level += 1; 
-            user.exp -= maxExp; 
-            user.statPoints += 3; 
-            user.hp = user.vit * 20; 
-            bonusMessage += ` ✨ Tebrikler, Seviye ${user.level} oldun!`;
+        let levelUps = 0;
+        while (user.exp >= user.level * 100) {
+            user.exp -= user.level * 100;
+            user.level += 1;
+            user.statPoints += 3;
+            levelUps++;
+        }
+        if (levelUps > 0) {
+            user.hp = user.vit * 20;
+            bonusMessage += ` ✨ ${levelUps} seviye atladın! Yeni seviyen: ${user.level}.`;
         }
 
         await user.save();
-        socket.emit('dungeonResult', { success: true, userData: user, message: `Zindan Kat ${data.floor} başarıyla temizlendi! +${f[1]} Altın, +${f[2]} Tecrübe.${bonusMessage}` });
+        socket.emit('dungeonResult', {
+            success: true, userData: user, floor, totalStr, requiredStr: f.requiredStr,
+            successChance: Number(successChance.toFixed(1)), roll: Number(roll.toFixed(1)), outcome: 'victory',
+            remainingAttempts: remainingAfterAttack,
+            message: `🏆 KAT TEMİZLEME BAŞARILI! ${floor}. kat temizlendi. ⚔️ Gücün: ${totalStr} STR | 🎯 Başarı: %${successChance.toFixed(1)} | 🎲 Savaş atışı: %${roll.toFixed(1)} | ❤️ -${f.hp} HP | 💰 +${f.gold} Altın | ⭐ +${f.exp} Tecrübe.${bonusMessage} | 🕒 Bugün kalan saldırı: ${remainingAfterAttack}/5`
+        });
     });
 
     // --- KAVŞAK PAZARI (OYUNCU TEZGAHLARI) SİSTEMİ ---
@@ -789,8 +898,8 @@ setInterval(async () => {
         const u = users[id];
         let inc = 0;
         if (u.estates.includes(1)) inc += 10;
-        if (u.estates.includes(2)) inc += 45;
-        if (u.estates.includes(3)) inc += 180;
+        if (u.estates.includes(2)) inc += 15;
+        if (u.estates.includes(3)) inc += 20;
         if (inc > 0) {
             u.balance += inc;
             u.lastCollected = Date.now();
