@@ -151,8 +151,9 @@ const stallSchema = new mongoose.Schema({
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true },
     characterName: { type: String, required: true },
     locationRank: { type: Number, default: 1 }, // 1: Ana Giriş (En İyi), 2: Orta Sokak, 3: Arka Sokak
-    inventory: { type: Array, default: [] }, // [{ item, price }]
-    gold: { type: Number, default: 0 } // Tezgahn kasasındaki biriken altın
+    inventory: { type: Array, default: [] }, // [{ item, price, currency: 'gold' | 'ruby' }]
+    gold: { type: Number, default: 0 }, // Tezgah kasasındaki biriken altın
+    rubies: { type: Number, default: 0 } // Tezgah kasasındaki biriken yakut
 });
 const Stall = mongoose.model('Stall', stallSchema);
 
@@ -488,23 +489,70 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('addItemToStall', async ({ itemIndex, price }) => {
+    socket.on('addItemToStall', async ({ itemIndex, price, currency }) => {
         const user = users[socket.id];
-        if (!user || user.inventory[itemIndex] === undefined) return;
+        if (!user) return;
+
+        const safeIndex = Number.parseInt(itemIndex, 10);
+        const safePrice = Number.parseInt(price, 10);
+        const safeCurrency = currency === 'ruby' ? 'ruby' : 'gold';
+
+        if (!Number.isInteger(safeIndex) || safeIndex < 0 || !user.inventory[safeIndex]) {
+            return socket.emit('marketMessage', {
+                success: false,
+                userData: user,
+                message: "Geçersiz eşya seçimi!"
+            });
+        }
+
+        if (!Number.isInteger(safePrice) || safePrice <= 0 || safePrice > 100000000) {
+            return socket.emit('marketMessage', {
+                success: false,
+                userData: user,
+                message: "Satış fiyatı 1 ile 100.000.000 arasında olmalıdır."
+            });
+        }
+
         try {
             const stall = await Stall.findOne({ ownerId: user._id });
-            if (!stall) return socket.emit('marketMessage', { success: false, userData: user, message: "Önce bir tezgah açmalısınız!" });
-            
-            const item = user.inventory.splice(itemIndex, 1)[0];
-            stall.inventory.push({ item, price: parseInt(price) || 10 });
+            if (!stall) {
+                return socket.emit('marketMessage', {
+                    success: false,
+                    userData: user,
+                    message: "Önce bir tezgah açmalısınız!"
+                });
+            }
+
+            const item = user.inventory.splice(safeIndex, 1)[0];
+            stall.inventory.push({
+                item,
+                price: safePrice,
+                currency: safeCurrency
+            });
+
             user.markModified('inventory');
+            stall.markModified('inventory');
+
             await user.save();
             await stall.save();
 
-            socket.emit('marketMessage', { success: true, userData: user, message: `${item.name} tezgaha satışa konuldu!` });
+            const currencyText = safeCurrency === 'ruby'
+                ? `${safePrice} Yakut 💎`
+                : `${safePrice} Altın 🪙`;
+
+            socket.emit('marketMessage', {
+                success: true,
+                userData: user,
+                message: `${item.name} +${Number(item.level) || 0}, ${currencyText} karşılığında Beypazarı'nda satışa konuldu!`
+            });
             socket.emit('statUpdated', user);
         } catch (err) {
-            socket.emit('marketMessage', { success: false, userData: user, message: "İşlem başarısız." });
+            console.error(err);
+            socket.emit('marketMessage', {
+                success: false,
+                userData: user,
+                message: "Ürün satışa konulurken işlem başarısız oldu."
+            });
         }
     });
 
@@ -531,65 +579,164 @@ io.on('connection', (socket) => {
     socket.on('buyStallItem', async ({ stallId, stallItemIndex }) => {
         const buyer = users[socket.id];
         if (!buyer) return;
+
+        const safeIndex = Number.parseInt(stallItemIndex, 10);
+        if (!Number.isInteger(safeIndex) || safeIndex < 0) {
+            return socket.emit('marketMessage', {
+                success: false,
+                userData: buyer,
+                message: "Geçersiz ürün seçimi!"
+            });
+        }
+
         try {
             const stall = await Stall.findById(stallId);
-            if (!stall || !stall.inventory[stallItemIndex]) {
-                return socket.emit('marketMessage', { success: false, userData: buyer, message: "Bu ürün artık mevcut değil!" });
+            if (!stall || !stall.inventory[safeIndex]) {
+                return socket.emit('marketMessage', {
+                    success: false,
+                    userData: buyer,
+                    message: "Bu ürün artık mevcut değil!"
+                });
             }
 
             if (stall.ownerId.toString() === buyer._id.toString()) {
-                return socket.emit('marketMessage', { success: false, userData: buyer, message: "Kendi ürününüzü satın alamazsınız!" });
+                return socket.emit('marketMessage', {
+                    success: false,
+                    userData: buyer,
+                    message: "Kendi ürününüzü satın alamazsınız!"
+                });
             }
 
-            const targetObj = stall.inventory[stallItemIndex];
-            if (buyer.balance < targetObj.price) {
-                return socket.emit('marketMessage', { success: false, userData: buyer, message: "Yetersiz altın!" });
+            const targetObj = stall.inventory[safeIndex];
+            const price = Number.parseInt(targetObj.price, 10);
+            // Eski ilanlarda currency alanı olmadığı için onları otomatik olarak altın kabul ediyoruz.
+            const currency = targetObj.currency === 'ruby' ? 'ruby' : 'gold';
+
+            if (!Number.isInteger(price) || price <= 0) {
+                return socket.emit('marketMessage', {
+                    success: false,
+                    userData: buyer,
+                    message: "Ürünün satış fiyatı geçersiz!"
+                });
             }
 
-            buyer.balance -= targetObj.price;
-            stall.gold += targetObj.price;
-            stall.inventory.splice(stallItemIndex, 1);
+            if (currency === 'ruby') {
+                if ((buyer.rubies || 0) < price) {
+                    return socket.emit('marketMessage', {
+                        success: false,
+                        userData: buyer,
+                        message: `Yetersiz Yakut! Bu ürün için ${price} Yakut 💎 gerekiyor.`
+                    });
+                }
+
+                buyer.rubies -= price;
+                stall.rubies = (stall.rubies || 0) + price;
+            } else {
+                if ((buyer.balance || 0) < price) {
+                    return socket.emit('marketMessage', {
+                        success: false,
+                        userData: buyer,
+                        message: `Yetersiz Altın! Bu ürün için ${price} Altın 🪙 gerekiyor.`
+                    });
+                }
+
+                buyer.balance -= price;
+                stall.gold = (stall.gold || 0) + price;
+            }
+
+            stall.inventory.splice(safeIndex, 1);
             buyer.inventory.push(targetObj.item);
 
             buyer.markModified('inventory');
+            stall.markModified('inventory');
+
             await buyer.save();
             await stall.save();
 
-            // Satıcı çevrimiçiyse bilgilendir
+            const currencyText = currency === 'ruby'
+                ? `${price} Yakut 💎`
+                : `${price} Altın 🪙`;
+
+            // Satıcı çevrimiçiyse bilgilendir.
             for (let sId in users) {
                 if (users[sId]._id.toString() === stall.ownerId.toString()) {
-                    io.to(sId).emit('marketMessage', { success: true, message: `Tezgahınızdan ${targetObj.item.name} ${targetObj.price} altına satıldı!` });
+                    io.to(sId).emit('marketMessage', {
+                        success: true,
+                        message: `Beypazarı tezgahınızdan ${targetObj.item.name} +${Number(targetObj.item.level) || 0}, ${currencyText} karşılığında satıldı!`
+                    });
                 }
             }
 
-            socket.emit('marketMessage', { success: true, userData: buyer, message: `${targetObj.item.name} başarıyla satın alındı!` });
+            socket.emit('marketMessage', {
+                success: true,
+                userData: buyer,
+                message: `${targetObj.item.name} +${Number(targetObj.item.level) || 0}, ${currencyText} karşılığında satın alındı!`
+            });
             socket.emit('statUpdated', buyer);
         } catch (err) {
-            socket.emit('marketMessage', { success: false, userData: buyer, message: "Satın alma işleminde hata oluştu." });
+            console.error(err);
+            socket.emit('marketMessage', {
+                success: false,
+                userData: buyer,
+                message: "Satın alma işleminde hata oluştu."
+            });
         }
     });
 
     socket.on('collectStallGold', async () => {
         const user = users[socket.id];
         if (!user) return;
+
         try {
             const stall = await Stall.findOne({ ownerId: user._id });
-            if (!stall || stall.gold <= 0) {
-                return socket.emit('marketMessage', { success: false, userData: user, message: "Toplanacak altın yok!" });
+            if (!stall) {
+                return socket.emit('marketMessage', {
+                    success: false,
+                    userData: user,
+                    message: "Tezgah bulunamadı!"
+                });
             }
 
-            const collected = stall.gold;
+            const collectedGold = Math.max(0, Number(stall.gold) || 0);
+            const collectedRubies = Math.max(0, Number(stall.rubies) || 0);
+
+            if (collectedGold <= 0 && collectedRubies <= 0) {
+                return socket.emit('marketMessage', {
+                    success: false,
+                    userData: user,
+                    message: "Tezgah kasasında toplanacak Altın veya Yakut yok!"
+                });
+            }
+
             stall.gold = 0;
-            user.balance += collected;
+            stall.rubies = 0;
+
+            user.balance += collectedGold;
+            user.rubies = (user.rubies || 0) + collectedRubies;
+
             await user.save();
             await stall.save();
 
-            socket.emit('marketMessage', { success: true, userData: user, message: `${collected} altın tezgah kasasından toplandı!` });
+            const parts = [];
+            if (collectedGold > 0) parts.push(`${collectedGold} Altın 🪙`);
+            if (collectedRubies > 0) parts.push(`${collectedRubies} Yakut 💎`);
+
+            socket.emit('marketMessage', {
+                success: true,
+                userData: user,
+                message: `${parts.join(' ve ')} Beypazarı tezgah kasasından toplandı!`
+            });
             socket.emit('statUpdated', user);
         } catch (err) {
-            socket.emit('marketMessage', { success: false, userData: user, message: "Altınlar toplanamadı." });
+            console.error(err);
+            socket.emit('marketMessage', {
+                success: false,
+                userData: user,
+                message: "Tezgah kazançları toplanamadı."
+            });
         }
     });
+
     // --- KAVŞAK PAZARI BİTİŞ ---
 
     socket.on('openGoldChest', async () => {
