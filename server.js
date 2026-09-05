@@ -735,8 +735,8 @@ io.on('connection', (socket) => {
     socket.on('usePotion', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
-        if (!user || user.balance < 50) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın!" });
-        user.balance -= 50; user.hp = user.vit * 20;
+        if (!user || user.balance < 25000) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın! Can İksiri için 25.000 Altın gerekiyor." });
+        user.balance -= 25000; user.hp = user.vit * 20;
         await user.save();
         socket.emit('marketResult', { success: true, userData: user, message: "Can iksiri içildi, HP doldu!" });
     });
@@ -744,8 +744,8 @@ io.on('connection', (socket) => {
     socket.on('refillSefer', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
-        if (!user || user.balance < 50) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın!" });
-        user.balance -= 50; user.seferLimiti = MAX_SEFER_LIMITI; user.seferNextRefill = null;
+        if (!user || user.balance < 25000) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın! Sefer İksiri için 25.000 Altın gerekiyor." });
+        user.balance -= 25000; user.seferLimiti = MAX_SEFER_LIMITI; user.seferNextRefill = null;
         await user.save();
         socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitiniz yenilendi!" });
     });
@@ -753,9 +753,9 @@ io.on('connection', (socket) => {
     socket.on('buyMysteryBox', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
-        if (!user || user.balance < 300) return socket.emit('marketResult', { success: false, userData: user, message: "Sandık için 300 altın gerekli!" });
+        if (!user || user.balance < 10000) return socket.emit('marketResult', { success: false, userData: user, message: "Sandık için 300 altın gerekli!" });
         
-        user.balance -= 300;
+        user.balance -= 10000;
         
         const randRarity = Math.random();
         let rarity = 'Sıradan';
