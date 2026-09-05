@@ -306,9 +306,9 @@
                     if (item) headerBonusVit += Number(item.vitBonus) || 0;
                 });
             }
-            const headerTotalVit = (data.vit || 5) + headerBonusVit;
-            const maxHp = headerTotalVit * 20;
-            const currentHp = (data.hp !== undefined) ? data.hp : maxHp;
+            const headerTotalVit = (Number(data.vit) || 5) + headerBonusVit;
+            const maxHp = Math.max(20, headerTotalVit * 20);
+            const currentHp = Math.max(0, Math.min(maxHp, Number(data.hp) || 0));
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
             document.getElementById('hpBarFill').style.width = `${hpPercent}%`;
             document.getElementById('hpLabel').innerText = `Can (${currentHp}/${maxHp})`;
@@ -843,7 +843,10 @@
             input.value = '';
         }
 
-        socket.on('statUpdated', (u) => { updateHeader(u); if(activeTab === 'overview') renderPanelContent(); });
+        socket.on('statUpdated', (u) => {
+            updateHeader(u);
+            renderPanelContent();
+        });
         socket.on('questResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('questLogResult').innerText = res.message; });
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
         socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
