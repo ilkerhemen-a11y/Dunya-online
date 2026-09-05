@@ -170,8 +170,8 @@ function checkRateLimit(socketId) {
 }
 
 const getDefaultInventory = () => [
-    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0, rarity: 'Sıradan' },
-    { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5, level: 0, rarity: 'Sıradan' }
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0, rarity: 'Epik' },
+    { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5, level: 0, rarity: 'Epik' }
 ];
 
 io.on('connection', (socket) => {
@@ -428,7 +428,7 @@ io.on('connection', (socket) => {
             const base = dungeonItems[Math.floor(Math.random() * dungeonItems.length)];
             const wonItem = {
                 id: `${base.id}_${Date.now()}`, name: base.name, icon: base.icon, type: base.type,
-                level: 1, rarity: 'Nadir', strBonus: base.baseStr * 2, vitBonus: base.baseVit * 2
+                level: 1, rarity: 'Epik', strBonus: base.baseStr * 2, vitBonus: base.baseVit * 2
             };
             user.inventory.push(wonItem);
             user.markModified('inventory');
@@ -764,9 +764,9 @@ io.on('connection', (socket) => {
         const suluhanItems = {
             1: { name: 'Güneş Kılıcı', icon: '⚔️', type: 'weapon', rarity: 'Epik', goldCost: 5000, rubyCost: 1000, strBonus: 12, vitBonus: 4, level: 1 },
             2: { name: 'Vezir Zırhı', icon: '🛡️', type: 'armor', rarity: 'Epik', goldCost: 8000, rubyCost: 750, strBonus: 5, vitBonus: 15, level: 1 },
-            3: { name: 'Sultan Tacı', icon: '👑', type: 'helmet', rarity: 'Nadir', goldCost: 4000, rubyCost: 450, strBonus: 4, vitBonus: 10, level: 1 },
-            4: { name: 'Hünkar Yüzüğü', icon: '💍', type: 'ring', rarity: 'Nadir', goldCost: 10000, rubyCost: 300, strBonus: 8, vitBonus: 8, level: 1 },
-            5: { name: 'Şehzade Çizmesi', icon: '👢', type: 'boots', rarity: 'Sıradan', goldCost: 2500, rubyCost: 200, strBonus: 6, vitBonus: 6, level: 1 }
+            3: { name: 'Sultan Tacı', icon: '👑', type: 'helmet', rarity: 'Epik', goldCost: 4000, rubyCost: 450, strBonus: 4, vitBonus: 10, level: 1 },
+            4: { name: 'Hünkar Yüzüğü', icon: '💍', type: 'ring', rarity: 'Epik', goldCost: 10000, rubyCost: 300, strBonus: 8, vitBonus: 8, level: 1 },
+            5: { name: 'Şehzade Çizmesi', icon: '👢', type: 'boots', rarity: 'Epik', goldCost: 2500, rubyCost: 200, strBonus: 6, vitBonus: 6, level: 1 }
         };
 
         const itemTemplate = suluhanItems[data.itemId];
