@@ -725,16 +725,25 @@
                         <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                             <div>
                                 <h4 style="color:#22c55e;">⛺ Tezgahınız (${myStall.characterName}) - Konum: Seviye ${myStall.locationRank}</h4>
-                                <p>Tezgah Kasası: <strong style="color:#f3cf7a;">${myStall.gold} Altın 🪙</strong></p>
+                                <p>
+                                    Tezgah Kasası:
+                                    <strong style="color:#f3cf7a;">${myStall.gold || 0} Altın 🪙</strong>
+                                    <span style="color:#9c8e7b;"> | </span>
+                                    <strong style="color:#ef4444;">${myStall.rubies || 0} Yakut 💎</strong>
+                                </p>
                             </div>
-                            ${myStall.gold > 0 ? `<button class="btn-quest" onclick="socket.emit('collectStallGold')">Altınları Topla</button>` : ''}
+                            ${((myStall.gold || 0) > 0 || (myStall.rubies || 0) > 0) ? `<button class="btn-quest" onclick="socket.emit('collectStallGold')">Kazançları Topla</button>` : ''}
                         </div>
                         <div style="width:100%; border-top:1px solid #33241b; padding-top:8px;">
                             <h5 style="color:#f3cf7a; font-size:12px; margin-bottom:6px;">Tezgahtaki Ürünleriniz:</h5>
                             <div style="display:flex; flex-wrap:wrap; gap:8px;">
                                 ${myStall.inventory.length > 0 ? myStall.inventory.map((itemObj, idx) => `
                                     <div style="background:#0d0a08; border:1px solid #33241b; padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; font-size:11px;">
-                                        <span>${itemObj.item.icon || '📦'} ${escapeHTML(itemObj.item.name)} <strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong> (${itemObj.price} 🪙)</span>
+                                        <span>
+                                            ${itemObj.item.icon || '📦'} ${escapeHTML(itemObj.item.name)}
+                                            <strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong>
+                                            (<strong style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#f3cf7a'};">${itemObj.price} ${itemObj.currency === 'ruby' ? '💎' : '🪙'}</strong>)
+                                        </span>
                                         <button onclick="socket.emit('removeItemFromStall', { stallItemIndex: ${idx} })" style="background:#dc2626; color:white; border:none; padding:2px 6px; border-radius:3px; cursor:pointer;">Geri Al</button>
                                     </div>
                                 `).join('') : '<span style="color:#9c8e7b; font-size:11px;">Tezgahınızda satışta ürün yok.</span>'}
@@ -746,7 +755,11 @@
                                 <select id="inventoryItemSelect" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
                                     ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${escapeHTML(it.name)} +${Number(it.level) || 0} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
                                 </select>
-                                <input type="number" id="stallItemPrice" placeholder="Fiyat (Altın)" value="100" style="width:100px; padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
+                                <input type="number" id="stallItemPrice" placeholder="Satış Fiyatı" value="100" min="1" style="width:110px; padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
+                                <select id="stallItemCurrency" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
+                                    <option value="gold">Altın 🪙</option>
+                                    <option value="ruby">Yakut 💎</option>
+                                </select>
                                 <button class="btn-quest" onclick="addItemToStallSubmit()">Tezgaha Koy</button>
                             </div>
                         </div>
@@ -771,7 +784,9 @@
                                             <span>${itemObj.item.icon || '📦'}</span>
                                             <div>
                                                 <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)} +${Number(itemObj.item.level) || 0}</strong>
-                                                <div style="color:#22c55e;">${itemObj.price} Altın 🪙</div>
+                                                <div style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#22c55e'}; font-weight:bold;">
+                                                    ${itemObj.price} ${itemObj.currency === 'ruby' ? 'Yakut 💎' : 'Altın 🪙'}
+                                                </div>
                                             </div>
                                         </div>
                                         <button class="btn-quest" onclick="socket.emit('buyStallItem', { stallId: '${st._id}', stallItemIndex: ${sIdx} })">Satın Al</button>
@@ -794,8 +809,17 @@
         function addItemToStallSubmit() {
             const itemIndex = document.getElementById('inventoryItemSelect').value;
             const price = document.getElementById('stallItemPrice').value;
-            if (itemIndex === '' || !price) return alert('Lütfen eşya seçin ve fiyat girin!');
-            socket.emit('addItemToStall', { itemIndex: parseInt(itemIndex), price: parseInt(price) });
+            const currency = document.getElementById('stallItemCurrency')?.value || 'gold';
+
+            if (itemIndex === '' || !price || Number(price) <= 0) {
+                return alert('Lütfen eşya seçin ve geçerli bir satış fiyatı girin!');
+            }
+
+            socket.emit('addItemToStall', {
+                itemIndex: parseInt(itemIndex, 10),
+                price: parseInt(price, 10),
+                currency
+            });
         }
 
         function doAction(event, payload, btnId) {
