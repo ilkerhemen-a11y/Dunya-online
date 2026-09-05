@@ -1020,28 +1020,79 @@ io.on('connection', (socket) => {
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.inventory[data.itemIndex]) return;
+
+        const calculateMaxHp = (u) => {
+            let totalVit = u.vit || 5;
+            if (u.equipped) {
+                Object.values(u.equipped).forEach(eq => {
+                    if (eq) totalVit += Number(eq.vitBonus) || 0;
+                });
+            }
+            return Math.max(20, totalVit * 20);
+        };
+
+        // Ekipman değişmeden önce sağlık yüzdesini sakla.
+        const oldMaxHp = calculateMaxHp(user);
+        const hpRatio = oldMaxHp > 0
+            ? Math.max(0, Math.min(1, (Number(user.hp) || 0) / oldMaxHp))
+            : 1;
+
         const item = user.inventory[data.itemIndex];
         item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+
         const old = user.equipped[item.type];
         if (old) old.name = (old.name || 'Eşya').replace(/\s*\+\d+$/, '');
-        
+
         user.inventory.splice(data.itemIndex, 1);
         if (old) user.inventory.push(old);
         user.equipped[item.type] = item;
-        user.markModified('equipped'); user.markModified('inventory');
+
+        // Yeni maksimum HP'ye aynı sağlık yüzdesiyle geç.
+        // 100/100 -> +VIT ekipman -> 200/200
+        // 50/100  -> +VIT ekipman -> 100/200
+        const newMaxHp = calculateMaxHp(user);
+        user.hp = Math.round(newMaxHp * hpRatio);
+
+        user.markModified('equipped');
+        user.markModified('inventory');
         await user.save();
+
         socket.emit('statUpdated', user);
     });
 
     socket.on('unequipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
+
+        const calculateMaxHp = (u) => {
+            let totalVit = u.vit || 5;
+            if (u.equipped) {
+                Object.values(u.equipped).forEach(eq => {
+                    if (eq) totalVit += Number(eq.vitBonus) || 0;
+                });
+            }
+            return Math.max(20, totalVit * 20);
+        };
+
+        // Ekipman çıkmadan önce sağlık yüzdesini sakla.
+        const oldMaxHp = calculateMaxHp(user);
+        const hpRatio = oldMaxHp > 0
+            ? Math.max(0, Math.min(1, (Number(user.hp) || 0) / oldMaxHp))
+            : 1;
+
         const item = user.equipped[data.slot];
         item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+
         user.inventory.push(item);
         user.equipped[data.slot] = null;
-        user.markModified('equipped'); user.markModified('inventory');
+
+        const newMaxHp = calculateMaxHp(user);
+        user.hp = Math.round(newMaxHp * hpRatio);
+
+        user.markModified('equipped');
+        user.markModified('inventory');
         await user.save();
+
         socket.emit('statUpdated', user);
     });
 
