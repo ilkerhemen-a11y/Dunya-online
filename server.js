@@ -170,8 +170,8 @@ function checkRateLimit(socketId) {
 }
 
 const getDefaultInventory = () => [
-    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0, rarity: 'Epik' },
-    { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5, level: 0, rarity: 'Epik' }
+    { id: 'item_1', name: 'Tahta Kılıç', icon: '🗡️', type: 'weapon', strBonus: 3, vitBonus: 0, level: 0, rarity: 'Sıradan' },
+    { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5, level: 0, rarity: 'Sıradan' }
 ];
 
 io.on('connection', (socket) => {
@@ -428,7 +428,7 @@ io.on('connection', (socket) => {
             const base = dungeonItems[Math.floor(Math.random() * dungeonItems.length)];
             const wonItem = {
                 id: `${base.id}_${Date.now()}`, name: base.name, icon: base.icon, type: base.type,
-                level: 1, rarity: 'Epik', strBonus: base.baseStr * 2, vitBonus: base.baseVit * 2
+                level: 1, rarity: 'Nadir', strBonus: base.baseStr * 2, vitBonus: base.baseVit * 2
             };
             user.inventory.push(wonItem);
             user.markModified('inventory');
@@ -891,8 +891,6 @@ io.on('connection', (socket) => {
             });
         }
 
-        // Maksimum HP, Nitelikler ve üst can barındaki hesapla aynı:
-        // temel VIT + kuşanılmış ekipmanların VIT bonusları.
         let totalVit = user.vit || 5;
         if (user.equipped) {
             Object.values(user.equipped).forEach(item => {
@@ -901,7 +899,6 @@ io.on('connection', (socket) => {
         }
 
         const maxHp = totalVit * 20;
-
         user.balance -= 25000;
         user.hp = maxHp;
 
