@@ -593,6 +593,14 @@
                 }
                 const dungeonTotalStr = (u.str || 5) + dungeonBonusStr;
 
+                const dungeonDailyAttempts = Array.isArray(u.dungeonDailyAttempts)
+                    ? u.dungeonDailyAttempts
+                    : [];
+                const getDungeonRemaining = (floor) => {
+                    const used = Number(dungeonDailyAttempts[floor - 1]) || 0;
+                    return Math.max(0, 5 - used);
+                };
+
                 const getDungeonChance = (requiredStr) => {
                     if (dungeonTotalStr < requiredStr) return 0;
                     const ratio = dungeonTotalStr / requiredStr;
@@ -623,18 +631,25 @@
                         <p style="color:#9c8e7b;font-size:11px;margin-top:4px;">
                             Minimum STR'de %55 • 1.5x STR'de %72.5 • 2x STR'de %90 • maksimum %95
                         </p>
+                        <p style="color:#60a5fa;font-size:11px;margin-top:4px;">
+                            🕒 Her zindan katında günlük <strong>5 saldırı hakkı</strong> vardır. Başarılı veya başarısız her gerçek saldırı 1 hak tüketir.
+                        </p>
                     </div>
                     <div class="quest-list">
                         ${dungeonsData.map(d => {
                             const isUnlocked = d.floor <= userDungeonFloor;
                             const hasEnoughStr = dungeonTotalStr >= d.requiredStr;
                             const chance = getDungeonChance(d.requiredStr);
+                            const remaining = getDungeonRemaining(d.floor);
+                            const dailyLimitReached = remaining <= 0;
                             const nextCost = d.floor * 5;
                             let actionButtonHTML = '';
 
                             if (isUnlocked) {
-                                const disabled = !hasEnoughStr ? 'disabled' : '';
-                                const btnText = !hasEnoughStr ? `🔒 ${d.requiredStr} STR Gerekli` : (d.isBoss ? "🐉 Boss'a Saldır" : "⚔️ Saldır");
+                                const disabled = (!hasEnoughStr || dailyLimitReached) ? 'disabled' : '';
+                                const btnText = dailyLimitReached
+                                    ? '⏳ Günlük Limit Doldu'
+                                    : (!hasEnoughStr ? `🔒 ${d.requiredStr} STR Gerekli` : (d.isBoss ? "🐉 Boss'a Saldır" : "⚔️ Saldır"));
                                 const btnStyle = d.isBoss ? "background:linear-gradient(135deg,#ef4444 0%,#991b1b 100%);color:white;border-color:#f87171;" : "";
                                 actionButtonHTML = `<button id="d${d.floor}Btn" class="btn-quest" ${disabled} style="${btnStyle}" onclick="doAction('doDungeon', { floor: ${d.floor} }, 'd${d.floor}Btn')">${btnText}</button>`;
                             } else {
@@ -653,6 +668,7 @@
                                             <span>+${d.gold} Altın</span><span>+${d.exp} Tecrübe</span>
                                             <span style="color:#ffdf73;">+${d.isBoss ? 2 : 1}x Altın Anahtar 🔑</span>
                                             <span style="color:#ef4444;">-${d.hp} HP</span>
+                                            <span style="color:${remaining > 0 ? '#60a5fa' : '#ef4444'};">🕒 Kalan: ${remaining}/5</span>
                                             ${d.isBoss ? '<span style="color:#38bdf8;">+2 Yakut 💎</span>' : ''}
                                         </div>
                                     </div>
