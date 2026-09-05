@@ -146,7 +146,7 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Kavşak Pazarı Karakter Tezgahları Şeması
+// Beypazarı Karakter Tezgahları Şeması
 const stallSchema = new mongoose.Schema({
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true },
     characterName: { type: String, required: true },
@@ -482,7 +482,7 @@ io.on('connection', (socket) => {
                 gold: 0
             });
             await newStall.save();
-            socket.emit('marketMessage', { success: true, userData: user, message: "Kavşak Pazarı'nda tezgahınız başarıyla kuruldu!" });
+            socket.emit('marketMessage', { success: true, userData: user, message: "Beypazarı'nda tezgahınız başarıyla kuruldu!" });
         } catch (err) {
             socket.emit('marketMessage', { success: false, userData: user, message: "Tezgah kurulurken bir hata oluştu." });
         }
