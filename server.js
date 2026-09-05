@@ -762,11 +762,11 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         const suluhanItems = {
-            1: { name: 'Güneş Kılıcı', icon: '⚔️', type: 'weapon', rarity: 'Epik', goldCost: 500, rubyCost: 5, strBonus: 12, vitBonus: 4, level: 1 },
-            2: { name: 'Vezir Zırhı', icon: '🛡️', type: 'armor', rarity: 'Epik', goldCost: 800, rubyCost: 8, strBonus: 5, vitBonus: 15, level: 1 },
-            3: { name: 'Sultan Tacı', icon: '👑', type: 'helmet', rarity: 'Nadir', goldCost: 400, rubyCost: 4, strBonus: 4, vitBonus: 10, level: 1 },
-            4: { name: 'Hünkar Yüzüğü', icon: '💍', type: 'ring', rarity: 'Nadir', goldCost: 300, rubyCost: 3, strBonus: 8, vitBonus: 8, level: 1 },
-            5: { name: 'Şehzade Çizmesi', icon: '👢', type: 'boots', rarity: 'Sıradan', goldCost: 250, rubyCost: 2, strBonus: 6, vitBonus: 6, level: 1 }
+            1: { name: 'Güneş Kılıcı', icon: '⚔️', type: 'weapon', rarity: 'Epik', goldCost: 5000, rubyCost: 1000, strBonus: 12, vitBonus: 4, level: 1 },
+            2: { name: 'Vezir Zırhı', icon: '🛡️', type: 'armor', rarity: 'Epik', goldCost: 8000, rubyCost: 750, strBonus: 5, vitBonus: 15, level: 1 },
+            3: { name: 'Sultan Tacı', icon: '👑', type: 'helmet', rarity: 'Nadir', goldCost: 4000, rubyCost: 450, strBonus: 4, vitBonus: 10, level: 1 },
+            4: { name: 'Hünkar Yüzüğü', icon: '💍', type: 'ring', rarity: 'Nadir', goldCost: 10000, rubyCost: 300, strBonus: 8, vitBonus: 8, level: 1 },
+            5: { name: 'Şehzade Çizmesi', icon: '👢', type: 'boots', rarity: 'Sıradan', goldCost: 2500, rubyCost: 200, strBonus: 6, vitBonus: 6, level: 1 }
         };
 
         const itemTemplate = suluhanItems[data.itemId];
