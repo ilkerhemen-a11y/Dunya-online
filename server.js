@@ -882,10 +882,36 @@ io.on('connection', (socket) => {
     socket.on('usePotion', async () => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
-        if (!user || user.balance < 25000) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın! Can İksiri için 25.000 Altın gerekiyor." });
-        user.balance -= 25000; user.hp = user.vit * 20;
+
+        if (!user || user.balance < 25000) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "Yetersiz altın! Can İksiri için 25.000 Altın gerekiyor."
+            });
+        }
+
+        // Maksimum HP, Nitelikler ve üst can barındaki hesapla aynı:
+        // temel VIT + kuşanılmış ekipmanların VIT bonusları.
+        let totalVit = user.vit || 5;
+        if (user.equipped) {
+            Object.values(user.equipped).forEach(item => {
+                if (item) totalVit += Number(item.vitBonus) || 0;
+            });
+        }
+
+        const maxHp = totalVit * 20;
+
+        user.balance -= 25000;
+        user.hp = maxHp;
+
         await user.save();
-        socket.emit('marketResult', { success: true, userData: user, message: "Can iksiri içildi, HP doldu!" });
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message: `Can İksiri içildi! HP tamamen doldu: ${user.hp}/${maxHp} ❤️`
+        });
     });
 
     socket.on('refillSefer', async () => {
