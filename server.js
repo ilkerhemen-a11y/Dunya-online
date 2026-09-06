@@ -101,11 +101,13 @@ function processLevelUps(user) {
 
 
 const METIN_STONES = {
-    1: { name: 'Savaş Metini', icon: '🪨', requiredLevel: 1,  maxHp: 500,   respawnMs: 2 * 60 * 1000,  papers: 1 },
-    2: { name: 'Gölge Metini', icon: '🌑', requiredLevel: 20, maxHp: 2000,  respawnMs: 3 * 60 * 1000,  papers: 1 },
-    3: { name: 'Ruh Metini', icon: '💠', requiredLevel: 40, maxHp: 6000,  respawnMs: 4 * 60 * 1000,  papers: 1 },
-    4: { name: 'Kıyamet Metini', icon: '🔥', requiredLevel: 60, maxHp: 15000, respawnMs: 5 * 60 * 1000,  papers: 1 },
-    5: { name: 'Taht Metini', icon: '👑', requiredLevel: 80, maxHp: 35000, respawnMs: 10 * 60 * 1000, papers: 2 }
+    // Tüm Metin taşlarında yeniden doğma süresi en az 4 saattir.
+    // hpCostPercent: Her vuruşta oyuncunun maksimum HP'sinden düşecek yüzde.
+    1: { name: 'Savaş Metini', icon: '🪨', requiredLevel: 1,  maxHp: 500,   respawnMs: 4 * 60 * 60 * 1000,  papers: 1, hpCostPercent: 4 },
+    2: { name: 'Gölge Metini', icon: '🌑', requiredLevel: 20, maxHp: 2000,  respawnMs: 6 * 60 * 60 * 1000,  papers: 1, hpCostPercent: 5 },
+    3: { name: 'Ruh Metini', icon: '💠', requiredLevel: 40, maxHp: 6000,  respawnMs: 8 * 60 * 60 * 1000,  papers: 1, hpCostPercent: 6 },
+    4: { name: 'Kıyamet Metini', icon: '🔥', requiredLevel: 60, maxHp: 15000, respawnMs: 12 * 60 * 60 * 1000, papers: 1, hpCostPercent: 7 },
+    5: { name: 'Taht Metini', icon: '👑', requiredLevel: 80, maxHp: 35000, respawnMs: 24 * 60 * 60 * 1000, papers: 2, hpCostPercent: 8 }
 };
 
 const EQUIP_SLOTS = ['helmet', 'necklace', 'armor', 'weapon', 'shield', 'ring', 'gloves', 'boots'];
@@ -733,18 +735,40 @@ io.on('connection', (socket) => {
 
         const totalStr = getTotalStr(user);
 
+        // Her gerçek Metin saldırısı oyuncudan can götürür.
+        // Maliyet, kuşanılmış ekipman VIT bonusları dahil maksimum HP üzerinden hesaplanır.
+        const maxPlayerHp = calculateMaxHpForProgression(user);
+        const playerHpCost = Math.max(
+            1,
+            Math.ceil(maxPlayerHp * (stone.hpCostPercent / 100))
+        );
+
+        if ((Number(user.hp) || 0) < playerHpCost) {
+            return socket.emit('metinResult', {
+                success: false,
+                userData: user,
+                stoneId,
+                hpCost: playerHpCost,
+                message: `❤️ Canın yetersiz! ${stone.name}'ne vurmak için en az ${playerHpCost} HP gerekiyor. Mevcut HP: ${user.hp || 0}.`
+            });
+        }
+
         // Toplam STR x4, vuruş başına ±%15 değişken hasar.
         const randomMultiplier = 0.85 + (Math.random() * 0.30);
         const rawDamage = Math.max(1, Math.floor(totalStr * 4 * randomMultiplier));
         const damage = Math.min(rawDamage, currentHp);
         const newHp = Math.max(0, currentHp - damage);
 
+        user.hp = Math.max(0, (Number(user.hp) || 0) - playerHpCost);
         user.metinStoneHp[index] = newHp;
         user.markModified('metinStoneHp');
 
         let destroyed = false;
         let papersDropped = 0;
-        let message = `⚔️ ${stone.name}'ne ${damage} hasar verdin! ❤️ ${newHp}/${stone.maxHp}`;
+        let message =
+            `⚔️ ${stone.name}'ne ${damage} hasar verdin! ` +
+            `🪨 Metin HP: ${newHp}/${stone.maxHp} | ` +
+            `❤️ -${playerHpCost} HP (Kalan: ${user.hp}/${maxPlayerHp})`;
 
         if (newHp <= 0) {
             destroyed = true;
@@ -764,12 +788,13 @@ io.on('connection', (socket) => {
 
             user.markModified('inventory');
 
-            const respawnMinutes = Math.ceil(stone.respawnMs / 60000);
+            const respawnHours = Math.ceil(stone.respawnMs / (60 * 60 * 1000));
 
             message =
                 `💥 ${stone.name} parçalandı! ` +
+                `❤️ -${playerHpCost} HP (Kalan: ${user.hp}/${maxPlayerHp}) | ` +
                 `📜 ${papersDropped} adet Kutsama Kağıdı envanterine eklendi. ` +
-                `⏳ Metin yaklaşık ${respawnMinutes} dakika sonra yeniden doğacak.`;
+                `⏳ Metin yaklaşık ${respawnHours} saat sonra yeniden doğacak.`;
         }
 
         await user.save();
@@ -780,6 +805,9 @@ io.on('connection', (socket) => {
             stoneId,
             totalStr,
             damage,
+            hpCost: playerHpCost,
+            playerHp: user.hp,
+            playerMaxHp: maxPlayerHp,
             destroyed,
             papersDropped,
             message
