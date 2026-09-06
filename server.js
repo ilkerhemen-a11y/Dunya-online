@@ -19,6 +19,9 @@ const BANK_MAX_DEPOSIT = 100000;
 const BANK_INTEREST_RATE = 0.50;
 const BANK_TERM_MS = 24 * 60 * 60 * 1000;
 
+const BLACKSMITH_MAX_LEVEL = 20;
+const BLACKSMITH_BASE_XP = 100;
+
 const TITLE_TIERS = [
     { level: 99, title: 'Tahtın Efendisi' },
     { level: 90, title: 'Efsane' },
@@ -533,6 +536,91 @@ function checkDungeonDailyReset(user) {
     return changed;
 }
 
+function getBlacksmithXpNeeded(level) {
+    const safeLevel = Math.max(1, Math.min(BLACKSMITH_MAX_LEVEL, Number(level) || 1));
+    return BLACKSMITH_BASE_XP + ((safeLevel - 1) * 25);
+}
+
+function getBlacksmithDiscount(level) {
+    const safeLevel = Math.max(1, Math.min(BLACKSMITH_MAX_LEVEL, Number(level) || 1));
+    return Math.min(0.10, (safeLevel - 1) * 0.005);
+}
+
+function normalizeBlacksmithState(user) {
+    let changed = false;
+
+    if (!user.blacksmithMastery) {
+        user.blacksmithMastery = { level: 1, exp: 0, ironOre: 0 };
+        user.markModified('blacksmithMastery');
+        return true;
+    }
+
+    let level = Number.parseInt(user.blacksmithMastery.level, 10);
+    let exp = Number.parseInt(user.blacksmithMastery.exp, 10);
+    let ironOre = Number.parseInt(user.blacksmithMastery.ironOre, 10);
+
+    if (!Number.isInteger(level) || level < 1) level = 1;
+    if (level > BLACKSMITH_MAX_LEVEL) level = BLACKSMITH_MAX_LEVEL;
+    if (!Number.isInteger(exp) || exp < 0) exp = 0;
+    if (!Number.isInteger(ironOre) || ironOre < 0) ironOre = 0;
+
+    if (level >= BLACKSMITH_MAX_LEVEL) exp = 0;
+
+    if (user.blacksmithMastery.level !== level) changed = true;
+    if (user.blacksmithMastery.exp !== exp) changed = true;
+    if (user.blacksmithMastery.ironOre !== ironOre) changed = true;
+
+    user.blacksmithMastery.level = level;
+    user.blacksmithMastery.exp = exp;
+    user.blacksmithMastery.ironOre = ironOre;
+
+    if (changed) user.markModified('blacksmithMastery');
+    return changed;
+}
+
+function grantBlacksmithMasteryXp(user, amount) {
+    normalizeBlacksmithState(user);
+
+    const result = {
+        gained: Math.max(0, Number.parseInt(amount, 10) || 0),
+        levelsGained: 0,
+        level: user.blacksmithMastery.level
+    };
+
+    if (result.gained <= 0 || user.blacksmithMastery.level >= BLACKSMITH_MAX_LEVEL) {
+        return result;
+    }
+
+    user.blacksmithMastery.exp += result.gained;
+
+    while (user.blacksmithMastery.level < BLACKSMITH_MAX_LEVEL) {
+        const needed = getBlacksmithXpNeeded(user.blacksmithMastery.level);
+        if (user.blacksmithMastery.exp < needed) break;
+
+        user.blacksmithMastery.exp -= needed;
+        user.blacksmithMastery.level += 1;
+        result.levelsGained += 1;
+    }
+
+    if (user.blacksmithMastery.level >= BLACKSMITH_MAX_LEVEL) {
+        user.blacksmithMastery.level = BLACKSMITH_MAX_LEVEL;
+        user.blacksmithMastery.exp = 0;
+    }
+
+    result.level = user.blacksmithMastery.level;
+    user.markModified('blacksmithMastery');
+    return result;
+}
+
+function getSmeltOreYield(item) {
+    const level = Math.max(0, Number.parseInt(item?.level, 10) || 0);
+    const rarity = item?.rarity || 'Sıradan';
+
+    if (rarity === 'Epik') return 10 + Math.floor(level / 3);
+    if (rarity === 'Nadir') return 5 + Math.floor(level / 4);
+    return 2 + Math.floor(level / 5);
+}
+
 function calculateOfflineGold(user) {
     if (!user.lastCollected) { 
         user.lastCollected = Date.now(); 
@@ -612,6 +700,12 @@ const userSchema = new mongoose.Schema({
         principal: { type: Number, default: 0 },
         startedAt: { type: Number, default: 0 },
         maturesAt: { type: Number, default: 0 }
+    },
+
+    blacksmithMastery: {
+        level: { type: Number, default: 1 },
+        exp: { type: Number, default: 0 },
+        ironOre: { type: Number, default: 0 }
     },
 
     equipped: { 
@@ -816,6 +910,7 @@ io.on('connection', (socket) => {
             normalizeArmy(dbUser);
             normalizeSiegeMarketState(dbUser);
             normalizeBankState(dbUser);
+            normalizeBlacksmithState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -845,6 +940,7 @@ io.on('connection', (socket) => {
             normalizeArmy(dbUser);
             normalizeSiegeMarketState(dbUser);
             normalizeBankState(dbUser);
+            normalizeBlacksmithState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -3133,6 +3229,8 @@ io.on('connection', (socket) => {
             return;
         }
 
+        normalizeBlacksmithState(user);
+
         const item = user.inventory[itemIndex];
 
         if (!EQUIP_SLOTS.includes(item.type)) {
@@ -3145,8 +3243,9 @@ io.on('connection', (socket) => {
 
         const currentLvl = Number(item.level) || 0;
         const nextLvl = currentLvl + 1;
-
-        const goldCost = nextLvl * 150;
+        const baseGoldCost = nextLvl * 150;
+        const masteryDiscount = getBlacksmithDiscount(user.blacksmithMastery.level);
+        const goldCost = Math.max(1, Math.ceil(baseGoldCost * (1 - masteryDiscount)));
         const rubyCost = nextLvl;
 
         if (user.balance < goldCost || (user.rubies || 0) < rubyCost) {
@@ -3157,17 +3256,12 @@ io.on('connection', (socket) => {
             });
         }
 
-        // +10, +20, +30... seviyelerinde Kutsama Kağıdı zorunludur.
         const isBlessingMilestone = nextLvl % 10 === 0;
 
         if (isBlessingMilestone) {
             const blessingCount = Number.parseInt(data?.blessingCount, 10);
 
-            if (
-                !Number.isInteger(blessingCount) ||
-                blessingCount < 1 ||
-                blessingCount > 4
-            ) {
+            if (!Number.isInteger(blessingCount) || blessingCount < 1 || blessingCount > 4) {
                 return socket.emit('forgeResult', {
                     success: false,
                     userData: user,
@@ -3199,7 +3293,6 @@ io.on('connection', (socket) => {
                 });
             }
 
-            // Kutsama denemesinde altın, yakut ve seçilen kağıtlar tüketilir.
             user.balance -= goldCost;
             user.rubies -= rubyCost;
 
@@ -3219,27 +3312,32 @@ io.on('connection', (socket) => {
                 return true;
             });
 
-            // Her Kutsama Kağıdı %25 başarı verir. 4 adet = kesin başarı.
             const successChance = blessingCount * 25;
             const roll = Math.random() * 100;
             const blessingSuccess = blessingCount >= 4 || roll < successChance;
 
             if (!blessingSuccess) {
+                const mastery = grantBlacksmithMasteryXp(user, 5);
                 user.markModified('inventory');
                 await user.save();
 
                 return socket.emit('forgeResult', {
                     success: false,
                     blessingAttempt: true,
+                    forgeAction: {
+                        type: 'blessingFail',
+                        itemName: (item.name || 'Eşya').replace(/\s*\+\d+$/, ''),
+                        level: currentLvl
+                    },
                     userData: user,
                     message:
                         `❌ Kutsama başarısız! +${nextLvl} geçmedi. ` +
                         `📜 ${blessingCount} Kutsama Kağıdı kullanıldı (%${successChance} şans). ` +
-                        `Eşyan yanmadı ve +${currentLvl} seviyesinde kaldı.`
+                        `Eşyan yanmadı ve +${currentLvl} seviyesinde kaldı. ` +
+                        `🔨 +${mastery.gained} Ustalık XP.`
                 });
             }
 
-            // Kağıtlar filtrelenirken item objesi bellekte korunur; başarıda yükseltilir.
             item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
             item.level = nextLvl;
 
@@ -3250,21 +3348,29 @@ io.on('connection', (socket) => {
             item.strBonus = (item.strBonus || 0) + statBoost;
             item.vitBonus = (item.vitBonus || 0) + statBoost;
 
+            const mastery = grantBlacksmithMasteryXp(user, 10);
             user.markModified('inventory');
             await user.save();
 
             return socket.emit('forgeResult', {
                 success: true,
                 blessingAttempt: true,
+                forgeAction: {
+                    type: 'upgradeSuccess',
+                    blessing: true,
+                    itemName: item.name,
+                    level: nextLvl
+                },
                 userData: user,
                 message:
                     `✨ Kutsama başarılı! Eşya +${nextLvl} seviyesine geçti. ` +
                     `📜 ${blessingCount} Kutsama Kağıdı kullanıldı (%${successChance} şans). ` +
-                    `${goldCost} Altın 🪙 ve ${rubyCost} Yakut 💎 harcandı.`
+                    `${goldCost} Altın 🪙 ve ${rubyCost} Yakut 💎 harcandı. ` +
+                    `🔨 +${mastery.gained} Ustalık XP.` +
+                    (mastery.levelsGained > 0 ? ` Ustalık Seviyesi ${mastery.level}!` : '')
             });
         }
 
-        // +10 katları dışındaki geliştirmeler eskisi gibi kesin başarılıdır.
         user.balance -= goldCost;
         user.rubies -= rubyCost;
 
@@ -3278,15 +3384,193 @@ io.on('connection', (socket) => {
         item.strBonus = (item.strBonus || 0) + statBoost;
         item.vitBonus = (item.vitBonus || 0) + statBoost;
 
+        const mastery = grantBlacksmithMasteryXp(user, 10);
         user.markModified('inventory');
         await user.save();
 
         socket.emit('forgeResult', {
             success: true,
+            forgeAction: {
+                type: 'upgradeSuccess',
+                blessing: false,
+                itemName: item.name,
+                level: nextLvl
+            },
             userData: user,
             message:
                 `Eşya +${item.level} seviyesine geliştirildi! ` +
-                `(${goldCost} Altın, ${rubyCost} Yakut harcandı)`
+                `(${goldCost} Altın, ${rubyCost} Yakut harcandı) ` +
+                `🔨 +${mastery.gained} Ustalık XP.` +
+                (mastery.levelsGained > 0 ? ` Ustalık Seviyesi ${mastery.level}!` : '')
+        });
+    });
+
+    socket.on('smeltItem', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        const itemIndex = Number.parseInt(data?.itemIndex, 10);
+
+        if (
+            !user ||
+            !Number.isInteger(itemIndex) ||
+            itemIndex < 0 ||
+            !user.inventory[itemIndex]
+        ) {
+            return;
+        }
+
+        normalizeBlacksmithState(user);
+
+        const item = user.inventory[itemIndex];
+
+        if (!EQUIP_SLOTS.includes(item.type)) {
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: '🔥 Sadece ekipmanlar eritilebilir.'
+            });
+        }
+
+        const oreYield = getSmeltOreYield(item);
+        const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+        const level = Number(item.level) || 0;
+        const rarity = item.rarity || 'Sıradan';
+
+        user.inventory.splice(itemIndex, 1);
+        user.blacksmithMastery.ironOre += oreYield;
+
+        const mastery = grantBlacksmithMasteryXp(user, 5);
+
+        user.markModified('inventory');
+        user.markModified('blacksmithMastery');
+        await user.save();
+
+        socket.emit('forgeResult', {
+            success: true,
+            forgeAction: {
+                type: 'smelt',
+                itemName: cleanName,
+                itemLevel: level,
+                rarity,
+                oreYield
+            },
+            userData: user,
+            message:
+                `🔥 [${rarity}] ${cleanName} +${level} eritildi. ` +
+                `⛏️ +${oreYield} Demir Cevheri kazandın. ` +
+                `🔨 +${mastery.gained} Ustalık XP.` +
+                (mastery.levelsGained > 0 ? ` Ustalık Seviyesi ${mastery.level}!` : '')
+        });
+    });
+
+    socket.on('reforgeItem', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        const itemIndex = Number.parseInt(data?.itemIndex, 10);
+
+        if (
+            !user ||
+            !Number.isInteger(itemIndex) ||
+            itemIndex < 0 ||
+            !user.inventory[itemIndex]
+        ) {
+            return;
+        }
+
+        normalizeBlacksmithState(user);
+
+        const item = user.inventory[itemIndex];
+
+        if (!EQUIP_SLOTS.includes(item.type)) {
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: '🔨 Sadece ekipmanlar yeniden dövülebilir.'
+            });
+        }
+
+        const totalStats = Math.max(0, (Number(item.strBonus) || 0) + (Number(item.vitBonus) || 0));
+
+        if (totalStats < 2) {
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: '🔨 Bu eşyanın yeniden dağıtılabilecek yeterli STR/VIT puanı yok.'
+            });
+        }
+
+        const level = Math.max(0, Number(item.level) || 0);
+        const oreCost = 5 + Math.floor(level / 5);
+        const baseGoldCost = 500 + (level * 100);
+        const masteryDiscount = getBlacksmithDiscount(user.blacksmithMastery.level);
+        const goldCost = Math.max(1, Math.ceil(baseGoldCost * (1 - masteryDiscount)));
+
+        if ((user.blacksmithMastery.ironOre || 0) < oreCost) {
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: `⛏️ Yeniden Dövme için ${oreCost} Demir Cevheri gerekiyor.`
+            });
+        }
+
+        if ((user.balance || 0) < goldCost) {
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: `🪙 Yeniden Dövme için ${goldCost.toLocaleString('tr-TR')} Altın gerekiyor.`
+            });
+        }
+
+        const oldStr = Number(item.strBonus) || 0;
+        const oldVit = Number(item.vitBonus) || 0;
+
+        let newStr = oldStr;
+        let newVit = oldVit;
+
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const minStr = Math.max(1, Math.floor(totalStats * 0.25));
+            const maxStr = Math.min(totalStats - 1, Math.ceil(totalStats * 0.75));
+            const span = Math.max(1, maxStr - minStr + 1);
+
+            newStr = minStr + Math.floor(Math.random() * span);
+            newVit = totalStats - newStr;
+
+            if (newStr !== oldStr || newVit !== oldVit) break;
+        }
+
+        user.blacksmithMastery.ironOre -= oreCost;
+        user.balance -= goldCost;
+
+        item.strBonus = newStr;
+        item.vitBonus = newVit;
+
+        const mastery = grantBlacksmithMasteryXp(user, 12);
+
+        user.markModified('inventory');
+        user.markModified('blacksmithMastery');
+        await user.save();
+
+        socket.emit('forgeResult', {
+            success: true,
+            forgeAction: {
+                type: 'reforge',
+                itemName: (item.name || 'Eşya').replace(/\s*\+\d+$/, ''),
+                oldStr,
+                oldVit,
+                newStr,
+                newVit,
+                oreCost,
+                goldCost
+            },
+            userData: user,
+            message:
+                `🔨 Yeniden Dövme tamamlandı! ` +
+                `STR ${oldStr} → ${newStr} | VIT ${oldVit} → ${newVit}. ` +
+                `⛏️ ${oreCost} Cevher ve 🪙 ${goldCost.toLocaleString('tr-TR')} Altın harcandı. ` +
+                `🔨 +${mastery.gained} Ustalık XP.` +
+                (mastery.levelsGained > 0 ? ` Ustalık Seviyesi ${mastery.level}!` : '')
         });
     });
 
