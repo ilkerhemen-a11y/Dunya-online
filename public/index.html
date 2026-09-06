@@ -515,6 +515,13 @@
                 linear-gradient(145deg, #19445b 0%, #102433 55%, #060b11 100%);
         }
 
+        .item-art-tile.theme-rare {
+            box-shadow:
+                inset 0 0 14px rgba(59,130,246,0.16),
+                0 0 12px rgba(59,130,246,0.12);
+            animation:rareIconPulse 2.25s ease-in-out infinite;
+        }
+
         .item-art-tile.theme-legendary {
             box-shadow:
                 inset 0 0 16px rgba(250,204,21,0.16),
@@ -525,6 +532,7 @@
             box-shadow:
                 inset 0 0 16px rgba(168,85,247,0.16),
                 0 0 14px rgba(168,85,247,0.12);
+            animation:epicIconPulse 1.8s ease-in-out infinite;
         }
 
         .item-details { display: flex; flex-direction: column; gap: 2px; }
@@ -2619,13 +2627,27 @@
         .prestige-badge.unlocked { opacity:1; filter:none; border-color:#6b4f35; box-shadow:inset 0 0 12px rgba(212,175,55,.04); }
         .overview-inventory-card { position:relative; border:1px solid #33241b; border-radius:7px; padding:8px; background:#0d0a08; transition:transform .16s ease,border-color .16s ease; }
         .overview-inventory-card:hover { transform:translateY(-2px); }
-        .overview-inventory-card.rarity-Nadir { border-color:rgba(59,130,246,.55); }
-        .overview-inventory-card.rarity-Epik { border-color:rgba(168,85,247,.58); }
+        .overview-inventory-card.rarity-Nadir {
+            border-color:rgba(59,130,246,.60);
+            box-shadow:0 0 12px rgba(59,130,246,.11), inset 0 0 12px rgba(59,130,246,.04);
+            animation:rareFramePulse 2.4s ease-in-out infinite;
+        }
+
+        .overview-inventory-card.rarity-Epik {
+            border-color:rgba(168,85,247,.64);
+            box-shadow:0 0 14px rgba(168,85,247,.14), inset 0 0 13px rgba(168,85,247,.05);
+            animation:epicFramePulse 1.9s ease-in-out infinite;
+        }
+
         .overview-inventory-card.rarity-Efsanevi { border-color:#d4af37; animation:legendaryFramePulse 2.1s ease-in-out infinite; }
         .enhance-tier-1 { box-shadow:0 0 10px rgba(96,165,250,.12); }
         .enhance-tier-2 { box-shadow:0 0 14px rgba(168,85,247,.18),inset 0 0 10px rgba(168,85,247,.06); }
         .enhance-tier-3 { animation:enhancementAura 2s ease-in-out infinite; }
         .enhance-tier-4 { animation:enhancementAuraStrong 1.45s ease-in-out infinite; }
+        @keyframes rareIconPulse { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.03);filter:brightness(1.12)} }
+        @keyframes epicIconPulse { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.05);filter:brightness(1.18)} }
+        @keyframes rareFramePulse { 0%,100%{box-shadow:0 0 8px rgba(59,130,246,.10), inset 0 0 8px rgba(59,130,246,.03)} 50%{box-shadow:0 0 16px rgba(59,130,246,.26), inset 0 0 14px rgba(59,130,246,.08)} }
+        @keyframes epicFramePulse { 0%,100%{box-shadow:0 0 12px rgba(168,85,247,.14), inset 0 0 10px rgba(168,85,247,.04)} 50%{box-shadow:0 0 24px rgba(168,85,247,.34), inset 0 0 16px rgba(168,85,247,.09)} }
         @keyframes legendaryTextPulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.25)} }
         @keyframes legendaryFramePulse { 0%,100%{box-shadow:0 0 8px rgba(250,204,21,.10),inset 0 0 10px rgba(250,204,21,.04)} 50%{box-shadow:0 0 18px rgba(250,204,21,.25),inset 0 0 16px rgba(249,115,22,.08)} }
         @keyframes enhancementAura { 0%,100%{box-shadow:0 0 10px rgba(168,85,247,.15)} 50%{box-shadow:0 0 22px rgba(168,85,247,.38)} }
@@ -2924,14 +2946,170 @@
             font-size:10px;
         }
 
+        .special-drop-overlay {
+            position:fixed;
+            inset:0;
+            z-index:10060;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            pointer-events:none;
+            background:radial-gradient(circle at center, rgba(0,0,0,.15), rgba(0,0,0,.76));
+            animation:specialOverlayLife 2.6s ease forwards;
+        }
+
+        .special-drop-card {
+            position:relative;
+            width:min(430px, calc(100vw - 24px));
+            padding:26px 20px 24px;
+            border-radius:18px;
+            text-align:center;
+            overflow:hidden;
+            background:linear-gradient(180deg, rgba(16,12,10,.98), rgba(7,5,4,.98));
+            border:1px solid #4a3a2a;
+            box-shadow:0 20px 60px rgba(0,0,0,.60);
+            animation:specialCardReveal 2.45s ease forwards;
+        }
+
+        .special-drop-card.rarity-Nadir {
+            border-color:#3b82f6;
+            box-shadow:0 0 26px rgba(59,130,246,.23), 0 20px 60px rgba(0,0,0,.60);
+        }
+
+        .special-drop-card.rarity-Epik {
+            border-color:#a855f7;
+            box-shadow:0 0 28px rgba(168,85,247,.27), 0 20px 60px rgba(0,0,0,.60);
+        }
+
+        .special-drop-card.rarity-Efsanevi {
+            border-color:#d4af37;
+            box-shadow:0 0 34px rgba(250,204,21,.30), 0 20px 60px rgba(0,0,0,.60);
+        }
+
+        .special-drop-card::before {
+            content:"";
+            position:absolute;
+            inset:-30% -20%;
+            background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.17) 50%, transparent 62%);
+            animation:specialSweep 1.65s ease .18s both;
+        }
+
+        .special-drop-card.rarity-Nadir::after,
+        .special-drop-card.rarity-Epik::after,
+        .special-drop-card.rarity-Efsanevi::after {
+            position:absolute;
+            left:50%;
+            top:14px;
+            transform:translateX(-50%);
+            font-size:13px;
+            font-weight:900;
+            letter-spacing:1.5px;
+        }
+
+        .special-drop-card.rarity-Nadir::after { content:"✦ NADİR ✦"; color:#93c5fd; }
+        .special-drop-card.rarity-Epik::after { content:"✦ EPİK ✦"; color:#d8b4fe; }
+        .special-drop-card.rarity-Efsanevi::after { content:"✦ EFSANEVİ ✦"; color:#fde68a; }
+
+        .special-drop-title {
+            position:relative;
+            z-index:2;
+            margin-top:12px;
+            font-size:24px;
+            font-weight:900;
+        }
+
+        .special-drop-title.rarity-Nadir { color:#93c5fd; text-shadow:0 0 16px rgba(59,130,246,.35); }
+        .special-drop-title.rarity-Epik { color:#d8b4fe; text-shadow:0 0 18px rgba(168,85,247,.40); }
+        .special-drop-title.rarity-Efsanevi { color:#fff1a8; text-shadow:0 0 18px rgba(250,204,21,.36); }
+
+        .special-drop-icon {
+            position:relative;
+            z-index:2;
+            width:88px;
+            height:88px;
+            margin:12px auto 10px;
+            border-radius:15px;
+            border:1px solid #3f3327;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:#0b0805;
+            overflow:hidden;
+        }
+
+        .special-drop-icon.rarity-Nadir {
+            box-shadow:0 0 20px rgba(59,130,246,.28);
+            animation:rareIconPulse 1.6s ease-in-out infinite;
+        }
+
+        .special-drop-icon.rarity-Epik {
+            box-shadow:0 0 24px rgba(168,85,247,.32);
+            animation:epicIconPulse 1.4s ease-in-out infinite;
+        }
+
+        .special-drop-icon.rarity-Efsanevi {
+            box-shadow:0 0 28px rgba(250,204,21,.34);
+            animation:legendaryIconPulse 1.25s ease-in-out infinite;
+        }
+
+        .special-drop-icon .item-art-tile,
+        .special-drop-icon img {
+            width:84px;
+            height:84px;
+            border-radius:13px;
+        }
+
+        .special-drop-name {
+            position:relative;
+            z-index:2;
+            font-size:18px;
+            font-weight:900;
+            color:#f5ead8;
+        }
+
+        .special-drop-source {
+            position:relative;
+            z-index:2;
+            margin-top:6px;
+            color:#9c8e7b;
+            font-size:10px;
+        }
+
+        .special-drop-flair {
+            position:relative;
+            z-index:2;
+            margin-top:8px;
+            font-size:11px;
+            font-weight:700;
+        }
+
+        .special-drop-flair.rarity-Nadir { color:#60a5fa; }
+        .special-drop-flair.rarity-Epik { color:#c084fc; }
+        .special-drop-flair.rarity-Efsanevi { color:#facc15; }
+
+        .overview-inventory-card.rarity-Nadir::after,
+        .overview-inventory-card.rarity-Epik::after,
         .overview-inventory-card.rarity-Efsanevi::after {
             content:"";
             position:absolute;
             inset:0;
             border-radius:7px;
             pointer-events:none;
+            transform:translateX(-125%);
+        }
+
+        .overview-inventory-card.rarity-Nadir::after {
+            background:linear-gradient(115deg,transparent 34%,rgba(147,197,253,.12) 48%,transparent 62%);
+            animation:rareInventoryShine 3.7s ease-in-out infinite;
+        }
+
+        .overview-inventory-card.rarity-Epik::after {
+            background:linear-gradient(115deg,transparent 32%,rgba(216,180,254,.14) 48%,transparent 63%);
+            animation:epicInventoryShine 2.8s ease-in-out infinite;
+        }
+
+        .overview-inventory-card.rarity-Efsanevi::after {
             background:linear-gradient(115deg,transparent 35%,rgba(255,245,170,.12) 48%,transparent 61%);
-            transform:translateX(-120%);
             animation:legendaryInventoryShine 3.2s ease-in-out infinite;
         }
 
@@ -3008,10 +3186,343 @@
             50%{transform:scale(1.06);box-shadow:0 0 32px rgba(250,204,21,.33)}
         }
 
+        @keyframes rareInventoryShine {
+            0%,58%{transform:translateX(-130%);opacity:0}
+            72%{opacity:1}
+            100%{transform:translateX(130%);opacity:0}
+        }
+
+        @keyframes epicInventoryShine {
+            0%,52%{transform:translateX(-130%);opacity:0}
+            66%{opacity:1}
+            100%{transform:translateX(130%);opacity:0}
+        }
+
         @keyframes legendaryInventoryShine {
             0%,55%{transform:translateX(-130%);opacity:0}
             70%{opacity:1}
             100%{transform:translateX(130%);opacity:0}
+        }
+
+        @keyframes specialOverlayLife {
+            0%{opacity:0}
+            12%{opacity:1}
+            80%{opacity:1}
+            100%{opacity:0}
+        }
+
+        @keyframes specialCardReveal {
+            0%{opacity:0;transform:scale(.72) translateY(28px)}
+            18%{opacity:1;transform:scale(1.04) translateY(0)}
+            32%{transform:scale(1)}
+            82%{opacity:1;transform:scale(1)}
+            100%{opacity:0;transform:scale(.98) translateY(-10px)}
+        }
+
+        @keyframes specialSweep {
+            0%{transform:translateX(-28%) rotate(8deg)}
+            100%{transform:translateX(28%) rotate(8deg)}
+        }
+
+        .worldboss-cinematic-overlay {
+            position:fixed;
+            inset:0;
+            z-index:10070;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            pointer-events:none;
+            background:radial-gradient(circle at center, rgba(127,29,29,.12), rgba(0,0,0,.78));
+            animation:worldBossOverlayIn 2s ease forwards;
+        }
+
+        .worldboss-cinematic-stage {
+            position:relative;
+            width:min(760px, calc(100vw - 22px));
+            height:min(420px, calc(100vh - 70px));
+            overflow:hidden;
+            border-radius:18px;
+            border:1px solid rgba(127,29,29,.85);
+            background:
+                radial-gradient(circle at 18% 72%, rgba(245,158,11,.10), transparent 22%),
+                radial-gradient(circle at 80% 20%, rgba(239,68,68,.08), transparent 26%),
+                linear-gradient(180deg, #1a0909 0%, #0b0505 100%);
+            box-shadow:0 22px 70px rgba(0,0,0,.62), 0 0 30px rgba(239,68,68,.14);
+        }
+
+        .worldboss-cinematic-title {
+            position:absolute;
+            top:16px;
+            left:50%;
+            transform:translateX(-50%);
+            color:#fecaca;
+            font-size:15px;
+            font-weight:900;
+            letter-spacing:1px;
+            text-shadow:0 0 14px rgba(239,68,68,.25);
+            white-space:nowrap;
+        }
+
+        .worldboss-hero-actor {
+            position:absolute;
+            left:8%;
+            bottom:18%;
+            width:160px;
+            height:180px;
+            animation:worldBossHeroCharge 1.2s ease forwards;
+        }
+
+        .worldboss-hero-actor .hero-body {
+            position:absolute;
+            left:42px;
+            bottom:14px;
+            width:58px;
+            height:86px;
+            border-radius:18px 18px 12px 12px;
+            background:linear-gradient(180deg,#6b4f35,#2d2017);
+            border:1px solid #8a6b3a;
+        }
+
+        .worldboss-hero-actor .hero-head {
+            position:absolute;
+            left:55px;
+            bottom:98px;
+            width:32px;
+            height:32px;
+            border-radius:50%;
+            background:#d4c5b9;
+            border:1px solid #8a6b3a;
+        }
+
+        .worldboss-hero-actor .hero-sword {
+            position:absolute;
+            left:82px;
+            bottom:68px;
+            width:80px;
+            height:12px;
+            border-radius:999px;
+            background:linear-gradient(90deg,#f3cf7a,#e5e7eb);
+            transform-origin:left center;
+            animation:worldBossSwordSlash .9s ease .22s forwards;
+            box-shadow:0 0 18px rgba(250,204,21,.15);
+        }
+
+        .worldboss-hero-actor .hero-trail {
+            position:absolute;
+            left:88px;
+            bottom:56px;
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            background:#fde68a;
+            box-shadow:0 0 0 0 rgba(253,230,138,.35);
+            animation:worldBossSlashTrail 1.0s ease .28s forwards;
+        }
+
+        .worldboss-dragon-actor {
+            position:absolute;
+            right:7%;
+            bottom:17%;
+            width:270px;
+            height:220px;
+            transform-origin:70% 65%;
+            animation:worldBossDragonShake 1.0s ease .72s forwards;
+        }
+
+        .worldboss-dragon-actor .dragon-body {
+            position:absolute;
+            right:34px;
+            bottom:34px;
+            width:170px;
+            height:92px;
+            border-radius:56px 70px 45px 62px;
+            background:linear-gradient(145deg,#7f1d1d,#3f0d0d);
+            border:1px solid #dc2626;
+            box-shadow:inset 0 0 20px rgba(255,255,255,.05);
+        }
+
+        .worldboss-dragon-actor .dragon-head {
+            position:absolute;
+            right:0;
+            bottom:84px;
+            width:96px;
+            height:74px;
+            border-radius:45px 55px 36px 38px;
+            background:linear-gradient(145deg,#991b1b,#4b1010);
+            border:1px solid #ef4444;
+        }
+
+        .worldboss-dragon-actor .dragon-eye {
+            position:absolute;
+            right:20px;
+            bottom:128px;
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            background:#facc15;
+            box-shadow:0 0 10px rgba(250,204,21,.65);
+        }
+
+        .worldboss-dragon-actor .dragon-wing {
+            position:absolute;
+            right:118px;
+            bottom:102px;
+            width:112px;
+            height:92px;
+            background:linear-gradient(145deg,#5f1313,#300909);
+            border:1px solid rgba(220,38,38,.75);
+            clip-path:polygon(0 100%, 15% 12%, 66% 0, 100% 48%, 72% 100%);
+            transform-origin:bottom left;
+            animation:worldBossWingBeat 1s ease .46s forwards;
+        }
+
+        .worldboss-dragon-actor .dragon-tail {
+            position:absolute;
+            right:176px;
+            bottom:58px;
+            width:88px;
+            height:20px;
+            border-radius:999px;
+            background:linear-gradient(90deg,#4b1010,#991b1b);
+            transform:rotate(14deg);
+        }
+
+        .worldboss-impact-slash {
+            position:absolute;
+            left:44%;
+            bottom:36%;
+            width:190px;
+            height:14px;
+            border-radius:999px;
+            background:linear-gradient(90deg, transparent, rgba(250,204,21,.95), rgba(255,255,255,.95), transparent);
+            filter:blur(.3px);
+            opacity:0;
+            transform:rotate(-18deg) scale(.55);
+            animation:worldBossImpactSlash 1.0s ease .48s forwards;
+        }
+
+        .worldboss-impact-burst {
+            position:absolute;
+            right:22%;
+            bottom:34%;
+            width:26px;
+            height:26px;
+            border-radius:50%;
+            background:rgba(254,240,138,.95);
+            box-shadow:0 0 0 0 rgba(254,240,138,.35);
+            opacity:0;
+            animation:worldBossImpactBurst .95s ease .78s forwards;
+        }
+
+        .worldboss-fire-wave {
+            position:absolute;
+            right:22%;
+            bottom:33%;
+            width:84px;
+            height:84px;
+            border-radius:50%;
+            border:3px solid rgba(248,113,113,.85);
+            opacity:0;
+            animation:worldBossFireWave 1.0s ease .8s forwards;
+        }
+
+        .worldboss-damage-number {
+            position:absolute;
+            right:18%;
+            top:31%;
+            font-size:32px;
+            font-weight:900;
+            color:#fca5a5;
+            text-shadow:0 0 14px rgba(239,68,68,.35), 0 0 22px rgba(0,0,0,.55);
+            opacity:0;
+            animation:worldBossDamageFloat 1.1s ease .86s forwards;
+        }
+
+        .worldboss-defeat-banner {
+            position:absolute;
+            left:50%;
+            top:50%;
+            transform:translate(-50%, -50%) scale(.8);
+            padding:16px 26px;
+            border-radius:16px;
+            border:1px solid #facc15;
+            background:rgba(36,18,5,.92);
+            color:#fff1a8;
+            font-size:24px;
+            font-weight:900;
+            letter-spacing:1.3px;
+            opacity:0;
+            box-shadow:0 0 26px rgba(250,204,21,.20);
+            animation:worldBossDefeatBanner 1.25s ease 1.12s forwards;
+        }
+
+        @keyframes worldBossOverlayIn {
+            0%{opacity:0}
+            12%{opacity:1}
+            84%{opacity:1}
+            100%{opacity:0}
+        }
+
+        @keyframes worldBossHeroCharge {
+            0%{transform:translateX(-18px) translateY(8px) scale(.95); opacity:.2}
+            20%{opacity:1}
+            58%{transform:translateX(46px) translateY(0) scale(1)}
+            100%{transform:translateX(28px) translateY(0) scale(1)}
+        }
+
+        @keyframes worldBossSwordSlash {
+            0%{transform:rotate(-8deg) scaleX(.2); opacity:0}
+            35%{opacity:1}
+            100%{transform:rotate(-22deg) scaleX(1); opacity:1}
+        }
+
+        @keyframes worldBossSlashTrail {
+            0%{opacity:0; box-shadow:0 0 0 0 rgba(253,230,138,.35)}
+            35%{opacity:1}
+            100%{opacity:0; transform:translate(160px,-66px) scale(1.25); box-shadow:0 0 0 24px rgba(253,230,138,0)}
+        }
+
+        @keyframes worldBossDragonShake {
+            0%,100%{transform:translate(0,0) rotate(0)}
+            28%{transform:translate(-10px,2px) rotate(-2deg)}
+            58%{transform:translate(10px,-4px) rotate(2deg)}
+            78%{transform:translate(-6px,0) rotate(-1deg)}
+        }
+
+        @keyframes worldBossWingBeat {
+            0%{transform:rotate(0deg) scale(.95)}
+            45%{transform:rotate(-12deg) scale(1.02)}
+            100%{transform:rotate(-4deg) scale(1)}
+        }
+
+        @keyframes worldBossImpactSlash {
+            0%{opacity:0; transform:rotate(-18deg) scale(.55)}
+            40%{opacity:1; transform:rotate(-18deg) scale(1.05)}
+            100%{opacity:0; transform:rotate(-18deg) scale(1.2)}
+        }
+
+        @keyframes worldBossImpactBurst {
+            0%{opacity:0; transform:scale(.2); box-shadow:0 0 0 0 rgba(254,240,138,.35)}
+            30%{opacity:1; transform:scale(1.6)}
+            100%{opacity:0; transform:scale(2.9); box-shadow:0 0 0 36px rgba(254,240,138,0)}
+        }
+
+        @keyframes worldBossFireWave {
+            0%{opacity:0; transform:scale(.2)}
+            32%{opacity:1}
+            100%{opacity:0; transform:scale(2.4)}
+        }
+
+        @keyframes worldBossDamageFloat {
+            0%{opacity:0; transform:translateY(14px) scale(.74)}
+            22%{opacity:1; transform:translateY(0) scale(1.10)}
+            100%{opacity:0; transform:translateY(-42px) scale(1)}
+        }
+
+        @keyframes worldBossDefeatBanner {
+            0%{opacity:0; transform:translate(-50%, -50%) scale(.75)}
+            24%{opacity:1; transform:translate(-50%, -50%) scale(1.06)}
+            100%{opacity:1; transform:translate(-50%, -50%) scale(1)}
         }
 
         @media (max-width:760px) {
@@ -3024,6 +3535,12 @@
             .siege-castle-target{right:3%;transform:scale(.78);transform-origin:bottom right}
             .siege-rock{left:20%}
             .siege-damage-number{right:9%;font-size:24px}
+            .worldboss-cinematic-stage{height:340px}
+            .worldboss-hero-actor{left:3%; bottom:13%; transform:scale(.82); transform-origin:bottom left}
+            .worldboss-dragon-actor{right:0; bottom:11%; transform:scale(.74); transform-origin:bottom right}
+            .worldboss-impact-slash{left:38%; bottom:32%; width:150px}
+            .worldboss-damage-number{right:10%; top:28%; font-size:24px}
+            .worldboss-defeat-banner{font-size:18px; width:min(86vw,340px); text-align:center}
         }
 
         /* === NASIL OYNANIR / OYUN REHBERİ === */
@@ -3981,6 +4498,38 @@
                     );
                     break;
 
+                case 'rare':
+                    [392, 494, 587].forEach(
+                        (freq, index) => {
+                            playGameTone(
+                                freq,
+                                0.18,
+                                {
+                                    type:'sine',
+                                    gain:0.08,
+                                    delay:index * 0.07
+                                }
+                            );
+                        }
+                    );
+                    break;
+
+                case 'epic':
+                    [349, 440, 523, 698].forEach(
+                        (freq, index) => {
+                            playGameTone(
+                                freq,
+                                0.22,
+                                {
+                                    type: index < 2 ? 'triangle' : 'sine',
+                                    gain: index === 3 ? 0.12 : 0.09,
+                                    delay:index * 0.08
+                                }
+                            );
+                        }
+                    );
+                    break;
+
                 case 'legendary':
                     [392, 523, 659, 784, 1047].forEach(
                         (freq, index) => {
@@ -3999,6 +4548,43 @@
                                     delay:index * 0.085
                                 }
                             );
+                        }
+                    );
+                    break;
+
+                case 'bossStrike':
+                    [165, 196, 247].forEach(
+                        (freq, index) => {
+                            playGameTone(
+                                freq,
+                                0.20,
+                                {
+                                    type: index === 0 ? 'sawtooth' : 'triangle',
+                                    gain: index === 0 ? 0.10 : 0.08,
+                                    delay:index * 0.05,
+                                    slideTo: index === 0 ? 120 : undefined
+                                }
+                            );
+                        }
+                    );
+
+                    playGameNoise(
+                        0.24,
+                        {
+                            gain:0.16,
+                            frequency:360,
+                            delay:0.42
+                        }
+                    );
+
+                    playGameTone(
+                        82,
+                        0.34,
+                        {
+                            type:'sine',
+                            gain:0.20,
+                            delay:0.62,
+                            slideTo:58
                         }
                     );
                     break;
@@ -4105,6 +4691,7 @@
 
         function collectLegendaryItems(user) {
             const found = [];
+            const supportedRarities = ['Nadir', 'Epik', 'Efsanevi'];
 
             if (
                 Array.isArray(user?.inventory)
@@ -4112,8 +4699,9 @@
                 user.inventory.forEach(
                     (item, index) => {
                         if (
-                            item?.rarity ===
-                            'Efsanevi'
+                            supportedRarities.includes(
+                                item?.rarity
+                            )
                         ) {
                             found.push({
                                 item,
@@ -4135,8 +4723,9 @@
                 ).forEach(
                     ([slot, item]) => {
                         if (
-                            item?.rarity ===
-                            'Efsanevi'
+                            supportedRarities.includes(
+                                item?.rarity
+                            )
                         ) {
                             found.push({
                                 item,
@@ -4159,14 +4748,22 @@
             if (!item) return;
 
             document.querySelectorAll(
-                '.legendary-drop-overlay'
+                '.legendary-drop-overlay,.special-drop-overlay'
             ).forEach(el => el.remove());
+
+            const rarity =
+                item?.rarity || 'Nadir';
 
             const overlay =
                 document.createElement('div');
 
+            const isLegendary =
+                rarity === 'Efsanevi';
+
             overlay.className =
-                'legendary-drop-overlay';
+                isLegendary
+                    ? 'legendary-drop-overlay'
+                    : 'special-drop-overlay';
 
             const visual =
                 typeof renderOverviewItemIcon ===
@@ -4174,23 +4771,73 @@
                     ? renderOverviewItemIcon(item)
                     : `<span style="font-size:42px;">${escapeHTML(item.icon || '✨')}</span>`;
 
+            if (isLegendary) {
+                overlay.innerHTML = `
+                    <div class="legendary-drop-card">
+                        <div class="legendary-drop-title">
+                            ✨ EFSANEVİ EŞYA ✨
+                        </div>
+
+                        <div class="legendary-drop-icon">
+                            ${visual}
+                        </div>
+
+                        <div class="legendary-drop-name">
+                            ${escapeHTML(getCleanItemName(item.name || 'Efsanevi Eşya'))}
+                            ${Number(item.level) > 0 ? ` +${Number(item.level)}` : ''}
+                        </div>
+
+                        <div class="legendary-drop-source">
+                            ${item.source ? `📍 ${escapeHTML(item.source)}` : 'Nadir bir ganimet elde edildi.'}
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(
+                    overlay
+                );
+
+                playGameSfx('legendary');
+
+                setTimeout(
+                    () => overlay.remove(),
+                    2800
+                );
+
+                return;
+            }
+
+            const title =
+                rarity === 'Epik'
+                    ? '⚡ EPİK EŞYA ⚡'
+                    : '💎 NADİR EŞYA 💎';
+
+            const flair =
+                rarity === 'Epik'
+                    ? 'Bu eşya güçlü bir aura yayıyor.'
+                    : 'Parlak bir ganimet elde ettin.';
+
             overlay.innerHTML = `
-                <div class="legendary-drop-card">
-                    <div class="legendary-drop-title">
-                        ✨ EFSANEVİ EŞYA ✨
+                <div class="special-drop-card rarity-${rarity}">
+                    <div class="special-drop-title rarity-${rarity}">
+                        ${title}
                     </div>
 
-                    <div class="legendary-drop-icon">
+                    <div class="special-drop-icon rarity-${rarity}">
                         ${visual}
                     </div>
 
-                    <div class="legendary-drop-name">
-                        ${escapeHTML(getCleanItemName(item.name || 'Efsanevi Eşya'))}
+                    <div class="special-drop-name">
+                        ${escapeHTML(getCleanItemName(item.name || 'Özel Eşya'))}
                         ${Number(item.level) > 0 ? ` +${Number(item.level)}` : ''}
                     </div>
 
-                    <div class="legendary-drop-source">
-                        ${item.source ? `📍 ${escapeHTML(item.source)}` : 'Nadir bir ganimet elde edildi.'}
+                    <div class="special-drop-source">
+                        ${item.source ? `📍 ${escapeHTML(item.source)}` : 'Özel bir ganimet elde edildi.'}
+                    </div>
+
+                    <div class="special-drop-flair rarity-${rarity}">
+                        ${flair}
                     </div>
                 </div>
             `;
@@ -4199,22 +4846,26 @@
                 overlay
             );
 
-            playGameSfx('legendary');
+            playGameSfx(
+                rarity === 'Epik'
+                    ? 'epic'
+                    : 'rare'
+            );
 
             setTimeout(
                 () => overlay.remove(),
-                2800
+                2550
             );
         }
 
         function detectNewLegendaryItems(user) {
-            const legends =
+            const specialItems =
                 collectLegendaryItems(user);
 
             if (!legendaryTrackingReady) {
                 knownLegendaryItemIds =
                     new Set(
-                        legends.map(
+                        specialItems.map(
                             entry => entry.key
                         )
                     );
@@ -4223,16 +4874,16 @@
                 return;
             }
 
-            let newLegendary = null;
+            let newSpecialItem = null;
 
-            legends.forEach(entry => {
+            specialItems.forEach(entry => {
                 if (
                     !knownLegendaryItemIds.has(
                         entry.key
                     ) &&
-                    !newLegendary
+                    !newSpecialItem
                 ) {
-                    newLegendary =
+                    newSpecialItem =
                         entry.item;
                 }
 
@@ -4241,9 +4892,9 @@
                 );
             });
 
-            if (newLegendary) {
+            if (newSpecialItem) {
                 showLegendaryDropEffect(
-                    newLegendary
+                    newSpecialItem
                 );
             }
         }
@@ -4299,6 +4950,81 @@
             setTimeout(
                 () => overlay.remove(),
                 1900
+            );
+        }
+
+        function playWorldBossAttackAnimation(
+            damage = 0,
+            killed = false
+        ) {
+            document.querySelectorAll(
+                '.worldboss-cinematic-overlay'
+            ).forEach(el => el.remove());
+
+            const overlay =
+                document.createElement('div');
+
+            overlay.className =
+                'worldboss-cinematic-overlay';
+
+            overlay.innerHTML = `
+                <div class="worldboss-cinematic-stage">
+                    <div class="worldboss-cinematic-title">
+                        👹 KADİM EJDER — ZULKAR'A SALDIRI
+                    </div>
+
+                    <div class="worldboss-hero-actor">
+                        <div class="hero-head"></div>
+                        <div class="hero-body"></div>
+                        <div class="hero-sword"></div>
+                        <div class="hero-trail"></div>
+                    </div>
+
+                    <div class="worldboss-impact-slash"></div>
+
+                    <div class="worldboss-dragon-actor">
+                        <div class="dragon-wing"></div>
+                        <div class="dragon-tail"></div>
+                        <div class="dragon-body"></div>
+                        <div class="dragon-head"></div>
+                        <div class="dragon-eye"></div>
+                    </div>
+
+                    <div class="worldboss-impact-burst"></div>
+                    <div class="worldboss-fire-wave"></div>
+
+                    <div class="worldboss-damage-number">
+                        -${Math.max(0, Number(damage) || 0).toLocaleString('tr-TR')}
+                    </div>
+
+                    ${
+                        killed
+                            ? `
+                                <div class="worldboss-defeat-banner">
+                                    🏆 DÜNYA BOSSU YENİLDİ!
+                                </div>
+                            `
+                            : ''
+                    }
+                </div>
+            `;
+
+            document.body.appendChild(
+                overlay
+            );
+
+            playGameSfx('bossStrike');
+
+            if (killed) {
+                setTimeout(
+                    () => playGameSfx('victory'),
+                    920
+                );
+            }
+
+            setTimeout(
+                () => overlay.remove(),
+                killed ? 2550 : 2050
             );
         }
 
@@ -4897,6 +5623,7 @@
             let rarityTheme = '';
             if (rarity === 'Efsanevi') rarityTheme = ' theme-legendary';
             else if (rarity === 'Epik') rarityTheme = ' theme-epic';
+            else if (rarity === 'Nadir') rarityTheme = ' theme-rare';
 
             return {
                 icon: base.icon || item?.icon || '📦',
@@ -11031,6 +11758,7 @@
                                 <div class="howto-mini-card">
                                     <b>👹 Dünya Bossu</b>
                                     Her gün 18:00–23:59 arasında açılır. Oyuncu başına 5 saldırı hakkı vardır.
+                                    Saldırılarda özel sinematik vurma animasyonu oynar.
                                 </div>
 
                                 <div class="howto-mini-card">
@@ -14764,10 +15492,9 @@
             }
 
             if (res?.success) {
-                playGameSfx(
-                    res?.killed
-                        ? 'victory'
-                        : 'catapult'
+                playWorldBossAttackAnimation(
+                    Number(res?.damage) || 0,
+                    Boolean(res?.killed)
                 );
             }
 
