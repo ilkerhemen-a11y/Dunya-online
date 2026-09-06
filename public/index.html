@@ -3173,6 +3173,7 @@
             <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
             <button class="menu-btn" onclick="switchTab('metin')">🪨 Metin Taşı Kes</button>
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
+            <button class="menu-btn" onclick="switchTab('clan')">🛡️ Klan</button>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
             <button class="menu-btn" onclick="switchTab('howto')">📖 Nasıl Oynanır?</button>
             <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
@@ -3192,6 +3193,13 @@
         const socket = io();
         let currentUserData = null;
         let activeTab = 'overview';
+
+        // Klan istemci durumu
+        let currentClanData = null;
+        let clanListData = [];
+        let clanDataLoaded = false;
+        let lastClanMessage = '';
+
         let barracksState = null;
         let arenaOpponentCache = {};
         let arenaAnimationToken = 0;
@@ -3598,6 +3606,7 @@
                 barracks: 'barracks',
                 blacksmith: 'blacksmith',
                 arena: 'arena',
+                clan: 'barracks',
                 chat: 'chat',
                 howto: 'overview',
                 dungeon: 'dungeon',
@@ -3700,12 +3709,20 @@
                 'barracks': 'Kışla & Taht Savaşı',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
+                'clan': 'Klan Merkezi',
                 'chat': 'Diyar Meclisi (Sohbet)',
                 'howto': 'Nasıl Oynanır? — Taht Savaşları Rehberi',
                 'dungeon': 'Zindan Adası',
                 'metin': 'Metin Taşı Kes'
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
+
+            if (tab === 'clan') {
+                clanDataLoaded = false;
+                socket.emit('getClanData');
+                socket.emit('getClanList');
+            }
+
             renderPanelContent();
 
             if (tab === 'overview') {
@@ -6289,6 +6306,608 @@
                 `;
 
                 refreshArenaOpponents();
+            } else if(activeTab === 'clan') {
+                if (!clanDataLoaded) {
+                    body.innerHTML = `
+                        <div style="
+                            text-align:center;
+                            padding:42px 15px;
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:8px;
+                            color:#9c8e7b;
+                        ">
+                            <div style="font-size:32px;margin-bottom:8px;">🛡️</div>
+                            Klan bilgileri yükleniyor...
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!currentClanData) {
+                    body.innerHTML = `
+                        <div style="
+                            background:
+                                linear-gradient(135deg,#1f170f,#100c09);
+                            border:1px solid #b38b4d;
+                            border-radius:8px;
+                            padding:16px;
+                            margin-bottom:15px;
+                        ">
+                            <h3 style="
+                                color:#ffdf73;
+                                font-size:16px;
+                                margin-bottom:6px;
+                            ">🛡️ Kendi Klanını Kur</h3>
+
+                            <p style="
+                                font-size:11px;
+                                color:#9c8e7b;
+                                margin-bottom:12px;
+                                line-height:1.6;
+                            ">
+                                Klan kurma bedeli:
+                                <strong style="color:#f3cf7a;">
+                                    10.000 Altın 🪙
+                                </strong>.
+                                Başlangıç kapasitesi
+                                <strong>15 üyedir</strong>.
+                                Lider, Komutan ve Üye rolleri bulunur.
+                            </p>
+
+                            <div style="
+                                display:grid;
+                                grid-template-columns:minmax(0,1fr) 120px auto;
+                                gap:8px;
+                            ">
+                                <input
+                                    id="clanNameInput"
+                                    maxlength="24"
+                                    placeholder="Klan adı"
+                                    style="
+                                        background:#0d0a08;
+                                        border:1px solid #3d2f23;
+                                        color:#f3cf7a;
+                                        padding:9px;
+                                        border-radius:4px;
+                                    "
+                                >
+
+                                <input
+                                    id="clanTagInput"
+                                    maxlength="5"
+                                    placeholder="Etiket"
+                                    style="
+                                        background:#0d0a08;
+                                        border:1px solid #3d2f23;
+                                        color:#f3cf7a;
+                                        padding:9px;
+                                        border-radius:4px;
+                                        text-transform:uppercase;
+                                    "
+                                >
+
+                                <button
+                                    id="createClanBtn"
+                                    class="btn-quest"
+                                    onclick="createClanSubmit()"
+                                >Klan Kur</button>
+                            </div>
+                        </div>
+
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:6px;
+                            padding:12px;
+                            margin-bottom:12px;
+                        ">
+                            <h3 style="
+                                color:#f3cf7a;
+                                font-size:13px;
+                            ">⚔️ Mevcut Klanlar</h3>
+
+                            <p style="
+                                font-size:11px;
+                                color:#9c8e7b;
+                                margin-top:4px;
+                            ">
+                                Bir klana katılarak ortak hazineye,
+                                klan sohbetine ve ileride aktif edeceğimiz
+                                toplu kale savaşlarına hazırlanabilirsin.
+                            </p>
+                        </div>
+
+                        <div class="quest-list">
+                            ${
+                                clanListData.length > 0
+                                    ? clanListData.map(clan => {
+                                        const isFull =
+                                            Number(clan.memberCount || 0) >=
+                                            Number(clan.maxMembers || 15);
+
+                                        return `
+                                            <div class="quest-card">
+                                                <div class="quest-info">
+                                                    <h4>
+                                                        🛡️
+                                                        [${escapeHTML(clan.tag)}]
+                                                        ${escapeHTML(clan.name)}
+                                                    </h4>
+
+                                                    <p>
+                                                        Seviye ${Number(clan.level || 1)}
+                                                        • Üye ${Number(clan.memberCount || 0)}/${Number(clan.maxMembers || 15)}
+                                                        • Hazine ${Number(clan.treasury || 0).toLocaleString('tr-TR')} 🪙
+                                                    </p>
+
+                                                    <div class="quest-rewards">
+                                                        <span>
+                                                            🏆 ${Number(clan.wins || 0)}
+                                                            Galibiyet
+                                                        </span>
+                                                        <span style="color:#ef4444;">
+                                                            💀 ${Number(clan.losses || 0)}
+                                                            Mağlubiyet
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    id="joinClan_${clan._id}"
+                                                    class="btn-quest"
+                                                    ${isFull ? 'disabled' : ''}
+                                                    onclick="joinClanSubmit('${clan._id}')"
+                                                >
+                                                    ${isFull ? 'Klan Dolu' : 'Katıl'}
+                                                </button>
+                                            </div>
+                                        `;
+                                    }).join('')
+                                    : `
+                                        <p style="
+                                            color:#9c8e7b;
+                                            font-size:12px;
+                                            text-align:center;
+                                            padding:20px;
+                                        ">
+                                            Henüz kurulmuş bir klan yok.
+                                            İlk klanı sen kurabilirsin.
+                                        </p>
+                                    `
+                            }
+                        </div>
+
+                        <div
+                            id="clanLogResult"
+                            class="quest-log"
+                            style="margin-top:15px;"
+                        >${escapeHTML(lastClanMessage || 'Klan işlemleri burada görünecek...')}</div>
+                    `;
+                    return;
+                }
+
+                const clan = currentClanData;
+
+                const roleNames = {
+                    leader: '👑 Lider',
+                    officer: '⚔️ Komutan',
+                    member: '🛡️ Üye'
+                };
+
+                const myRole =
+                    clan.myRole ||
+                    currentUserData.clanRole ||
+                    'member';
+
+                body.innerHTML = `
+                    <div style="
+                        background:
+                            linear-gradient(135deg,#23180f,#100c09);
+                        border:1px solid #d4af37;
+                        border-radius:8px;
+                        padding:15px;
+                        margin-bottom:15px;
+                        box-shadow:
+                            inset 0 0 22px rgba(212,175,55,.035);
+                    ">
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:flex-start;
+                            gap:10px;
+                            flex-wrap:wrap;
+                        ">
+                            <div>
+                                <h3 style="
+                                    color:#ffdf73;
+                                    font-size:18px;
+                                ">
+                                    🛡️
+                                    [${escapeHTML(clan.tag)}]
+                                    ${escapeHTML(clan.name)}
+                                </h3>
+
+                                <p style="
+                                    font-size:11px;
+                                    color:#9c8e7b;
+                                    margin-top:5px;
+                                ">
+                                    Senin Rolün:
+                                    <strong style="color:#f3cf7a;">
+                                        ${roleNames[myRole] || escapeHTML(myRole)}
+                                    </strong>
+                                </p>
+                            </div>
+
+                            <button
+                                class="btn-quest"
+                                style="
+                                    background:#7f1d1d;
+                                    color:#fff;
+                                    border-color:#ef4444;
+                                "
+                                onclick="leaveClanSubmit()"
+                            >Klandan Ayrıl</button>
+                        </div>
+
+                        <div style="
+                            display:grid;
+                            grid-template-columns:
+                                repeat(auto-fit,minmax(130px,1fr));
+                            gap:8px;
+                            margin-top:12px;
+                        ">
+                            <div style="
+                                background:#0d0a08;
+                                border:1px solid #33241b;
+                                padding:9px;
+                                border-radius:5px;
+                                font-size:11px;
+                            ">
+                                👥 Üye<br>
+                                <strong style="color:#f3cf7a;">
+                                    ${Number(clan.memberCount || 0)}/${Number(clan.maxMembers || 15)}
+                                </strong>
+                            </div>
+
+                            <div style="
+                                background:#0d0a08;
+                                border:1px solid #33241b;
+                                padding:9px;
+                                border-radius:5px;
+                                font-size:11px;
+                            ">
+                                💰 Klan Hazinesi<br>
+                                <strong style="color:#22c55e;">
+                                    ${Number(clan.treasury || 0).toLocaleString('tr-TR')}
+                                    Altın
+                                </strong>
+                            </div>
+
+                            <div style="
+                                background:#0d0a08;
+                                border:1px solid #33241b;
+                                padding:9px;
+                                border-radius:5px;
+                                font-size:11px;
+                            ">
+                                🏆 Klan Galibiyeti<br>
+                                <strong style="color:#f3cf7a;">
+                                    ${Number(clan.wins || 0)}
+                                </strong>
+                            </div>
+
+                            <div style="
+                                background:#0d0a08;
+                                border:1px solid #33241b;
+                                padding:9px;
+                                border-radius:5px;
+                                font-size:11px;
+                            ">
+                                🏰 Klan Kalesi<br>
+                                <strong style="color:#60a5fa;">
+                                    ${
+                                        clan.castleId
+                                            ? escapeHTML(clan.castleId)
+                                            : 'Henüz Yok'
+                                    }
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="
+                        display:grid;
+                        grid-template-columns:
+                            minmax(0,1.25fr)
+                            minmax(260px,.75fr);
+                        gap:12px;
+                        margin-bottom:15px;
+                    ">
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:6px;
+                            padding:12px;
+                        ">
+                            <h3 style="
+                                color:#f3cf7a;
+                                font-size:13px;
+                                margin-bottom:9px;
+                            ">👥 Klan Üyeleri</h3>
+
+                            <div style="
+                                display:flex;
+                                flex-direction:column;
+                                gap:7px;
+                            ">
+                                ${clan.members.map(member => {
+                                    const isMe =
+                                        String(member.userId) ===
+                                        String(currentUserData._id);
+
+                                    const canManage =
+                                        myRole === 'leader' &&
+                                        member.role !== 'leader' &&
+                                        !isMe;
+
+                                    return `
+                                        <div style="
+                                            background:#0d0a08;
+                                            border:1px solid #2d2017;
+                                            border-radius:5px;
+                                            padding:8px;
+                                            display:flex;
+                                            justify-content:space-between;
+                                            align-items:center;
+                                            gap:8px;
+                                        ">
+                                            <div style="
+                                                min-width:0;
+                                                flex:1;
+                                            ">
+                                                <div style="
+                                                    font-size:12px;
+                                                    font-weight:bold;
+                                                    color:#f3cf7a;
+                                                ">
+                                                    <span style="
+                                                        color:${member.online ? '#22c55e' : '#6b7280'};
+                                                    ">●</span>
+
+                                                    ${escapeHTML(member.username)}
+
+                                                    ${
+                                                        isMe
+                                                            ? `
+                                                                <span style="
+                                                                    color:#60a5fa;
+                                                                    font-size:10px;
+                                                                ">(Sen)</span>
+                                                            `
+                                                            : ''
+                                                    }
+                                                </div>
+
+                                                <div style="
+                                                    font-size:10px;
+                                                    color:#9c8e7b;
+                                                    margin-top:2px;
+                                                ">
+                                                    ${roleNames[member.role] || escapeHTML(member.role)}
+                                                    • Sv.${Number(member.level || 1)}
+                                                    • ⚔️ STR ${Number(member.totalStr || 0).toLocaleString('tr-TR')}
+                                                    • Güç ${Number(member.power || 0).toLocaleString('tr-TR')}
+                                                </div>
+
+                                                <div style="
+                                                    font-size:10px;
+                                                    color:#22c55e;
+                                                    margin-top:2px;
+                                                ">
+                                                    Bağış:
+                                                    ${Number(member.contribution || 0).toLocaleString('tr-TR')}
+                                                    Altın
+                                                </div>
+                                            </div>
+
+                                            ${
+                                                canManage
+                                                    ? `
+                                                        <div style="
+                                                            display:flex;
+                                                            gap:4px;
+                                                            flex-wrap:wrap;
+                                                            justify-content:flex-end;
+                                                        ">
+                                                            ${
+                                                                member.role === 'member'
+                                                                    ? `
+                                                                        <button
+                                                                            class="btn-stat"
+                                                                            onclick="setClanRoleSubmit('${member.userId}','officer')"
+                                                                        >Komutan Yap</button>
+                                                                    `
+                                                                    : `
+                                                                        <button
+                                                                            class="btn-stat"
+                                                                            onclick="setClanRoleSubmit('${member.userId}','member')"
+                                                                        >Üye Yap</button>
+                                                                    `
+                                                            }
+
+                                                            <button
+                                                                class="btn-stat"
+                                                                style="
+                                                                    background:#7f1d1d;
+                                                                    color:white;
+                                                                    border-color:#ef4444;
+                                                                "
+                                                                onclick="kickClanMemberSubmit('${member.userId}')"
+                                                            >Çıkar</button>
+                                                        </div>
+                                                    `
+                                                    : ''
+                                            }
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <div style="
+                            display:flex;
+                            flex-direction:column;
+                            gap:12px;
+                        ">
+                            <div style="
+                                background:#120e0c;
+                                border:1px solid #33241b;
+                                border-radius:6px;
+                                padding:12px;
+                            ">
+                                <h3 style="
+                                    color:#f3cf7a;
+                                    font-size:13px;
+                                    margin-bottom:7px;
+                                ">💰 Klan Hazinesine Bağış</h3>
+
+                                <p style="
+                                    font-size:10px;
+                                    color:#9c8e7b;
+                                    margin-bottom:8px;
+                                    line-height:1.5;
+                                ">
+                                    Hazine altını kişisel hesaba çekilemez.
+                                    İleride klan geliştirmeleri ve
+                                    toplu kale savaşlarında kullanılacak.
+                                </p>
+
+                                <div style="
+                                    display:flex;
+                                    gap:6px;
+                                ">
+                                    <input
+                                        id="clanDonateAmount"
+                                        type="number"
+                                        min="100"
+                                        max="1000000"
+                                        step="100"
+                                        value="100"
+                                        style="
+                                            min-width:0;
+                                            flex:1;
+                                            background:#0d0a08;
+                                            border:1px solid #3d2f23;
+                                            color:#f3cf7a;
+                                            padding:8px;
+                                            border-radius:4px;
+                                        "
+                                    >
+
+                                    <button
+                                        id="clanDonateBtn"
+                                        class="btn-quest"
+                                        onclick="donateClanSubmit()"
+                                    >Bağışla</button>
+                                </div>
+                            </div>
+
+                            <div style="
+                                background:#120e0c;
+                                border:1px solid #3b82f6;
+                                border-radius:6px;
+                                padding:12px;
+                            ">
+                                <h3 style="
+                                    color:#60a5fa;
+                                    font-size:13px;
+                                ">🏰 Klan Kale Savaşı</h3>
+
+                                <p style="
+                                    font-size:10px;
+                                    color:#9c8e7b;
+                                    margin-top:6px;
+                                    line-height:1.55;
+                                ">
+                                    Mevcut bireysel Taht Savaşı sistemi
+                                    korunuyor. Bu klan altyapısı üzerine
+                                    sonraki aşamada 10'a 10 klan kale
+                                    savaşı eklenebilir.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="
+                        background:#120e0c;
+                        border:1px solid #33241b;
+                        border-radius:6px;
+                        padding:12px;
+                    ">
+                        <h3 style="
+                            color:#f3cf7a;
+                            font-size:13px;
+                            margin-bottom:8px;
+                        ">💬 Klan Sohbeti</h3>
+
+                        <div
+                            id="clanChatMessagesBox"
+                            class="chat-messages"
+                            style="
+                                height:220px;
+                                margin-bottom:8px;
+                            "
+                        >
+                            ${(clan.chatMessages || []).map(message => `
+                                <div class="chat-msg">
+                                    <span>
+                                        [${escapeHTML(clan.tag)}]
+                                        ${escapeHTML(message.username)}:
+                                    </span>
+                                    ${escapeHTML(message.message)}
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="chat-input-area">
+                            <input
+                                type="text"
+                                id="clanChatInputMsg"
+                                maxlength="150"
+                                placeholder="Klanına mesaj yaz..."
+                                onkeydown="
+                                    if(event.key==='Enter')
+                                        sendClanChat()
+                                "
+                            >
+
+                            <button
+                                id="clanChatBtn"
+                                class="btn-quest"
+                                onclick="sendClanChat()"
+                            >Gönder</button>
+                        </div>
+                    </div>
+
+                    <div
+                        id="clanLogResult"
+                        class="quest-log"
+                        style="margin-top:15px;"
+                    >${escapeHTML(lastClanMessage || 'Klan işlemleri burada görünecek...')}</div>
+                `;
+
+                const clanChatBox =
+                    document.getElementById(
+                        'clanChatMessagesBox'
+                    );
+
+                if (clanChatBox) {
+                    clanChatBox.scrollTop =
+                        clanChatBox.scrollHeight;
+                }
+
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
@@ -9553,6 +10172,155 @@
             setTimeout(() => pop.remove(), 1550);
         }
 
+        function createClanSubmit() {
+            const nameInput =
+                document.getElementById('clanNameInput');
+
+            const tagInput =
+                document.getElementById('clanTagInput');
+
+            const name =
+                nameInput
+                    ? nameInput.value.trim()
+                    : '';
+
+            const tag =
+                tagInput
+                    ? tagInput.value.trim()
+                    : '';
+
+            if (!name || !tag) {
+                return alert(
+                    'Klan adı ve etiketi giriniz.'
+                );
+            }
+
+            cooldownButton(
+                'createClanBtn',
+                1200
+            );
+
+            socket.emit(
+                'createClan',
+                { name, tag }
+            );
+        }
+
+        function joinClanSubmit(clanId) {
+            cooldownButton(
+                `joinClan_${clanId}`,
+                1200
+            );
+
+            socket.emit(
+                'joinClan',
+                { clanId }
+            );
+        }
+
+        function leaveClanSubmit() {
+            const confirmed =
+                confirm(
+                    'Klandan ayrılmak istediğine emin misin? ' +
+                    'Lider isen liderlik başka bir üyeye devredilir.'
+                );
+
+            if (!confirmed) return;
+
+            socket.emit('leaveClan');
+        }
+
+        function donateClanSubmit() {
+            const amountInput =
+                document.getElementById(
+                    'clanDonateAmount'
+                );
+
+            const amount =
+                amountInput
+                    ? Number.parseInt(
+                        amountInput.value,
+                        10
+                    )
+                    : 0;
+
+            if (
+                !Number.isInteger(amount) ||
+                amount < 100
+            ) {
+                return alert(
+                    'En az 100 Altın bağışlayabilirsin.'
+                );
+            }
+
+            cooldownButton(
+                'clanDonateBtn',
+                1200
+            );
+
+            socket.emit(
+                'donateClanGold',
+                { amount }
+            );
+        }
+
+        function setClanRoleSubmit(
+            userId,
+            role
+        ) {
+            socket.emit(
+                'setClanRole',
+                { userId, role }
+            );
+        }
+
+        function kickClanMemberSubmit(
+            userId
+        ) {
+            const confirmed =
+                confirm(
+                    'Bu oyuncuyu klandan çıkarmak istediğine emin misin?'
+                );
+
+            if (!confirmed) return;
+
+            socket.emit(
+                'kickClanMember',
+                { userId }
+            );
+        }
+
+        function sendClanChat() {
+            const input =
+                document.getElementById(
+                    'clanChatInputMsg'
+                );
+
+            if (
+                !input ||
+                !input.value.trim()
+            ) {
+                return;
+            }
+
+            const message =
+                input.value
+                    .trim()
+                    .substring(0, 150);
+
+            cooldownButton(
+                'clanChatBtn',
+                900
+            );
+
+            socket.emit(
+                'sendClanChatMessage',
+                { message }
+            );
+
+            input.value = '';
+        }
+
         function sendChat() {
             const input = document.getElementById('chatInputMsg');
             if(!input || !input.value.trim()) return;
@@ -9561,6 +10329,161 @@
             socket.emit('sendChatMessage', { message: input.value.trim() });
             input.value = '';
         }
+
+        socket.on('clanData', (data) => {
+            clanDataLoaded = true;
+            currentClanData =
+                data?.clan || null;
+
+            if (data?.userData) {
+                updateHeader(
+                    data.userData
+                );
+            }
+
+            if (activeTab === 'clan') {
+                renderPanelContent();
+            }
+        });
+
+        socket.on('clanList', (clans) => {
+            clanListData =
+                Array.isArray(clans)
+                    ? clans
+                    : [];
+
+            if (
+                activeTab === 'clan' &&
+                clanDataLoaded &&
+                !currentClanData
+            ) {
+                renderPanelContent();
+            }
+        });
+
+        socket.on('clanResult', (res) => {
+            if (res?.userData) {
+                updateHeader(
+                    res.userData
+                );
+            }
+
+            if (res?.message) {
+                lastClanMessage =
+                    res.message;
+            }
+
+            socket.emit(
+                'getClanData'
+            );
+
+            socket.emit(
+                'getClanList'
+            );
+
+            if (activeTab === 'clan') {
+                const logEl =
+                    document.getElementById(
+                        'clanLogResult'
+                    );
+
+                if (logEl && res?.message) {
+                    logEl.innerText =
+                        res.message;
+
+                    logEl.style.fontWeight =
+                        'bold';
+
+                    logEl.style.borderColor =
+                        res.success
+                            ? '#22c55e'
+                            : '#ef4444';
+
+                    logEl.style.color =
+                        res.success
+                            ? '#86efac'
+                            : '#fca5a5';
+                }
+            }
+        });
+
+        socket.on('clanRefresh', (data) => {
+            if (data?.message) {
+                lastClanMessage =
+                    data.message;
+            }
+
+            socket.emit(
+                'getClanData'
+            );
+
+            socket.emit(
+                'getClanList'
+            );
+        });
+
+        socket.on(
+            'receiveClanChatMessage',
+            (data) => {
+                if (currentClanData) {
+                    currentClanData.chatMessages =
+                        currentClanData.chatMessages ||
+                        [];
+
+                    currentClanData.chatMessages.push(
+                        data
+                    );
+
+                    if (
+                        currentClanData
+                            .chatMessages
+                            .length > 50
+                    ) {
+                        currentClanData
+                            .chatMessages
+                            .shift();
+                    }
+                }
+
+                const box =
+                    document.getElementById(
+                        'clanChatMessagesBox'
+                    );
+
+                if (
+                    box &&
+                    currentClanData
+                ) {
+                    const safeTag =
+                        escapeHTML(
+                            currentClanData.tag
+                        );
+
+                    const safeName =
+                        escapeHTML(
+                            data.username
+                        );
+
+                    const safeMessage =
+                        escapeHTML(
+                            data.message
+                        );
+
+                    box.innerHTML += `
+                        <div class="chat-msg">
+                            <span>
+                                [${safeTag}]
+                                ${safeName}:
+                            </span>
+                            ${safeMessage}
+                        </div>
+                    `;
+
+                    box.scrollTop =
+                        box.scrollHeight;
+                }
+            }
+        );
 
         socket.on('overviewStatus', (res) => {
             if (res?.userData) updateHeader(res.userData);
@@ -10076,7 +10999,11 @@
             document.getElementById('loginModal').style.display = 'flex';
             document.body.classList.add('auth-open');
             applyWorldTheme('overview');
-            currentUserData = null; 
+            currentUserData = null;
+            currentClanData = null;
+            clanListData = [];
+            clanDataLoaded = false;
+            lastClanMessage = '';
             document.getElementById('authMessage').innerText = "Başarıyla çıkış yapıldı.";
         });
 
