@@ -3353,7 +3353,99 @@
 
         socket.on('gameBuildInfo', (data) => {
             serverBuildInfo = data || null;
+
+            if (
+                activeTab === 'clan' &&
+                serverBuildInfo &&
+                serverBuildInfo.clanV1 !== true
+            ) {
+                lastClanMessage =
+                    `⚠️ Çalışan backend klan sistemini desteklemiyor. Build: ${serverBuildInfo.build || 'bilinmiyor'}`;
+            }
         });
+
+        async function loadClanThroughHttpFallback() {
+            const token = localStorage.getItem('throne_token');
+            if (!token) {
+                return { ok: false, error: 'Oturum anahtarı bulunamadı.' };
+            }
+
+            try {
+                const [clanResponse, listResponse, buildResponse] = await Promise.all([
+                    fetch('/api/clan-data', {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }),
+                    fetch('/api/clan-list', {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }),
+                    fetch('/api/build', {
+                        method: 'GET',
+                        cache: 'no-store'
+                    })
+                ]);
+
+                if (buildResponse.ok) {
+                    serverBuildInfo = await buildResponse.json();
+                }
+
+                if (listResponse.ok) {
+                    const listData = await listResponse.json();
+                    if (Array.isArray(listData?.clans)) {
+                        clanListData = listData.clans;
+                    }
+                }
+
+                if (!clanResponse.ok) {
+                    let errorText = `HTTP ${clanResponse.status}`;
+                    try {
+                        const errorData = await clanResponse.json();
+                        if (errorData?.error) errorText = errorData.error;
+                    } catch (_) {}
+                    return { ok: false, error: errorText };
+                }
+
+                const clanData = await clanResponse.json();
+
+                if (!clanData?.ok) {
+                    return {
+                        ok: false,
+                        error: clanData?.error || 'Klan bilgileri alınamadı.'
+                    };
+                }
+
+                if (clanLoadTimer) {
+                    clearTimeout(clanLoadTimer);
+                    clanLoadTimer = null;
+                }
+
+                clanDataLoaded = true;
+                currentClanData = clanData.clan || null;
+
+                if (clanData.userData) {
+                    updateHeader(clanData.userData);
+                }
+
+                lastClanMessage = currentClanData
+                    ? '✅ Klan bilgileri yüklendi.'
+                    : 'Henüz bir klana üye değilsin.';
+
+                if (activeTab === 'clan') {
+                    renderPanelContent();
+                }
+
+                return { ok: true };
+            } catch (err) {
+                return {
+                    ok: false,
+                    error: err?.message || 'HTTP bağlantı hatası'
+                };
+            }
+        }
 
         function requestClanData() {
             clanDataLoaded = false;
@@ -3365,22 +3457,43 @@
 
             socket.emit('getClanData');
             socket.emit('getClanList');
+            socket.emit('getGameBuildInfo');
+
+            // Önce Socket.IO cevabını bekle. Gelmezse REST fallback kullan.
+            setTimeout(async () => {
+                if (clanDataLoaded) return;
+
+                const fallbackResult = await loadClanThroughHttpFallback();
+                if (fallbackResult.ok || clanDataLoaded) return;
+
+                lastClanMessage =
+                    `⚠️ Klan backend cevabı alınamadı: ${fallbackResult.error}.`;
+
+                if (activeTab === 'clan') {
+                    renderPanelContent();
+                }
+            }, 1200);
 
             clanLoadTimer = setTimeout(() => {
                 if (clanDataLoaded) return;
 
                 clanDataLoaded = true;
                 currentClanData = null;
+
+                const buildText = serverBuildInfo?.build
+                    ? ` Backend build: ${serverBuildInfo.build}`
+                    : ' Backend build bilgisi de alınamadı.';
+
                 lastClanMessage =
-                    '⚠️ Klan sunucusundan cevap alınamadı. ' +
-                    'Render üzerinde güncel server.js dosyasının deploy edildiğini kontrol et.';
+                    '⚠️ Klan sunucusundan cevap alınamadı.' +
+                    buildText +
+                    ' Render üzerinde server.js dosyasının son deploy ile çalıştığını kontrol et.';
 
                 if (activeTab === 'clan') {
                     renderPanelContent();
                 }
-            }, 4000);
+            }, 5000);
         }
-
         function switchAuthTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
@@ -6394,6 +6507,9 @@
                             <div>Klan bilgileri yükleniyor...</div>
                             <div style="font-size:10px;margin-top:7px;color:#6b7280;">
                                 Sunucudan klan verisi bekleniyor.
+                            </div>
+                            <div style="font-size:10px;margin-top:5px;color:#4b5563;">
+                                ${serverBuildInfo?.build ? `Backend: ${escapeHTML(serverBuildInfo.build)}` : 'Backend sürümü kontrol ediliyor...'}
                             </div>
                         </div>
                     `;
