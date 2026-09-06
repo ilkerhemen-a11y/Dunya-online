@@ -408,6 +408,395 @@
             to { transform: rotate(360deg); }
         }
 
+
+        /* === KALE KUŞATMA ANİMASYONU === */
+        .castle-siege-stage {
+            position: relative;
+            overflow: hidden;
+            min-height: 305px;
+            margin-bottom: 15px;
+            padding: 14px;
+            border: 1px solid #7c2d12;
+            border-radius: 9px;
+            background:
+                radial-gradient(circle at 50% 95%, rgba(120,53,15,.32), transparent 42%),
+                linear-gradient(to bottom, #18100c 0%, #0b0806 58%, #21120b 100%);
+            box-shadow:
+                inset 0 -28px 55px rgba(0,0,0,.5),
+                0 6px 18px rgba(0,0,0,.45);
+        }
+
+        .castle-siege-stage::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 42px;
+            height: 2px;
+            opacity: .35;
+            background: linear-gradient(
+                to right,
+                transparent,
+                #92400e,
+                #d4af37,
+                #92400e,
+                transparent
+            );
+        }
+
+        .castle-siege-phase {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            min-width: 135px;
+            padding: 5px 11px;
+            text-align: center;
+            color: #f3cf7a;
+            font-size: 10px;
+            font-weight: 800;
+            border: 1px solid #6b4f35;
+            border-radius: 999px;
+            background: rgba(8,6,5,.94);
+            box-shadow: 0 0 14px rgba(212,175,55,.10);
+        }
+
+        .castle-siege-grid {
+            position: relative;
+            z-index: 4;
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            align-items: center;
+            gap: 10px;
+            min-height: 190px;
+            padding-top: 24px;
+        }
+
+        .castle-side {
+            position: relative;
+            min-width: 0;
+            padding: 11px;
+            border-radius: 8px;
+            background: rgba(7,5,4,.76);
+            transition: transform .25s ease, filter .25s ease, opacity .4s ease;
+            will-change: transform, filter;
+        }
+
+        .castle-side.attacker {
+            border: 1px solid #2563eb;
+        }
+
+        .castle-side.defender {
+            border: 1px solid #991b1b;
+        }
+
+        .castle-side-icon {
+            text-align: center;
+            font-size: 39px;
+            line-height: 1;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 5px 7px rgba(0,0,0,.7));
+        }
+
+        .castle-side-title {
+            color: #f3cf7a;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .castle-army-icons {
+            margin-top: 6px;
+            text-align: center;
+            color: #d4c5b9;
+            font-size: 10px;
+            line-height: 1.55;
+        }
+
+        .castle-power-line {
+            margin-top: 6px;
+            text-align: center;
+            font-size: 9px;
+            color: #9c8e7b;
+        }
+
+        .castle-force-shell {
+            position: relative;
+            overflow: hidden;
+            height: 15px;
+            margin-top: 7px;
+            border: 1px solid #33241b;
+            border-radius: 4px;
+            background: #080605;
+        }
+
+        .castle-force-fill {
+            height: 100%;
+            width: 100%;
+            transition: width .65s cubic-bezier(.2,.8,.3,1);
+        }
+
+        .castle-force-fill.attacker {
+            background: linear-gradient(to right,#1d4ed8,#60a5fa);
+        }
+
+        .castle-force-fill.defender {
+            background: linear-gradient(to right,#991b1b,#ef4444);
+        }
+
+        .castle-force-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 8px;
+            font-weight: 800;
+            text-shadow: 0 1px 2px #000;
+        }
+
+        .castle-battle-center {
+            position: relative;
+            z-index: 8;
+            text-align: center;
+            font-size: 25px;
+            color: #f3cf7a;
+            text-shadow: 0 0 13px rgba(243,207,122,.35);
+        }
+
+        .castle-siege-feed {
+            position: relative;
+            z-index: 8;
+            min-height: 48px;
+            max-height: 88px;
+            overflow-y: auto;
+            margin-top: 5px;
+            padding: 7px 9px;
+            border-radius: 5px;
+            background: rgba(0,0,0,.33);
+            color: #d4c5b9;
+            font-size: 10px;
+            line-height: 1.55;
+        }
+
+        .castle-siege-banner {
+            position: absolute;
+            z-index: 40;
+            top: 49%;
+            left: 50%;
+            width: min(82%, 430px);
+            padding: 14px;
+            opacity: 0;
+            pointer-events: none;
+            text-align: center;
+            transform: translate(-50%,-50%) scale(.7);
+            border-radius: 8px;
+            background: rgba(8,6,5,.96);
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .castle-siege-banner.show {
+            animation: castleBannerIn .48s ease-out forwards;
+        }
+
+        .castle-siege-banner.win {
+            color: #f3cf7a;
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 35px rgba(212,175,55,.30);
+        }
+
+        .castle-siege-banner.lose {
+            color: #fca5a5;
+            border: 2px solid #991b1b;
+            box-shadow: 0 0 30px rgba(153,27,27,.32);
+        }
+
+        .castle-floating-loss {
+            position: absolute;
+            z-index: 30;
+            top: 18%;
+            left: 50%;
+            pointer-events: none;
+            color: #f87171;
+            font-size: 15px;
+            font-weight: 900;
+            text-shadow: 0 2px 4px #000;
+            animation: castleLossFloat .9s ease-out forwards;
+        }
+
+        .castle-projectile {
+            position: absolute;
+            z-index: 28;
+            top: 35%;
+            left: 28%;
+            pointer-events: none;
+            font-size: 20px;
+            animation: castleArrowFly .75s linear forwards;
+        }
+
+        .castle-fire {
+            position: absolute;
+            z-index: 27;
+            right: 17%;
+            bottom: 60px;
+            font-size: 24px;
+            opacity: 0;
+            pointer-events: none;
+            animation: castleFireBurst 1.1s ease-out forwards;
+        }
+
+        .castle-side.charge-right {
+            animation: castleChargeRight .55s ease;
+        }
+
+        .castle-side.counter-charge {
+            animation: castleCounterCharge .55s ease;
+        }
+
+        .castle-side.castle-hit {
+            animation: castleWallHit .55s ease;
+        }
+
+        .castle-side.castle-winner {
+            animation: castleWinnerGlow .8s ease 2;
+        }
+
+        .castle-side.castle-loser {
+            opacity: .42;
+            filter: grayscale(.62) brightness(.66);
+            transform: translateY(7px);
+        }
+
+        @keyframes castleArrowFly {
+            0% {
+                opacity: 0;
+                transform: translate(0,10px) rotate(-18deg) scale(.8);
+            }
+            15% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translate(250px,-35px) rotate(-18deg) scale(1.1);
+            }
+        }
+
+        @keyframes castleChargeRight {
+            0%,100% { transform: translateX(0); }
+            48% { transform: translateX(34px) scale(1.025); }
+        }
+
+        @keyframes castleCounterCharge {
+            0%,100% { transform: translateX(0); }
+            48% { transform: translateX(-20px) scale(1.02); }
+        }
+
+        @keyframes castleWallHit {
+            0%,100% {
+                transform: translateX(0);
+                filter: none;
+            }
+            20% {
+                transform: translateX(-9px);
+                filter: brightness(1.7) saturate(1.6);
+            }
+            42% {
+                transform: translateX(8px);
+            }
+            62% {
+                transform: translateX(-5px);
+            }
+            82% {
+                transform: translateX(3px);
+            }
+        }
+
+        @keyframes castleLossFloat {
+            0% {
+                opacity: 0;
+                transform: translate(-50%,8px) scale(.75);
+            }
+            18% {
+                opacity: 1;
+                transform: translate(-50%,0) scale(1.08);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%,-42px) scale(1);
+            }
+        }
+
+        @keyframes castleFireBurst {
+            0% {
+                opacity: 0;
+                transform: scale(.4);
+            }
+            20% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+            75% {
+                opacity: .9;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.35) translateY(-12px);
+            }
+        }
+
+        @keyframes castleBannerIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%,-50%) scale(.7);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%,-50%) scale(1);
+            }
+        }
+
+        @keyframes castleWinnerGlow {
+            0%,100% {
+                box-shadow: 0 0 0 rgba(212,175,55,0);
+            }
+            50% {
+                box-shadow: 0 0 27px rgba(212,175,55,.38);
+            }
+        }
+
+        @media (max-width:640px) {
+            .castle-siege-grid {
+                grid-template-columns: 1fr 45px 1fr;
+                gap: 5px;
+            }
+
+            .castle-siege-stage {
+                padding: 9px 6px;
+            }
+
+            .castle-side {
+                padding: 8px 5px;
+            }
+
+            .castle-side-icon {
+                font-size: 31px;
+            }
+
+            .castle-side-title {
+                font-size: 10px;
+            }
+
+            .castle-battle-center {
+                font-size: 18px;
+            }
+        }
+
 </style>
 </head>
 <body>
@@ -493,6 +882,10 @@
         let barracksState = null;
         let arenaOpponentCache = {};
         let arenaAnimationToken = 0;
+
+        let castleSiegeAnimating = false;
+        let castleSiegeAnimationToken = 0;
+        let castleRefreshPending = false;
 
         function escapeHTML(str) {
             if (!str) return "";
@@ -1182,17 +1575,57 @@
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Tımar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'barracks') {
-                const army = u.army || { archer:0, warrior:0, cavalry:0 };
-
-                const troopDefs = barracksState?.troops || {
-                    archer:  { name:'Okçu',    icon:'🏹', cost:250,  power:10 },
-                    warrior: { name:'Savaşçı', icon:'⚔️', cost:500,  power:20 },
-                    cavalry: { name:'Süvari',  icon:'🐎', cost:1000, power:35 }
+                const army = u.army || {
+                    archer: 0,
+                    warrior: 0,
+                    cavalry: 0
                 };
 
-                const myArmyPower = Object.entries(troopDefs).reduce((total, [type, troop]) => {
-                    return total + ((Number(army[type]) || 0) * troop.power);
-                }, 0);
+                const troopDefs = barracksState?.troops || {
+                    archer:  {
+                        name:'Okçu',
+                        icon:'🏹',
+                        cost:250,
+                        power:10
+                    },
+                    warrior: {
+                        name:'Savaşçı',
+                        icon:'⚔️',
+                        cost:500,
+                        power:20
+                    },
+                    cavalry: {
+                        name:'Süvari',
+                        icon:'🐎',
+                        cost:1000,
+                        power:35
+                    }
+                };
+
+                const myTroopPower = Object.entries(troopDefs).reduce(
+                    (total, [type, troop]) => {
+                        return total +
+                            (
+                                (Number(army[type]) || 0) *
+                                troop.power
+                            );
+                    },
+                    0
+                );
+
+                let myCommanderStr = Number(u.str) || 5;
+
+                if (u.equipped) {
+                    Object.values(u.equipped).forEach(item => {
+                        if (item) {
+                            myCommanderStr +=
+                                Number(item.strBonus) || 0;
+                        }
+                    });
+                }
+
+                const myArmyPower =
+                    myTroopPower + myCommanderStr;
 
                 const myArmyCount =
                     (Number(army.archer) || 0) +
@@ -1212,7 +1645,9 @@
                 const isCastleOwner = !!castle.isOwner;
 
                 const conqueredDate = castle.conqueredAt
-                    ? new Date(castle.conqueredAt).toLocaleString('tr-TR')
+                    ? new Date(
+                        castle.conqueredAt
+                    ).toLocaleString('tr-TR')
                     : 'Henüz fethedilmedi';
 
                 const castleOwnerText = castle.ownerName
@@ -1230,24 +1665,50 @@
                         box-shadow:0 0 18px rgba(212,175,55,.08);
                     ">
                         <div style="font-size:28px;">🏰 👑</div>
-                        <h3 style="color:#f3cf7a; margin-top:3px;">Taht Kalesi</h3>
+                        <h3 style="color:#f3cf7a; margin-top:3px;">
+                            Taht Kalesi
+                        </h3>
 
-                        <div style="font-size:14px; color:${isCastleOwner ? '#86efac' : '#f0e6d2'}; font-weight:bold; margin-top:6px;">
+                        <div style="
+                            font-size:14px;
+                            color:${isCastleOwner ? '#86efac' : '#f0e6d2'};
+                            font-weight:bold;
+                            margin-top:6px;
+                        ">
                             👑 Taht Sahibi: ${castleOwnerText}
                         </div>
 
-                        <div style="font-size:10px; color:#9c8e7b; margin-top:4px;">
-                            Son Fetih: ${conqueredDate} • Toplam Kale Savaşı: ${castle.battleCount || 0}
+                        <div style="
+                            font-size:10px;
+                            color:#9c8e7b;
+                            margin-top:4px;
+                        ">
+                            Son Fetih: ${conqueredDate}
+                            • Toplam Kale Savaşı:
+                            ${castle.battleCount || 0}
                         </div>
 
                         ${
                             isCastleOwner
-                                ? `<div style="margin-top:8px; color:#22c55e; font-weight:bold; font-size:12px;">
-                                    👑 Kaleyi elinde tuttuğun sürece Taht da senindir.
-                                   </div>`
-                                : `<div style="margin-top:8px; color:#fca5a5; font-size:11px;">
-                                    Kaleyi ele geçiren hükümdar Tahtın sahibi olur.
-                                   </div>`
+                                ? `
+                                    <div style="
+                                        margin-top:8px;
+                                        color:#22c55e;
+                                        font-weight:bold;
+                                        font-size:12px;
+                                    ">
+                                        👑 Kaleyi elinde tuttuğun sürece Taht da senindir.
+                                    </div>
+                                `
+                                : `
+                                    <div style="
+                                        margin-top:8px;
+                                        color:#fca5a5;
+                                        font-size:11px;
+                                    ">
+                                        Kaleyi ele geçiren hükümdar Tahtın sahibi olur.
+                                    </div>
+                                `
                         }
                     </div>
 
@@ -1258,23 +1719,52 @@
                         margin-bottom:15px;
                     ">
                         ${Object.entries(troopDefs).map(([type, troop]) => {
-                            const count = Number(army[type]) || 0;
+                            const count =
+                                Number(army[type]) || 0;
 
                             return `
-                                <div class="market-card" style="display:block; text-align:center;">
-                                    <div style="font-size:30px;">${troop.icon}</div>
-                                    <h4 style="color:#f3cf7a; margin:4px 0;">${troop.name}</h4>
-
-                                    <div style="font-size:11px; color:#d4c5b9;">
-                                        Orduda: <strong>${count.toLocaleString('tr-TR')}</strong>
+                                <div
+                                    class="market-card"
+                                    style="display:block; text-align:center;"
+                                >
+                                    <div style="font-size:30px;">
+                                        ${troop.icon}
                                     </div>
 
-                                    <div style="font-size:10px; color:#f97316; margin-top:3px;">
-                                        ⚔️ Güç: ${troop.power} / asker
+                                    <h4 style="
+                                        color:#f3cf7a;
+                                        margin:4px 0;
+                                    ">
+                                        ${troop.name}
+                                    </h4>
+
+                                    <div style="
+                                        font-size:11px;
+                                        color:#d4c5b9;
+                                    ">
+                                        Orduda:
+                                        <strong>
+                                            ${count.toLocaleString('tr-TR')}
+                                        </strong>
                                     </div>
 
-                                    <div style="font-size:10px; color:#f3cf7a; margin-top:3px;">
-                                        🪙 ${troop.cost.toLocaleString('tr-TR')} Altın / asker
+                                    <div style="
+                                        font-size:10px;
+                                        color:#f97316;
+                                        margin-top:3px;
+                                    ">
+                                        ⚔️ Güç:
+                                        ${troop.power} / asker
+                                    </div>
+
+                                    <div style="
+                                        font-size:10px;
+                                        color:#f3cf7a;
+                                        margin-top:3px;
+                                    ">
+                                        🪙
+                                        ${troop.cost.toLocaleString('tr-TR')}
+                                        Altın / asker
                                     </div>
 
                                     <select
@@ -1299,8 +1789,13 @@
                                         id="trainBtn_${type}"
                                         class="btn-quest"
                                         style="width:100%; margin-top:6px;"
-                                        onclick="trainTroop('${type}', 'trainBtn_${type}')"
-                                    >Yetiştir</button>
+                                        onclick="trainTroop(
+                                            '${type}',
+                                            'trainBtn_${type}'
+                                        )"
+                                    >
+                                        Yetiştir
+                                    </button>
                                 </div>
                             `;
                         }).join('')}
@@ -1313,65 +1808,392 @@
                         padding:12px;
                         margin-bottom:15px;
                     ">
-                        <h3 style="color:#f3cf7a; font-size:14px; margin-bottom:8px;">🛡️ Ordun</h3>
+                        <h3 style="
+                            color:#f3cf7a;
+                            font-size:14px;
+                            margin-bottom:8px;
+                        ">
+                            🛡️ Ordun
+                        </h3>
 
-                        <div class="stat-row"><span>🏹 Okçu:</span><span>${Number(army.archer || 0).toLocaleString('tr-TR')}</span></div>
-                        <div class="stat-row"><span>⚔️ Savaşçı:</span><span>${Number(army.warrior || 0).toLocaleString('tr-TR')}</span></div>
-                        <div class="stat-row"><span>🐎 Süvari:</span><span>${Number(army.cavalry || 0).toLocaleString('tr-TR')}</span></div>
-                        <div class="stat-row"><span>Toplam Asker:</span><span>${myArmyCount.toLocaleString('tr-TR')}</span></div>
-                        <div class="stat-row"><span>⚔️ Ordu Gücü:</span><span style="color:#f97316; font-weight:bold;">${myArmyPower.toLocaleString('tr-TR')}</span></div>
+                        <div class="stat-row">
+                            <span>🏹 Okçu:</span>
+                            <span>
+                                ${Number(
+                                    army.archer || 0
+                                ).toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>⚔️ Savaşçı:</span>
+                            <span>
+                                ${Number(
+                                    army.warrior || 0
+                                ).toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>🐎 Süvari:</span>
+                            <span>
+                                ${Number(
+                                    army.cavalry || 0
+                                ).toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>Toplam Asker:</span>
+                            <span>
+                                ${myArmyCount.toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>🪖 Birlik Gücü:</span>
+                            <span>
+                                ${myTroopPower.toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>⚔️ Komutan STR:</span>
+                            <span style="
+                                color:#60a5fa;
+                                font-weight:bold;
+                            ">
+                                +${myCommanderStr.toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>🔥 Toplam Ordu Gücü:</span>
+                            <span style="
+                                color:#f97316;
+                                font-weight:bold;
+                            ">
+                                ${myArmyPower.toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div style="
+                            color:#9c8e7b;
+                            font-size:9px;
+                            margin-top:6px;
+                        ">
+                            Toplam Ordu Gücü =
+                            Birlik Gücü + ekipman dahil karakter STR değerin.
+                        </div>
+                    </div>
+
+                    <div
+                        id="castleSiegeStage"
+                        class="castle-siege-stage"
+                    >
+                        <div
+                            id="castleSiegePhase"
+                            class="castle-siege-phase"
+                        >
+                            ⚔️ KUŞATMA HAZIR
+                        </div>
+
+                        <div class="castle-siege-grid">
+                            <div
+                                id="castleAttackerSide"
+                                class="castle-side attacker"
+                            >
+                                <div class="castle-side-icon">
+                                    🛡️⚔️
+                                </div>
+
+                                <div class="castle-side-title">
+                                    ${escapeHTML(u.username || 'Ordun')}
+                                </div>
+
+                                <div class="castle-army-icons">
+                                    🏹 ${Number(
+                                        army.archer || 0
+                                    ).toLocaleString('tr-TR')}
+                                    •
+                                    ⚔️ ${Number(
+                                        army.warrior || 0
+                                    ).toLocaleString('tr-TR')}
+                                    •
+                                    🐎 ${Number(
+                                        army.cavalry || 0
+                                    ).toLocaleString('tr-TR')}
+                                </div>
+
+                                <div class="castle-power-line">
+                                    🪖 ${myTroopPower.toLocaleString('tr-TR')}
+                                    +
+                                    ⚔️ STR ${myCommanderStr.toLocaleString('tr-TR')}
+                                    =
+                                    🔥 ${myArmyPower.toLocaleString('tr-TR')}
+                                </div>
+
+                                <div class="castle-force-shell">
+                                    <div
+                                        id="castleForceAttacker"
+                                        class="castle-force-fill attacker"
+                                        style="width:100%;"
+                                    ></div>
+
+                                    <div
+                                        id="castleForceTextAttacker"
+                                        class="castle-force-text"
+                                    >
+                                        Ordu Hazır
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="castle-battle-center">
+                                ⚔️<br>
+                                <span style="font-size:11px;">
+                                    VS
+                                </span>
+                            </div>
+
+                            <div
+                                id="castleDefenderSide"
+                                class="castle-side defender"
+                            >
+                                <div
+                                    id="castleDefenderIcon"
+                                    class="castle-side-icon"
+                                >
+                                    🏰
+                                </div>
+
+                                <div class="castle-side-title">
+                                    ${escapeHTML(
+                                        castle.defenderName ||
+                                        'Saray Muhafızları'
+                                    )}
+                                </div>
+
+                                <div class="castle-army-icons">
+                                    🏹 ${Number(
+                                        castle.defenderArmy?.archer || 0
+                                    ).toLocaleString('tr-TR')}
+                                    •
+                                    ⚔️ ${Number(
+                                        castle.defenderArmy?.warrior || 0
+                                    ).toLocaleString('tr-TR')}
+                                    •
+                                    🐎 ${Number(
+                                        castle.defenderArmy?.cavalry || 0
+                                    ).toLocaleString('tr-TR')}
+                                </div>
+
+                                <div class="castle-power-line">
+                                    🪖 ${Number(
+                                        castle.troopPower || 0
+                                    ).toLocaleString('tr-TR')}
+                                    +
+                                    ⚔️ STR ${Number(
+                                        castle.commanderStr || 0
+                                    ).toLocaleString('tr-TR')}
+                                    +
+                                    🧱 ${Number(
+                                        castle.wallPower || 0
+                                    ).toLocaleString('tr-TR')}
+                                </div>
+
+                                <div class="castle-force-shell">
+                                    <div
+                                        id="castleForceDefender"
+                                        class="castle-force-fill defender"
+                                        style="width:100%;"
+                                    ></div>
+
+                                    <div
+                                        id="castleForceTextDefender"
+                                        class="castle-force-text"
+                                    >
+                                        Kale Hazır
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            id="castleSiegeFeed"
+                            class="castle-siege-feed"
+                        >
+                            🏰 Ordunu hazırlayıp kaleyi kuşat.
+                            Savaş başladığında okçular, piyadeler ve süvariler burada canlanacak.
+                        </div>
+
+                        <div
+                            id="castleSiegeBanner"
+                            class="castle-siege-banner"
+                        ></div>
                     </div>
 
                     <div style="
                         background:#120e0c;
-                        border:1px solid ${isCastleOwner ? '#22c55e' : '#7f1d1d'};
+                        border:1px solid ${
+                            isCastleOwner
+                                ? '#22c55e'
+                                : '#7f1d1d'
+                        };
                         border-radius:7px;
                         padding:12px;
                     ">
-                        <h3 style="color:${isCastleOwner ? '#86efac' : '#fca5a5'}; font-size:14px;">
-                            ${isCastleOwner ? '👑 Kale Savunman' : '⚔️ Kale Kuşatması'}
+                        <h3 style="
+                            color:${
+                                isCastleOwner
+                                    ? '#86efac'
+                                    : '#fca5a5'
+                            };
+                            font-size:14px;
+                        ">
+                            ${
+                                isCastleOwner
+                                    ? '👑 Kale Savunman'
+                                    : '⚔️ Kale Kuşatması'
+                            }
                         </h3>
 
-                        <div style="font-size:11px; color:#d4c5b9; margin-top:8px;">
-                            Savunan: <strong>${escapeHTML(castle.defenderName || 'Saray Muhafızları')}</strong>
+                        <div style="
+                            font-size:11px;
+                            color:#d4c5b9;
+                            margin-top:8px;
+                        ">
+                            Savunan:
+                            <strong>
+                                ${escapeHTML(
+                                    castle.defenderName ||
+                                    'Saray Muhafızları'
+                                )}
+                            </strong>
                         </div>
 
-                        <div style="font-size:10px; color:#9c8e7b; margin-top:5px; line-height:1.6;">
-                            🏹 ${Number(castle.defenderArmy?.archer || 0).toLocaleString('tr-TR')} Okçu •
-                            ⚔️ ${Number(castle.defenderArmy?.warrior || 0).toLocaleString('tr-TR')} Savaşçı •
-                            🐎 ${Number(castle.defenderArmy?.cavalry || 0).toLocaleString('tr-TR')} Süvari
+                        <div style="
+                            font-size:10px;
+                            color:#9c8e7b;
+                            margin-top:5px;
+                            line-height:1.6;
+                        ">
+                            🏹
+                            ${Number(
+                                castle.defenderArmy?.archer || 0
+                            ).toLocaleString('tr-TR')}
+                            Okçu •
+                            ⚔️
+                            ${Number(
+                                castle.defenderArmy?.warrior || 0
+                            ).toLocaleString('tr-TR')}
+                            Savaşçı •
+                            🐎
+                            ${Number(
+                                castle.defenderArmy?.cavalry || 0
+                            ).toLocaleString('tr-TR')}
+                            Süvari
                         </div>
 
-                        <div style="font-size:11px; margin-top:6px;">
-                            🧱 Kale Duvarı: <strong>${Number(castle.wallPower || 0).toLocaleString('tr-TR')}</strong> güç
-                            • 🛡️ Savunma Bonusu: <strong>%${castle.defenseBonusPercent || 0}</strong>
+                        <div style="
+                            font-size:10px;
+                            color:#60a5fa;
+                            margin-top:6px;
+                        ">
+                            ⚔️ Savunan Komutan STR:
+                            <strong>
+                                +${Number(
+                                    castle.commanderStr || 0
+                                ).toLocaleString('tr-TR')}
+                            </strong>
                         </div>
 
-                        <div style="font-size:13px; color:#ef4444; font-weight:bold; margin-top:7px;">
-                            Toplam Savunma Gücü: ${Number(castle.defensePower || 0).toLocaleString('tr-TR')}
+                        <div style="
+                            font-size:11px;
+                            margin-top:6px;
+                        ">
+                            🧱 Kale Duvarı:
+                            <strong>
+                                ${Number(
+                                    castle.wallPower || 0
+                                ).toLocaleString('tr-TR')}
+                            </strong>
+                            güç
+                            •
+                            🛡️ Savunma Bonusu:
+                            <strong>
+                                %${castle.defenseBonusPercent || 0}
+                            </strong>
                         </div>
 
-                        <div style="font-size:10px; color:#9c8e7b; margin-top:7px; line-height:1.5;">
-                            Kuşatmada mevcut ordunun tamamı savaş gücüne katılır.
-                            Kazanan taraf da asker kaybedebilir; kaybeden tarafın kaybı daha ağır olur.
+                        <div style="
+                            font-size:13px;
+                            color:#ef4444;
+                            font-weight:bold;
+                            margin-top:7px;
+                        ">
+                            Toplam Savunma Gücü:
+                            ${Number(
+                                castle.defensePower || 0
+                            ).toLocaleString('tr-TR')}
+                        </div>
+
+                        <div style="
+                            font-size:10px;
+                            color:#9c8e7b;
+                            margin-top:7px;
+                            line-height:1.5;
+                        ">
+                            Kuşatmada Birlik Gücüne karakterinin
+                            ekipman dahil toplam STR değeri eklenir.
+                            Kale sahibi oyuncunun STR değeri de
+                            savunma ordusuna eklenir.
                         </div>
 
                         ${
                             isCastleOwner
-                                ? `<button class="btn-quest" disabled style="width:100%; margin-top:10px; background:#14532d;">
-                                    👑 TAHT SENİN
-                                   </button>`
-                                : `<button
-                                    id="attackCastleBtn"
-                                    class="btn-quest"
-                                    ${myArmyCount <= 0 ? 'disabled' : ''}
-                                    style="width:100%; margin-top:10px; background:#991b1b; color:white; border-color:#ef4444;"
-                                    onclick="attackCastleNow()"
-                                   >⚔️ KALEYİ KUŞAT</button>`
+                                ? `
+                                    <button
+                                        class="btn-quest"
+                                        disabled
+                                        style="
+                                            width:100%;
+                                            margin-top:10px;
+                                            background:#14532d;
+                                        "
+                                    >
+                                        👑 TAHT SENİN
+                                    </button>
+                                `
+                                : `
+                                    <button
+                                        id="attackCastleBtn"
+                                        class="btn-quest"
+                                        ${
+                                            myArmyCount <= 0
+                                                ? 'disabled'
+                                                : ''
+                                        }
+                                        style="
+                                            width:100%;
+                                            margin-top:10px;
+                                            background:#991b1b;
+                                            color:white;
+                                            border-color:#ef4444;
+                                        "
+                                        onclick="attackCastleNow()"
+                                    >
+                                        ⚔️ KALEYİ KUŞAT
+                                    </button>
+                                `
                         }
                     </div>
 
-                    <div id="barracksLogResult" class="quest-log" style="margin-top:15px;">
+                    <div
+                        id="barracksLogResult"
+                        class="quest-log"
+                        style="margin-top:15px;"
+                    >
                         Kışla ve Taht Savaşı raporları burada görünecek...
                     </div>
                 `;
@@ -1984,14 +2806,668 @@
         }
 
         function attackCastleNow() {
-            const btn = document.getElementById('attackCastleBtn');
+            if (castleSiegeAnimating) return;
+
+            const btn =
+                document.getElementById('attackCastleBtn');
+
+            const phase =
+                document.getElementById('castleSiegePhase');
+
+            const feed =
+                document.getElementById('castleSiegeFeed');
+
+            const attackerSide =
+                document.getElementById('castleAttackerSide');
+
             if (btn) {
                 btn.disabled = true;
-                btn.innerText = '⚔️ Kuşatma Başladı...';
+                btn.innerText = '⚔️ Ordu Kaleye İlerliyor...';
             }
+
+            if (phase) {
+                phase.innerText = '🥁 ORDU İLERLİYOR';
+            }
+
+            if (feed) {
+                feed.innerHTML = `
+                    <div>
+                        🥁 Sancaklar açıldı. Ordun Taht Kalesi'ne doğru ilerliyor...
+                    </div>
+                `;
+            }
+
+            if (attackerSide) {
+                attackerSide.classList.add('charge-right');
+
+                setTimeout(() => {
+                    attackerSide.classList.remove('charge-right');
+                }, 600);
+            }
+
+            castleSiegeAnimating = true;
+            castleRefreshPending = false;
 
             socket.emit('attackCastle');
         }
+
+        function sleepCastle(ms) {
+            return new Promise(resolve => {
+                setTimeout(resolve, ms);
+            });
+        }
+
+        function getCastleArmyTotal(army) {
+            return (
+                (Number(army?.archer) || 0) +
+                (Number(army?.warrior) || 0) +
+                (Number(army?.cavalry) || 0)
+            );
+        }
+
+        function addCastleFeedLine(html) {
+            const feed =
+                document.getElementById('castleSiegeFeed');
+
+            if (!feed) return;
+
+            const line =
+                document.createElement('div');
+
+            line.innerHTML = html;
+            feed.appendChild(line);
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        function spawnCastleLoss(
+            side,
+            text,
+            strong = false
+        ) {
+            const target =
+                document.getElementById(
+                    side === 'attacker'
+                        ? 'castleAttackerSide'
+                        : 'castleDefenderSide'
+                );
+
+            if (!target) return;
+
+            const pop =
+                document.createElement('div');
+
+            pop.className =
+                'castle-floating-loss';
+
+            if (strong) {
+                pop.style.color = '#facc15';
+                pop.style.fontSize = '18px';
+            }
+
+            pop.innerText = text;
+
+            target.appendChild(pop);
+
+            setTimeout(() => {
+                pop.remove();
+            }, 950);
+        }
+
+        function spawnCastleArrows() {
+            const stage =
+                document.getElementById('castleSiegeStage');
+
+            if (!stage) return;
+
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const arrow =
+                        document.createElement('div');
+
+                    arrow.className =
+                        'castle-projectile';
+
+                    arrow.innerText = '➶';
+
+                    arrow.style.top =
+                        `${28 + Math.random() * 24}%`;
+
+                    arrow.style.animationDelay =
+                        `${Math.random() * .08}s`;
+
+                    stage.appendChild(arrow);
+
+                    setTimeout(() => {
+                        arrow.remove();
+                    }, 900);
+                }, i * 85);
+            }
+        }
+
+        function spawnCastleFire() {
+            const stage =
+                document.getElementById('castleSiegeStage');
+
+            if (!stage) return;
+
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const fire =
+                        document.createElement('div');
+
+                    fire.className = 'castle-fire';
+                    fire.innerText = '🔥';
+
+                    fire.style.right =
+                        `${12 + (i * 6)}%`;
+
+                    stage.appendChild(fire);
+
+                    setTimeout(() => {
+                        fire.remove();
+                    }, 1200);
+                }, i * 180);
+            }
+        }
+
+        function setCastleForce(
+            side,
+            percent,
+            label
+        ) {
+            const safe =
+                Math.max(
+                    0,
+                    Math.min(100, Number(percent) || 0)
+                );
+
+            const fill =
+                document.getElementById(
+                    side === 'attacker'
+                        ? 'castleForceAttacker'
+                        : 'castleForceDefender'
+                );
+
+            const text =
+                document.getElementById(
+                    side === 'attacker'
+                        ? 'castleForceTextAttacker'
+                        : 'castleForceTextDefender'
+                );
+
+            if (fill) {
+                fill.style.width = `${safe}%`;
+            }
+
+            if (text) {
+                text.innerText =
+                    label || `${Math.round(safe)}%`;
+            }
+        }
+
+        function calculateCastleRetention(
+            initialArmy,
+            remainingArmy
+        ) {
+            const before =
+                Math.max(
+                    1,
+                    getCastleArmyTotal(initialArmy)
+                );
+
+            const after =
+                Math.max(
+                    0,
+                    getCastleArmyTotal(remainingArmy)
+                );
+
+            return Math.max(
+                0,
+                Math.min(100, (after / before) * 100)
+            );
+        }
+
+        async function playCastleSiegeBattle(
+            battle,
+            finalMessage
+        ) {
+            if (!battle || activeTab !== 'barracks') {
+                castleSiegeAnimating = false;
+                return;
+            }
+
+            const token =
+                ++castleSiegeAnimationToken;
+
+            castleSiegeAnimating = true;
+
+            const phase =
+                document.getElementById('castleSiegePhase');
+
+            const attackerSide =
+                document.getElementById('castleAttackerSide');
+
+            const defenderSide =
+                document.getElementById('castleDefenderSide');
+
+            const defenderIcon =
+                document.getElementById('castleDefenderIcon');
+
+            const banner =
+                document.getElementById('castleSiegeBanner');
+
+            const btn =
+                document.getElementById('attackCastleBtn');
+
+            if (
+                !phase ||
+                !attackerSide ||
+                !defenderSide
+            ) {
+                castleSiegeAnimating = false;
+                socket.emit('getBarracksStatus');
+                return;
+            }
+
+            attackerSide.className =
+                'castle-side attacker';
+
+            defenderSide.className =
+                'castle-side defender';
+
+            if (banner) {
+                banner.className =
+                    'castle-siege-banner';
+
+                banner.innerHTML = '';
+            }
+
+            setCastleForce(
+                'attacker',
+                100,
+                `🔥 ${Number(
+                    battle.attacker?.battlePower || 0
+                ).toLocaleString('tr-TR')}`
+            );
+
+            setCastleForce(
+                'defender',
+                100,
+                `🛡️ ${Number(
+                    battle.defender?.battlePower || 0
+                ).toLocaleString('tr-TR')}`
+            );
+
+            addCastleFeedLine(
+                `⚔️ <strong>${escapeHTML(
+                    battle.attacker?.username || 'Saldıran'
+                )}</strong> ` +
+                `ordu gücü: ` +
+                `<span style="color:#60a5fa;">${Number(
+                    battle.attacker?.battlePower || 0
+                ).toLocaleString('tr-TR')}</span> ` +
+                `(Birlik ${Number(
+                    battle.attacker?.troopPower || 0
+                ).toLocaleString('tr-TR')} + ` +
+                `Komutan STR ${Number(
+                    battle.attacker?.commanderStr || 0
+                ).toLocaleString('tr-TR')})`
+            );
+
+            addCastleFeedLine(
+                `🏰 <strong>${escapeHTML(
+                    battle.defender?.username || 'Savunan'
+                )}</strong> ` +
+                `savunma gücü: ` +
+                `<span style="color:#ef4444;">${Number(
+                    battle.defender?.battlePower || 0
+                ).toLocaleString('tr-TR')}</span>`
+            );
+
+            await sleepCastle(700);
+
+            const attackerFinalRetention =
+                calculateCastleRetention(
+                    battle.attacker?.army,
+                    battle.attacker?.remainingArmy
+                );
+
+            const defenderFinalRetention =
+                calculateCastleRetention(
+                    battle.defender?.army,
+                    battle.defender?.remainingArmy
+                );
+
+            const phases =
+                Array.isArray(battle.phases)
+                    ? battle.phases
+                    : [];
+
+            for (
+                let i = 0;
+                i < phases.length;
+                i++
+            ) {
+                if (
+                    token !== castleSiegeAnimationToken ||
+                    activeTab !== 'barracks'
+                ) {
+                    castleSiegeAnimating = false;
+                    return;
+                }
+
+                const step = phases[i];
+
+                phase.innerText =
+                    `${step.icon || '⚔️'} ${step.name}`;
+
+                const progress =
+                    (i + 1) / Math.max(1, phases.length);
+
+                const attackerPercent =
+                    100 -
+                    (
+                        (100 - attackerFinalRetention) *
+                        progress
+                    );
+
+                const defenderPercent =
+                    100 -
+                    (
+                        (100 - defenderFinalRetention) *
+                        progress
+                    );
+
+                if (step.id === 'archery') {
+                    spawnCastleArrows();
+
+                    defenderSide.classList.add(
+                        'castle-hit'
+                    );
+
+                    addCastleFeedLine(
+                        `🏹 Okçular yaylım ateşine başladı! ` +
+                        `${Number(
+                            step.attackerUnits || 0
+                        ).toLocaleString('tr-TR')} saldıran okçu ` +
+                        `vs ${Number(
+                            step.defenderUnits || 0
+                        ).toLocaleString('tr-TR')} savunan okçu.`
+                    );
+
+                    spawnCastleLoss(
+                        'defender',
+                        '🏹 Yaylım!'
+                    );
+                }
+
+                if (step.id === 'infantry') {
+                    attackerSide.classList.add(
+                        'charge-right'
+                    );
+
+                    defenderSide.classList.add(
+                        'counter-charge'
+                    );
+
+                    addCastleFeedLine(
+                        `⚔️ Piyadeler surların önünde çarpışıyor!`
+                    );
+
+                    spawnCastleLoss(
+                        battle.attackerWon
+                            ? 'defender'
+                            : 'attacker',
+                        '⚔️ Çarpışma!'
+                    );
+                }
+
+                if (step.id === 'cavalry') {
+                    attackerSide.classList.add(
+                        'charge-right'
+                    );
+
+                    defenderSide.classList.add(
+                        'castle-hit'
+                    );
+
+                    addCastleFeedLine(
+                        `🐎 Süvariler son hızla hücuma kalktı!`
+                    );
+
+                    spawnCastleLoss(
+                        'defender',
+                        '🐎 Hücum!',
+                        true
+                    );
+                }
+
+                if (step.id === 'final') {
+                    spawnCastleFire();
+
+                    attackerSide.classList.add(
+                        'charge-right'
+                    );
+
+                    defenderSide.classList.add(
+                        'castle-hit'
+                    );
+
+                    addCastleFeedLine(
+                        `🧱 Koçbaşı kapıya vuruyor! Son taarruz başladı!`
+                    );
+
+                    spawnCastleLoss(
+                        battle.attackerWon
+                            ? 'defender'
+                            : 'attacker',
+                        battle.attackerWon
+                            ? '💥 SUR YARILDI!'
+                            : '🛡️ PÜSKÜRTÜLDÜ!',
+                        true
+                    );
+                }
+
+                setCastleForce(
+                    'attacker',
+                    attackerPercent,
+                    `${Math.max(
+                        0,
+                        Math.round(attackerPercent)
+                    )}% Ordu`
+                );
+
+                setCastleForce(
+                    'defender',
+                    defenderPercent,
+                    `${Math.max(
+                        0,
+                        Math.round(defenderPercent)
+                    )}% Savunma`
+                );
+
+                await sleepCastle(
+                    step.id === 'final'
+                        ? 1050
+                        : 900
+                );
+
+                attackerSide.classList.remove(
+                    'charge-right'
+                );
+
+                defenderSide.classList.remove(
+                    'counter-charge',
+                    'castle-hit'
+                );
+            }
+
+            if (
+                token !== castleSiegeAnimationToken ||
+                activeTab !== 'barracks'
+            ) {
+                castleSiegeAnimating = false;
+                return;
+            }
+
+            setCastleForce(
+                'attacker',
+                attackerFinalRetention,
+                `Kalan %${Math.round(
+                    attackerFinalRetention
+                )}`
+            );
+
+            setCastleForce(
+                'defender',
+                defenderFinalRetention,
+                `Kalan %${Math.round(
+                    defenderFinalRetention
+                )}`
+            );
+
+            const winnerSide =
+                battle.attackerWon
+                    ? attackerSide
+                    : defenderSide;
+
+            const loserSide =
+                battle.attackerWon
+                    ? defenderSide
+                    : attackerSide;
+
+            winnerSide.classList.add(
+                'castle-winner'
+            );
+
+            loserSide.classList.add(
+                'castle-loser'
+            );
+
+            if (battle.attackerWon) {
+                phase.innerText =
+                    '👑 KALE FETHEDİLDİ';
+
+                if (defenderIcon) {
+                    defenderIcon.innerText =
+                        '🏰👑';
+                }
+
+                addCastleFeedLine(
+                    `👑 <strong>${escapeHTML(
+                        battle.attacker?.username || 'Saldıran'
+                    )}</strong> kale kapısını kırdı ve Tahtı ele geçirdi!`
+                );
+            } else {
+                phase.innerText =
+                    '🛡️ KUŞATMA PÜSKÜRTÜLDÜ';
+
+                addCastleFeedLine(
+                    `🛡️ <strong>${escapeHTML(
+                        battle.defender?.username || 'Savunan'
+                    )}</strong> kaleyi başarıyla savundu.`
+                );
+            }
+
+            addCastleFeedLine(
+                `💀 Saldıran kayıpları: ` +
+                `🏹 ${battle.attacker?.losses?.archer || 0} • ` +
+                `⚔️ ${battle.attacker?.losses?.warrior || 0} • ` +
+                `🐎 ${battle.attacker?.losses?.cavalry || 0}`
+            );
+
+            addCastleFeedLine(
+                `💀 Savunan kayıpları: ` +
+                `🏹 ${battle.defender?.losses?.archer || 0} • ` +
+                `⚔️ ${battle.defender?.losses?.warrior || 0} • ` +
+                `🐎 ${battle.defender?.losses?.cavalry || 0}`
+            );
+
+            if (banner) {
+                banner.className =
+                    `castle-siege-banner show ${
+                        battle.attackerWon
+                            ? 'win'
+                            : 'lose'
+                    }`;
+
+                banner.innerHTML =
+                    battle.attackerWon
+                        ? `
+                            👑 KALE FETHEDİLDİ
+                            <div style="
+                                font-size:11px;
+                                margin-top:6px;
+                            ">
+                                +${Number(
+                                    battle.rewards?.gold || 0
+                                ).toLocaleString('tr-TR')}
+                                Altın 🪙
+                                •
+                                +${Number(
+                                    battle.rewards?.rubies || 0
+                                ).toLocaleString('tr-TR')}
+                                Yakut 💎
+                            </div>
+                        `
+                        : `
+                            🛡️ KUŞATMA BAŞARISIZ
+                            <div style="
+                                font-size:11px;
+                                margin-top:6px;
+                            ">
+                                Ordun geri çekiliyor.
+                            </div>
+                        `;
+            }
+
+            const logEl =
+                document.getElementById(
+                    'barracksLogResult'
+                );
+
+            if (logEl) {
+                logEl.innerText =
+                    finalMessage ||
+                    'Kale savaşı tamamlandı.';
+
+                logEl.style.fontWeight = 'bold';
+
+                logEl.style.borderColor =
+                    battle.attackerWon
+                        ? '#d4af37'
+                        : '#ef4444';
+
+                logEl.style.color =
+                    battle.attackerWon
+                        ? '#f3cf7a'
+                        : '#fca5a5';
+
+                logEl.style.background =
+                    battle.attackerWon
+                        ? 'rgba(212,175,55,.08)'
+                        : 'rgba(239,68,68,.08)';
+            }
+
+            if (btn) {
+                btn.disabled = true;
+            }
+
+            await sleepCastle(1800);
+
+            if (
+                token === castleSiegeAnimationToken &&
+                activeTab === 'barracks'
+            ) {
+                castleSiegeAnimating = false;
+                castleRefreshPending = false;
+
+                socket.emit('getBarracksStatus');
+            } else {
+                castleSiegeAnimating = false;
+            }
+        }
+
 
         function upgradeWithBlessing(itemIndex, nextLevel, btnId) {
             const select = document.getElementById(`blessingSelect_${itemIndex}`);
@@ -2397,11 +3873,16 @@
             barracksState = {
                 troops: res.troops || barracksState?.troops,
                 castle: res.castle || barracksState?.castle,
+                troopPower: res.troopPower || 0,
+                commanderStr: res.commanderStr || 0,
                 armyPower: res.armyPower || 0,
                 armyCount: res.armyCount || 0
             };
 
-            if (activeTab === 'barracks') {
+            if (
+                activeTab === 'barracks' &&
+                !castleSiegeAnimating
+            ) {
                 renderPanelContent();
             }
         });
@@ -2411,9 +3892,25 @@
 
             if (!barracksState) barracksState = {};
 
-            if (res.castle) barracksState.castle = res.castle;
-            if (res.armyPower !== undefined) barracksState.armyPower = res.armyPower;
-            if (res.armyCount !== undefined) barracksState.armyCount = res.armyCount;
+            if (res.castle) {
+                barracksState.castle = res.castle;
+            }
+
+            if (res.troopPower !== undefined) {
+                barracksState.troopPower = res.troopPower;
+            }
+
+            if (res.commanderStr !== undefined) {
+                barracksState.commanderStr = res.commanderStr;
+            }
+
+            if (res.armyPower !== undefined) {
+                barracksState.armyPower = res.armyPower;
+            }
+
+            if (res.armyCount !== undefined) {
+                barracksState.armyCount = res.armyCount;
+            }
 
             if (activeTab === 'barracks') {
                 renderPanelContent();
@@ -2430,41 +3927,85 @@
         });
 
         socket.on('castleBattleResult', (res) => {
-            if (res.userData) updateHeader(res.userData);
-
-            if (!barracksState) barracksState = {};
-            if (res.castle) barracksState.castle = res.castle;
-
-            if (activeTab === 'barracks') {
-                renderPanelContent();
+            if (res.userData) {
+                updateHeader(res.userData);
             }
 
-            const logEl = document.getElementById('barracksLogResult');
+            if (!barracksState) {
+                barracksState = {};
+            }
+
+            if (res.castle) {
+                barracksState.castle = res.castle;
+            }
+
+            if (
+                res.battleCompleted &&
+                res.battle &&
+                activeTab === 'barracks'
+            ) {
+                playCastleSiegeBattle(
+                    res.battle,
+                    res.message
+                );
+
+                return;
+            }
+
+            castleSiegeAnimating = false;
+
+            const btn =
+                document.getElementById(
+                    'attackCastleBtn'
+                );
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = '⚔️ KALEYİ KUŞAT';
+            }
+
+            const logEl =
+                document.getElementById(
+                    'barracksLogResult'
+                );
 
             if (logEl) {
-                logEl.innerText = res.message || 'Kale savaşı tamamlandı.';
+                logEl.innerText =
+                    res.message ||
+                    'Kale savaşı tamamlandı.';
+
                 logEl.style.fontWeight = 'bold';
-                logEl.style.borderColor = res.throneChanged
-                    ? '#d4af37'
-                    : (res.success ? '#22c55e' : '#ef4444');
-                logEl.style.color = res.throneChanged
-                    ? '#f3cf7a'
-                    : (res.success ? '#86efac' : '#fca5a5');
-                logEl.style.background = res.throneChanged
-                    ? 'rgba(212,175,55,.08)'
-                    : (res.success ? 'rgba(34,197,94,.08)' : 'rgba(239,68,68,.08)');
+                logEl.style.borderColor =
+                    res.success
+                        ? '#22c55e'
+                        : '#ef4444';
+
+                logEl.style.color =
+                    res.success
+                        ? '#86efac'
+                        : '#fca5a5';
             }
         });
 
         socket.on('castleRefresh', () => {
+            if (castleSiegeAnimating) {
+                castleRefreshPending = true;
+                return;
+            }
+
             if (activeTab === 'barracks') {
                 socket.emit('getBarracksStatus');
             }
         });
 
         socket.on('castleDefenseNotice', (res) => {
-            if (activeTab === 'barracks') {
+            if (
+                activeTab === 'barracks' &&
+                !castleSiegeAnimating
+            ) {
                 socket.emit('getBarracksStatus');
+            } else if (castleSiegeAnimating) {
+                castleRefreshPending = true;
             }
 
             const logEl = document.getElementById('barracksLogResult');
@@ -2477,8 +4018,13 @@
         });
 
         socket.on('throneAnnouncement', (res) => {
-            if (activeTab === 'barracks') {
+            if (
+                activeTab === 'barracks' &&
+                !castleSiegeAnimating
+            ) {
                 socket.emit('getBarracksStatus');
+            } else if (castleSiegeAnimating) {
+                castleRefreshPending = true;
             }
 
             const logEl = document.getElementById('barracksLogResult');
