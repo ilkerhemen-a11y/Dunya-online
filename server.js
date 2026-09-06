@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-adventure-pack-v1';
+const GAME_BUILD_ID = '2026-09-06-parallel-save-fix-v2';
 
 const app = express();
 const server = http.createServer(app);
@@ -4496,8 +4496,11 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         try {
+            // Salt-okuma isteği: aynı kullanıcı dokümanı üzerinde eşzamanlı
+            // save() çağrısı ParallelSaveError oluşturabiliyordu.
+            // Gün/hafta/sezon resetleri in-memory uygulanır; gerçek bir write
+            // işlemi geldiğinde normal user.save() ile kalıcılaşır.
             ensureAdventureState(user);
-            await user.save();
 
             socket.emit(
                 'adventureHubStatus',
@@ -5258,8 +5261,9 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         try {
+            // Salt-okuma isteği. Status yenilemesi sırasında user.save()
+            // çağırmak aynı document'in paralel kaydına neden oluyordu.
             ensureAdventureState(user);
-            await user.save();
 
             socket.emit(
                 'worldBossStatus',
