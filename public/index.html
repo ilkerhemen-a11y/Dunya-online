@@ -797,6 +797,66 @@
             }
         }
 
+
+        /* === MARKET 2.0 === */
+        .market-tabs {
+            display:flex;
+            flex-wrap:wrap;
+            gap:7px;
+            margin-bottom:12px;
+        }
+
+        .market-tab-btn {
+            flex:1 1 120px;
+            border:1px solid #433222;
+            border-radius:6px;
+            padding:8px 10px;
+            background:#120e0c;
+            color:#9c8e7b;
+            font-size:11px;
+            font-weight:700;
+            cursor:pointer;
+            transition:.18s ease;
+        }
+
+        .market-tab-btn:hover {
+            border-color:#6b4f35;
+            color:#f0e6d2;
+        }
+
+        .market-tab-btn.active {
+            color:#f3cf7a;
+            border-color:#d4af37;
+            background:#1c1510;
+            box-shadow:0 0 12px rgba(212,175,55,.08);
+        }
+
+        .market-prep-strip {
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+            gap:7px;
+            margin-bottom:12px;
+        }
+
+        .market-prep-chip {
+            border:1px solid #433222;
+            border-radius:6px;
+            padding:7px 9px;
+            background:#0d0a08;
+            color:#9c8e7b;
+            font-size:10px;
+        }
+
+        .market-prep-chip.ready {
+            color:#86efac;
+            border-color:#166534;
+            background:rgba(22,101,52,.08);
+        }
+
+        .market-card.market-special {
+            border-color:#7c3aed;
+            box-shadow:0 0 10px rgba(124,58,237,.08);
+        }
 </style>
 </head>
 <body>
@@ -886,6 +946,7 @@
         let castleSiegeAnimating = false;
         let castleSiegeAnimationToken = 0;
         let castleRefreshPending = false;
+        let activeMarketCategory = 'potions';
 
         function escapeHTML(str) {
             if (!str) return "";
@@ -1472,21 +1533,330 @@
                     </div>
                 `;
             } else if(activeTab === 'market') {
+                const siegePrep = u.siegePreparations || {};
+                const lastLosses = u.lastCastleLosses || {};
+
+                const lastLossTotal =
+                    (Number(lastLosses.archer) || 0) +
+                    (Number(lastLosses.warrior) || 0) +
+                    (Number(lastLosses.cavalry) || 0);
+
                 body.innerHTML = `
-                    <div class="market-list">
-                        <div class="market-card" style="border-color: #d4af37; background: linear-gradient(135deg, #1f170e 0%, #120e0c 100%);">
-                            <div class="market-info">
-                                <h4 style="color: #ffdf73;">📦 Altın Sandık</h4>
-                                <p>1 adet Altın Anahtar harcayarak açılır. İçinden kesin veya şansa bağlı <strong style="color:#ef4444;">10 adet Yakut</strong> kazanma şansı yakala!</p>
-                                <span class="forge-cost" style="color: #ffdf73;">Gereksinim: 1x Altın Anahtar (🔑 Mevcut: ${u.goldKeys || 0})</span>
-                            </div>
-                            <button id="goldChestBtn" class="btn-quest" style="background: linear-gradient(135deg, #d4af37 0%, #997415 100%);" onclick="doAction('openGoldChest', {}, 'goldChestBtn')">Sandığı Aç</button>
-                        </div>
-                        <div class="market-card"><div class="market-info"><h4>Can İksiri</h4><p>HP'yi tamamen doldurur.</p><span class="forge-cost">Maliyet: 25.000 Altın</span></div><button id="m1Btn" class="btn-quest" onclick="doAction('usePotion', {}, 'm1Btn')">Satın Al ve İç</button></div>
-                        <div class="market-card"><div class="market-info"><h4>Sefer İksiri</h4><p>Sefer limitini anında 20/20 yapar.</p><span class="forge-cost">Maliyet: 25.000 Altın</span></div><button id="m2Btn" class="btn-quest" onclick="doAction('refillSefer', {}, 'm2Btn')">Satın Al</button></div>
-                        <div class="market-card" style="border-color: #d4af37;"><div class="market-info"><h4 style="color: #ffdf73;">Ganimet Sandığı</h4><p>Nadir veya Epik seviye eşya düşürme şansı!</p><span class="forge-cost" style="color: #d4af37;">Maliyet: 10.000 Altın</span></div><button id="m3Btn" class="btn-quest" onclick="doAction('buyMysteryBox', {}, 'm3Btn')">Sandığı Aç</button></div>
+                    <div style="
+                        text-align:center;
+                        margin-bottom:12px;
+                        background:linear-gradient(135deg,#1b130d,#0d0907);
+                        border:1px solid #6b4f35;
+                        border-radius:7px;
+                        padding:12px;
+                    ">
+                        <h3 style="color:#f3cf7a; font-size:15px;">
+                            🛒 İmparatorluk Marketi
+                        </h3>
+
+                        <p style="
+                            color:#9c8e7b;
+                            font-size:11px;
+                            margin-top:5px;
+                            line-height:1.5;
+                        ">
+                            Karakterini ve ordunu savaşa hazırla.
+                            Kutsama Kağıdı ve özel Epik eşyalar burada satılmaz;
+                            Metin, Zindan ve Suluhan değerini korur.
+                        </p>
                     </div>
-                    <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Market işlemleri burada görünecektir...</div>
+
+                    <div class="market-prep-strip">
+                        <div class="market-prep-chip ${siegePrep.armyRations ? 'ready' : ''}">
+                            🍖 Erzak:
+                            <strong>${siegePrep.armyRations ? 'HAZIR' : 'Yok'}</strong>
+                        </div>
+
+                        <div class="market-prep-chip ${siegePrep.warDrum ? 'ready' : ''}">
+                            🥁 Davul:
+                            <strong>${siegePrep.warDrum ? 'HAZIR' : 'Yok'}</strong>
+                        </div>
+
+                        <div class="market-prep-chip ${siegePrep.commanderEdict ? 'ready' : ''}">
+                            📜 Ferman:
+                            <strong>${siegePrep.commanderEdict ? 'HAZIR' : 'Yok'}</strong>
+                        </div>
+
+                        <div class="market-prep-chip ${lastLosses.available && lastLossTotal > 0 ? 'ready' : ''}">
+                            🩹 Tedavi:
+                            <strong>
+                                ${
+                                    lastLosses.available && lastLossTotal > 0
+                                        ? `${lastLossTotal} kayıp kayıtlı`
+                                        : 'Kayıp yok'
+                                }
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="market-tabs">
+                        <button
+                            class="market-tab-btn ${activeMarketCategory === 'potions' ? 'active' : ''}"
+                            onclick="setMarketCategory('potions')"
+                        >❤️ İksirler</button>
+
+                        <button
+                            class="market-tab-btn ${activeMarketCategory === 'army' ? 'active' : ''}"
+                            onclick="setMarketCategory('army')"
+                        >🛡️ Ordu</button>
+
+                        <button
+                            class="market-tab-btn ${activeMarketCategory === 'chests' ? 'active' : ''}"
+                            onclick="setMarketCategory('chests')"
+                        >🎁 Sandıklar</button>
+
+                        <button
+                            class="market-tab-btn ${activeMarketCategory === 'special' ? 'active' : ''}"
+                            onclick="setMarketCategory('special')"
+                        >👑 Özel</button>
+                    </div>
+
+                    <div class="market-list">
+                        ${
+                            activeMarketCategory === 'potions'
+                            ? `
+                                <div class="market-card">
+                                    <div class="market-info">
+                                        <h4>❤️ Can İksiri</h4>
+                                        <p>
+                                            Ekipman VIT bonusları dahil HP'ni tamamen doldurur.
+                                        </p>
+                                        <span class="forge-cost">
+                                            Maliyet: 25.000 Altın 🪙
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="m1Btn"
+                                        class="btn-quest"
+                                        onclick="doAction('usePotion', {}, 'm1Btn')"
+                                    >Satın Al ve İç</button>
+                                </div>
+
+                                <div class="market-card">
+                                    <div class="market-info">
+                                        <h4>🧭 Sefer İksiri</h4>
+                                        <p>
+                                            Sefer hakkını anında 20/20 yapar ve yenilenme sayacını sıfırlar.
+                                        </p>
+                                        <span class="forge-cost">
+                                            Maliyet: 25.000 Altın 🪙
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="m2Btn"
+                                        class="btn-quest"
+                                        onclick="doAction('refillSefer', {}, 'm2Btn')"
+                                    >Satın Al</button>
+                                </div>
+                            `
+                            : ''
+                        }
+
+                        ${
+                            activeMarketCategory === 'army'
+                            ? `
+                                <div class="market-card">
+                                    <div class="market-info">
+                                        <h4>🍖 Ordu Erzağı</h4>
+                                        <p>
+                                            Bir sonraki Kale Kuşatmasında asker kaybını %10 azaltır.
+                                            Kuşatma başlayınca otomatik tüketilir.
+                                        </p>
+                                        <span class="forge-cost">
+                                            Maliyet: 15.000 Altın 🪙
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="armyRationsBtn"
+                                        class="btn-quest"
+                                        ${siegePrep.armyRations ? 'disabled' : ''}
+                                        onclick="doAction('buyArmyRations', {}, 'armyRationsBtn')"
+                                    >
+                                        ${siegePrep.armyRations ? '✅ Hazır' : 'Hazırla'}
+                                    </button>
+                                </div>
+
+                                <div class="market-card">
+                                    <div class="market-info">
+                                        <h4>🩹 Ordu Hekimi</h4>
+                                        <p>
+                                            Son Kale savaşında kaybettiğin birliklerin yaklaşık %10'unu orduna geri kazandırır.
+                                        </p>
+
+                                        <div style="
+                                            color:#9c8e7b;
+                                            font-size:10px;
+                                            margin-top:4px;
+                                        ">
+                                            Son kayıp:
+                                            🏹 ${Number(lastLosses.archer || 0)}
+                                            • ⚔️ ${Number(lastLosses.warrior || 0)}
+                                            • 🐎 ${Number(lastLosses.cavalry || 0)}
+                                        </div>
+
+                                        <span class="forge-cost">
+                                            Maliyet: 40.000 Altın 🪙
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="armyDoctorBtn"
+                                        class="btn-quest"
+                                        ${
+                                            !lastLosses.available || lastLossTotal <= 0
+                                                ? 'disabled'
+                                                : ''
+                                        }
+                                        onclick="doAction('useArmyDoctor', {}, 'armyDoctorBtn')"
+                                    >
+                                        ${
+                                            lastLosses.available && lastLossTotal > 0
+                                                ? 'Tedavi Et'
+                                                : 'Kayıp Yok'
+                                        }
+                                    </button>
+                                </div>
+                            `
+                            : ''
+                        }
+
+                        ${
+                            activeMarketCategory === 'chests'
+                            ? `
+                                <div
+                                    class="market-card"
+                                    style="
+                                        border-color:#d4af37;
+                                        background:linear-gradient(135deg,#1f170e,#120e0c);
+                                    "
+                                >
+                                    <div class="market-info">
+                                        <h4 style="color:#ffdf73;">
+                                            📦 Altın Sandık
+                                        </h4>
+
+                                        <p>
+                                            1 Altın Anahtar harcar ve kesin 10 Yakut verir.
+                                        </p>
+
+                                        <span class="forge-cost" style="color:#ffdf73;">
+                                            🔑 Mevcut: ${u.goldKeys || 0}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="goldChestBtn"
+                                        class="btn-quest"
+                                        style="
+                                            background:linear-gradient(135deg,#d4af37,#997415);
+                                        "
+                                        onclick="doAction('openGoldChest', {}, 'goldChestBtn')"
+                                    >Sandığı Aç</button>
+                                </div>
+
+                                <div
+                                    class="market-card"
+                                    style="border-color:#d4af37;"
+                                >
+                                    <div class="market-info">
+                                        <h4 style="color:#ffdf73;">
+                                            🎁 Hazine Sandığı
+                                        </h4>
+
+                                        <p>
+                                            %70 ekipman, %20 Altın, %10 Yakut ödülü.
+                                            Ekipman kısmında Nadir ve Epik şansı bulunur.
+                                        </p>
+
+                                        <span class="forge-cost" style="color:#d4af37;">
+                                            Maliyet: 10.000 Altın 🪙
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="m3Btn"
+                                        class="btn-quest"
+                                        onclick="doAction('buyMysteryBox', {}, 'm3Btn')"
+                                    >Sandığı Aç</button>
+                                </div>
+                            `
+                            : ''
+                        }
+
+                        ${
+                            activeMarketCategory === 'special'
+                            ? `
+                                <div class="market-card market-special">
+                                    <div class="market-info">
+                                        <h4 style="color:#c4b5fd;">
+                                            🥁 Savaş Davulu
+                                        </h4>
+
+                                        <p>
+                                            Bir sonraki Kale Kuşatmasında toplam saldırı gücüne %5 bonus verir.
+                                            Aynı anda yalnızca 1 Davul hazırlanabilir.
+                                        </p>
+
+                                        <span class="forge-cost" style="color:#c4b5fd;">
+                                            Maliyet: 25 Yakut 💎
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="warDrumBtn"
+                                        class="btn-quest"
+                                        ${siegePrep.warDrum ? 'disabled' : ''}
+                                        onclick="doAction('buyWarDrum', {}, 'warDrumBtn')"
+                                    >
+                                        ${siegePrep.warDrum ? '✅ Hazır' : 'Hazırla'}
+                                    </button>
+                                </div>
+
+                                <div class="market-card market-special">
+                                    <div class="market-info">
+                                        <h4 style="color:#c4b5fd;">
+                                            📜 Komutan Fermanı
+                                        </h4>
+
+                                        <p>
+                                            Bir sonraki Kale Kuşatmasında karakterinin STR katkısını %25 artırır.
+                                            Ekipman STR bonusların da bu hesaba dahildir.
+                                        </p>
+
+                                        <span class="forge-cost" style="color:#c4b5fd;">
+                                            Maliyet: 50 Yakut 💎
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        id="commanderEdictBtn"
+                                        class="btn-quest"
+                                        ${siegePrep.commanderEdict ? 'disabled' : ''}
+                                        onclick="doAction('buyCommanderEdict', {}, 'commanderEdictBtn')"
+                                    >
+                                        ${siegePrep.commanderEdict ? '✅ Hazır' : 'Hazırla'}
+                                    </button>
+                                </div>
+                            `
+                            : ''
+                        }
+                    </div>
+
+                    <div
+                        id="marketLogResult"
+                        class="quest-log"
+                        style="margin-top:15px;"
+                    >
+                        Market işlemleri burada görünecektir...
+                    </div>
                 `;
             } else if(activeTab === 'playerMarket') {
                 body.innerHTML = `
@@ -2786,6 +3156,18 @@
             });
         }
 
+        function setMarketCategory(category) {
+            const allowed = ['potions', 'army', 'chests', 'special'];
+
+            if (!allowed.includes(category)) return;
+
+            activeMarketCategory = category;
+
+            if (activeTab === 'market') {
+                renderPanelContent();
+            }
+        }
+
         function doAction(event, payload, btnId) {
             cooldownButton(btnId, 1000);
             socket.emit(event, payload);
@@ -3123,6 +3505,31 @@
                     battle.defender?.battlePower || 0
                 ).toLocaleString('tr-TR')}</span>`
             );
+
+            const prep = battle.attacker?.preparationsUsed || {};
+
+            if (prep.armyRations) {
+                addCastleFeedLine(
+                    `🍖 <strong>Ordu Erzağı</strong> kullanıldı — asker kayıpları %10 azaltıldı.`
+                );
+            }
+
+            if (prep.warDrum) {
+                addCastleFeedLine(
+                    `🥁 <strong>Savaş Davulu</strong> çalıyor — toplam saldırı gücü %5 arttı.`
+                );
+            }
+
+            if (prep.commanderEdict) {
+                addCastleFeedLine(
+                    `📜 <strong>Komutan Fermanı</strong> aktif — STR katkısı %25 arttı ` +
+                    `(${Number(
+                        battle.attacker?.commanderStr || 0
+                    ).toLocaleString('tr-TR')} → ${Number(
+                        battle.attacker?.effectiveCommanderStr || 0
+                    ).toLocaleString('tr-TR')}).`
+                );
+            }
 
             await sleepCastle(700);
 
@@ -3865,7 +4272,39 @@
                     : 'rgba(239,68,68,.08)';
             }
         });
-        socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
+        socket.on('marketResult', (res) => {
+            if (res.userData) {
+                updateHeader(res.userData);
+            }
+
+            if (activeTab === 'market') {
+                renderPanelContent();
+            }
+
+            const logEl = document.getElementById('marketLogResult');
+
+            if (logEl) {
+                logEl.innerText =
+                    res.message ||
+                    'Market işlemi tamamlandı.';
+
+                logEl.style.fontWeight = 'bold';
+                logEl.style.borderColor =
+                    res.success
+                        ? '#22c55e'
+                        : '#ef4444';
+
+                logEl.style.color =
+                    res.success
+                        ? '#86efac'
+                        : '#fca5a5';
+
+                logEl.style.background =
+                    res.success
+                        ? 'rgba(34,197,94,.08)'
+                        : 'rgba(239,68,68,.08)';
+            }
+        });
         socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
         socket.on('barracksStatus', (res) => {
             if (res.userData) updateHeader(res.userData);
