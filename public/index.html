@@ -1614,6 +1614,11 @@
                             class="market-tab-btn ${activeMarketCategory === 'special' ? 'active' : ''}"
                             onclick="setMarketCategory('special')"
                         >👑 Özel</button>
+
+                        <button
+                            class="market-tab-btn ${activeMarketCategory === 'exchange' ? 'active' : ''}"
+                            onclick="setMarketCategory('exchange')"
+                        >💱 Sarraf</button>
                     </div>
 
                     <div class="market-list">
@@ -1844,6 +1849,134 @@
                                     >
                                         ${siegePrep.commanderEdict ? '✅ Hazır' : 'Hazırla'}
                                     </button>
+                                </div>
+                            `
+                            : ''
+                        }
+
+                        ${
+                            activeMarketCategory === 'exchange'
+                            ? `
+                                <div
+                                    class="market-card"
+                                    style="
+                                        display:block;
+                                        border-color:#d4af37;
+                                        background:linear-gradient(135deg,#1d150d,#0f0b08);
+                                        text-align:center;
+                                        padding:16px;
+                                    "
+                                >
+                                    <div style="font-size:44px; margin-bottom:5px;">
+                                        🧔💰
+                                    </div>
+
+                                    <h3 style="color:#f3cf7a; margin-bottom:5px;">
+                                        Sarraf
+                                    </h3>
+
+                                    <p style="
+                                        color:#9c8e7b;
+                                        font-size:11px;
+                                        line-height:1.5;
+                                        max-width:520px;
+                                        margin:0 auto 12px auto;
+                                    ">
+                                        Altın ve Yakut değişimi yapar.
+                                        Alış ve satış kuru birbirinden farklıdır.
+                                    </p>
+
+                                    <div style="
+                                        display:grid;
+                                        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+                                        gap:10px;
+                                        margin-top:12px;
+                                    ">
+                                        <div style="
+                                            border:1px solid #433222;
+                                            border-radius:7px;
+                                            padding:12px;
+                                            background:#0d0a08;
+                                        ">
+                                            <div style="font-size:24px;">💎 ➜ 🪙</div>
+                                            <div style="
+                                                color:#f0e6d2;
+                                                font-weight:bold;
+                                                margin-top:5px;
+                                            ">
+                                                Yakut Bozdur
+                                            </div>
+
+                                            <div style="
+                                                color:#f3cf7a;
+                                                font-size:12px;
+                                                margin-top:5px;
+                                            ">
+                                                1 Yakut 💎 = 100 Altın 🪙
+                                            </div>
+
+                                            <button
+                                                id="rubyToGoldBtn"
+                                                class="btn-quest"
+                                                style="width:100%; margin-top:10px;"
+                                                onclick="doAction(
+                                                    'exchangeRubyForGold',
+                                                    {},
+                                                    'rubyToGoldBtn'
+                                                )"
+                                            >
+                                                1 Yakut Bozdur
+                                            </button>
+                                        </div>
+
+                                        <div style="
+                                            border:1px solid #433222;
+                                            border-radius:7px;
+                                            padding:12px;
+                                            background:#0d0a08;
+                                        ">
+                                            <div style="font-size:24px;">🪙 ➜ 💎</div>
+                                            <div style="
+                                                color:#f0e6d2;
+                                                font-weight:bold;
+                                                margin-top:5px;
+                                            ">
+                                                Yakut Satın Al
+                                            </div>
+
+                                            <div style="
+                                                color:#c4b5fd;
+                                                font-size:12px;
+                                                margin-top:5px;
+                                            ">
+                                                1.000 Altın 🪙 = 1 Yakut 💎
+                                            </div>
+
+                                            <button
+                                                id="goldToRubyBtn"
+                                                class="btn-quest"
+                                                style="width:100%; margin-top:10px;"
+                                                onclick="doAction(
+                                                    'exchangeGoldForRuby',
+                                                    {},
+                                                    'goldToRubyBtn'
+                                                )"
+                                            >
+                                                1 Yakut Satın Al
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style="
+                                        margin-top:12px;
+                                        color:#7c6f61;
+                                        font-size:9px;
+                                    ">
+                                        Mevcut Varlığın:
+                                        🪙 ${(u.balance || 0).toLocaleString('tr-TR')} Altın
+                                        •
+                                        💎 ${(u.rubies || 0).toLocaleString('tr-TR')} Yakut
+                                    </div>
                                 </div>
                             `
                             : ''
@@ -3157,7 +3290,7 @@
         }
 
         function setMarketCategory(category) {
-            const allowed = ['potions', 'army', 'chests', 'special'];
+            const allowed = ['potions', 'army', 'chests', 'special', 'exchange'];
 
             if (!allowed.includes(category)) return;
 
