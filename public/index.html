@@ -84,6 +84,12 @@
         .rarity-Sıradan { color: #d4c5b9; }
         .rarity-Nadir { color: #3b82f6; text-shadow: 0 0 5px rgba(59,130,246,0.5); }
         .rarity-Epik { color: #a855f7; font-weight: bold; text-shadow: 0 0 8px rgba(168,85,247,0.7); }
+        .rarity-Efsanevi {
+            color: #facc15;
+            font-weight: 900;
+            text-shadow: 0 0 6px rgba(250,204,21,.65), 0 0 13px rgba(249,115,22,.35);
+            animation: legendaryTextPulse 1.9s ease-in-out infinite;
+        }
         
         .item-name { font-size: 12px; font-weight: bold; }
         .item-bonus { font-size: 10px; color: #22c55e; font-weight: 600; }
@@ -1700,6 +1706,74 @@
             0%,100% { box-shadow: 0 0 0 rgba(239,68,68,0); }
             50% { box-shadow: 0 0 18px rgba(239,68,68,.18); }
         }
+
+        /* === GENEL DURUM 2.0 / KARAKTER VİTRİNİ === */
+        .overview-v2 { position: relative; }
+        .overview-hero { position:relative; overflow:hidden; border:1px solid #6b4f35; border-radius:10px; padding:15px; margin-bottom:12px; background:radial-gradient(circle at 50% 5%,rgba(212,175,55,.12),transparent 34%),linear-gradient(135deg,#1b130d,#0b0806 72%); box-shadow:inset 0 0 35px rgba(212,175,55,.025),0 7px 20px rgba(0,0,0,.35); }
+        .overview-hero.throne-active { border-color:#d4af37; box-shadow:inset 0 0 42px rgba(212,175,55,.08),0 0 25px rgba(212,175,55,.14); }
+        .overview-hero.throne-active::before { content:""; position:absolute; inset:-50%; pointer-events:none; background:conic-gradient(transparent,rgba(250,204,21,.08),transparent,rgba(249,115,22,.06),transparent); animation:throneAuraRotate 8s linear infinite; }
+        .overview-title-row { position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+        .overview-player-name { color:#f3cf7a; font-size:18px; font-weight:900; letter-spacing:.4px; }
+        .overview-throne-badge { display:inline-flex; align-items:center; gap:5px; padding:6px 10px; border:1px solid #d4af37; border-radius:999px; background:rgba(212,175,55,.10); color:#facc15; font-size:10px; font-weight:900; animation:throneBadgePulse 1.8s ease-in-out infinite; }
+        .overview-power-grid { position:relative; z-index:2; display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:11px; }
+        .overview-power-card { border:1px solid #433222; border-radius:7px; padding:8px; background:rgba(8,6,5,.74); text-align:center; color:#9c8e7b; font-size:9px; }
+        .overview-power-card strong { display:block; margin-top:3px; color:#f3cf7a; font-size:13px; }
+        .character-showcase-v2 { display:grid; grid-template-columns:minmax(140px,1fr) minmax(190px,260px) minmax(140px,1fr); gap:10px; align-items:center; margin-bottom:12px; padding:13px; border:1px solid #433222; border-radius:10px; background:radial-gradient(circle at 50% 45%,rgba(59,130,246,.08),transparent 30%),linear-gradient(180deg,#100c09,#080605); }
+        .character-showcase-v2.is-ruler { background:radial-gradient(circle at 50% 42%,rgba(250,204,21,.15),transparent 32%),radial-gradient(circle at 50% 80%,rgba(249,115,22,.07),transparent 35%),linear-gradient(180deg,#171006,#080605); }
+        .showcase-slot-column { display:grid; gap:8px; }
+        .showcase-eq-slot { position:relative; min-height:66px; display:grid; grid-template-columns:42px 1fr; gap:7px; align-items:center; border:1px solid #33241b; border-radius:7px; padding:7px; background:rgba(13,10,8,.90); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+        .showcase-eq-slot:hover { transform:translateY(-2px); border-color:#6b4f35; z-index:20; }
+        .showcase-eq-slot.empty { opacity:.55; cursor:default; }
+        .showcase-eq-slot.rarity-Nadir { border-color:rgba(59,130,246,.72); box-shadow:inset 0 0 12px rgba(59,130,246,.06); }
+        .showcase-eq-slot.rarity-Epik { border-color:rgba(168,85,247,.78); box-shadow:inset 0 0 14px rgba(168,85,247,.08); }
+        .showcase-eq-slot.rarity-Efsanevi { border-color:#d4af37; box-shadow:inset 0 0 16px rgba(250,204,21,.08),0 0 14px rgba(250,204,21,.12); animation:legendaryFramePulse 2.1s ease-in-out infinite; }
+        .showcase-slot-icon { height:42px; display:flex; align-items:center; justify-content:center; border:1px solid #33241b; border-radius:6px; background:#080605; font-size:27px; overflow:hidden; }
+        .showcase-slot-icon img { width:100%; height:100%; object-fit:cover; }
+        .showcase-slot-name { color:#d4c5b9; font-size:10px; font-weight:800; line-height:1.25; }
+        .showcase-slot-label { margin-top:2px; color:#6f6257; font-size:8px; }
+        .showcase-tooltip { position:absolute; z-index:60; left:calc(100% + 8px); top:0; width:205px; opacity:0; visibility:hidden; pointer-events:none; border:1px solid #6b4f35; border-radius:7px; padding:9px; background:rgba(7,5,4,.98); box-shadow:0 8px 24px rgba(0,0,0,.65); transition:opacity .15s ease; color:#d4c5b9; font-size:9px; line-height:1.5; }
+        .showcase-slot-column.right .showcase-tooltip { left:auto; right:calc(100% + 8px); }
+        .showcase-eq-slot:hover .showcase-tooltip { opacity:1; visibility:visible; }
+        .showcase-character-center { position:relative; min-height:330px; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden; border:1px solid #433222; border-radius:12px; background:radial-gradient(circle at 50% 38%,rgba(96,165,250,.10),transparent 32%),linear-gradient(180deg,#16100c,#090705); }
+        .showcase-character-center.legendary-aura { border-color:#d4af37; background:radial-gradient(circle at 50% 37%,rgba(250,204,21,.18),transparent 30%),radial-gradient(circle at 50% 70%,rgba(249,115,22,.08),transparent 34%),linear-gradient(180deg,#191106,#090705); }
+        .showcase-character-center.legendary-aura::before,.showcase-character-center.legendary-aura::after { content:"✦"; position:absolute; color:#facc15; opacity:.6; font-size:13px; animation:legendarySparkOrbit 2.8s linear infinite; }
+        .showcase-character-center.legendary-aura::before { left:18%; top:20%; }
+        .showcase-character-center.legendary-aura::after { right:18%; bottom:22%; animation-delay:1.2s; }
+        .showcase-crown { position:absolute; top:9px; font-size:31px; filter:drop-shadow(0 0 9px rgba(250,204,21,.45)); animation:crownFloat 2s ease-in-out infinite; }
+        .showcase-portrait { width:145px; height:185px; overflow:hidden; border:2px solid #6b4f35; border-radius:11px; background:#000; box-shadow:0 10px 25px rgba(0,0,0,.55); }
+        .showcase-portrait img { width:100%; height:100%; object-fit:cover; }
+        .showcase-combat-power { margin-top:10px; text-align:center; color:#f3cf7a; font-size:11px; }
+        .showcase-combat-power strong { display:block; font-size:21px; color:#facc15; text-shadow:0 0 10px rgba(250,204,21,.28); }
+        .hukumdar-set-panel { border:1px solid #8a6b3a; border-radius:9px; padding:12px; margin-bottom:12px; background:radial-gradient(circle at 50% 0%,rgba(250,204,21,.09),transparent 30%),#0d0a07; }
+        .set-progress-shell { height:14px; margin-top:8px; overflow:hidden; border:1px solid #433222; border-radius:999px; background:#080605; }
+        .set-progress-fill { height:100%; background:linear-gradient(to right,#a16207,#facc15,#f97316); transition:width .5s ease; }
+        .set-bonus-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:7px; margin-top:9px; }
+        .set-bonus-chip { border:1px solid #33241b; border-radius:6px; padding:7px; color:#665a50; font-size:9px; background:#0a0806; }
+        .set-bonus-chip.active { color:#f3cf7a; border-color:#8a6b3a; background:rgba(212,175,55,.07); box-shadow:inset 0 0 12px rgba(212,175,55,.05); }
+        .set-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:6px; margin-top:10px; }
+        .set-piece-mini { border:1px solid #33241b; border-radius:5px; padding:6px; color:#6f6257; font-size:8px; background:#080605; }
+        .set-piece-mini.owned { color:#facc15; border-color:#8a6b3a; }
+        .prestige-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin-bottom:12px; }
+        .prestige-badge { border:1px solid #33241b; border-radius:7px; padding:9px; background:#0c0907; opacity:.38; filter:grayscale(.8); }
+        .prestige-badge.unlocked { opacity:1; filter:none; border-color:#6b4f35; box-shadow:inset 0 0 12px rgba(212,175,55,.04); }
+        .overview-inventory-card { position:relative; border:1px solid #33241b; border-radius:7px; padding:8px; background:#0d0a08; transition:transform .16s ease,border-color .16s ease; }
+        .overview-inventory-card:hover { transform:translateY(-2px); }
+        .overview-inventory-card.rarity-Nadir { border-color:rgba(59,130,246,.55); }
+        .overview-inventory-card.rarity-Epik { border-color:rgba(168,85,247,.58); }
+        .overview-inventory-card.rarity-Efsanevi { border-color:#d4af37; animation:legendaryFramePulse 2.1s ease-in-out infinite; }
+        .enhance-tier-1 { box-shadow:0 0 10px rgba(96,165,250,.12); }
+        .enhance-tier-2 { box-shadow:0 0 14px rgba(168,85,247,.18),inset 0 0 10px rgba(168,85,247,.06); }
+        .enhance-tier-3 { animation:enhancementAura 2s ease-in-out infinite; }
+        .enhance-tier-4 { animation:enhancementAuraStrong 1.45s ease-in-out infinite; }
+        @keyframes legendaryTextPulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.25)} }
+        @keyframes legendaryFramePulse { 0%,100%{box-shadow:0 0 8px rgba(250,204,21,.10),inset 0 0 10px rgba(250,204,21,.04)} 50%{box-shadow:0 0 18px rgba(250,204,21,.25),inset 0 0 16px rgba(249,115,22,.08)} }
+        @keyframes enhancementAura { 0%,100%{box-shadow:0 0 10px rgba(168,85,247,.15)} 50%{box-shadow:0 0 22px rgba(168,85,247,.38)} }
+        @keyframes enhancementAuraStrong { 0%,100%{box-shadow:0 0 14px rgba(250,204,21,.24),0 0 26px rgba(249,115,22,.10)} 50%{box-shadow:0 0 28px rgba(250,204,21,.48),0 0 42px rgba(249,115,22,.22)} }
+        @keyframes throneAuraRotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes throneBadgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.045)} }
+        @keyframes legendarySparkOrbit { 0%{transform:translate(0,0) rotate(0deg) scale(.8);opacity:.25} 50%{transform:translate(12px,-18px) rotate(180deg) scale(1.25);opacity:1} 100%{transform:translate(0,0) rotate(360deg) scale(.8);opacity:.25} }
+        @keyframes crownFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        @media (max-width:760px) { .character-showcase-v2{grid-template-columns:1fr}.showcase-slot-column{grid-template-columns:repeat(2,1fr)}.showcase-slot-column.right .showcase-tooltip,.showcase-tooltip{left:5px;right:5px;top:calc(100% + 5px);width:auto}.showcase-character-center{order:-1;min-height:300px} }
 </style>
 </head>
 <body>
@@ -1792,6 +1866,7 @@
         let activeMarketCategory = 'potions';
         let timarState = null;
         let timarAnimationToken = 0;
+        let overviewState = null;
 
         const BANK_MAX_DEPOSIT = 100000;
         const BANK_INTEREST_RATE = 0.50;
@@ -1990,14 +2065,8 @@
             const playerTitle = getTitleByLevel(playerLevel);
             document.getElementById('myUsernameDisplay').innerText = `${(data.username || 'GLADYATÖR').toUpperCase()} • ${playerTitle} (Seviye ${playerLevel}/${MAX_LEVEL})`;
 
-            let headerBonusVit = 0;
-            if (data.equipped) {
-                Object.values(data.equipped).forEach(item => {
-                    if (item) headerBonusVit += Number(item.vitBonus) || 0;
-                });
-            }
-            const headerTotalVit = (Number(data.vit) || 5) + headerBonusVit;
-            const maxHp = Math.max(20, headerTotalVit * 20);
+            const headerStats = getClientTotalStats(data);
+            const maxHp = Math.max(20, headerStats.totalVit * 20);
             const currentHp = Math.max(0, Math.min(maxHp, Number(data.hp) || 0));
             const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
             document.getElementById('hpBarFill').style.width = `${hpPercent}%`;
@@ -2027,6 +2096,95 @@
             updateSeferCountdownOnly();
         }
 
+        function getEnhancementVisualClass(level) {
+            const safeLevel = Math.max(0, Number(level) || 0);
+            if (safeLevel >= 40) return 'enhance-tier-4';
+            if (safeLevel >= 30) return 'enhance-tier-3';
+            if (safeLevel >= 20) return 'enhance-tier-2';
+            if (safeLevel >= 10) return 'enhance-tier-1';
+            return '';
+        }
+
+        function getClientHukumdarSetCount(user) {
+            if (!user?.equipped) return 0;
+            return Object.values(user.equipped).filter(item =>
+                item && item.setId === 'hukumdar_set'
+            ).length;
+        }
+
+        function getClientTotalStats(user) {
+            let bonusStr = 0;
+            let bonusVit = 0;
+
+            if (user?.equipped) {
+                Object.values(user.equipped).forEach(item => {
+                    if (!item) return;
+                    bonusStr += Number(item.strBonus) || 0;
+                    bonusVit += Number(item.vitBonus) || 0;
+                });
+            }
+
+            const setCount = getClientHukumdarSetCount(user);
+            let totalStr = (Number(user?.str) || 5) + bonusStr;
+            let totalVit = (Number(user?.vit) || 5) + bonusVit;
+
+            if (setCount >= 2) totalStr = Math.floor(totalStr * 1.03);
+            if (setCount >= 4) totalVit = Math.floor(totalVit * 1.05);
+
+            let combatPower = (totalStr * 2) + totalVit;
+            if (setCount >= 8) combatPower = Math.floor(combatPower * 1.05);
+
+            return { bonusStr, bonusVit, totalStr, totalVit, combatPower, setCount };
+        }
+
+        function renderOverviewItemIcon(item) {
+            if (item?.icon && String(item.icon).startsWith('http')) {
+                return `<img src="${escapeHTML(item.icon)}" alt="${escapeHTML(item.name || 'Eşya')}">`;
+            }
+            return escapeHTML(item?.icon || '📦');
+        }
+
+        function renderOverviewEquipmentSlot(slot, item, label, placeholder) {
+            if (!item) {
+                return `
+                    <div class="showcase-eq-slot empty">
+                        <div class="showcase-slot-icon">${placeholder}</div>
+                        <div>
+                            <div class="showcase-slot-name">${escapeHTML(label)}</div>
+                            <div class="showcase-slot-label">Boş slot</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+            const rarity = item.rarity || 'Sıradan';
+            const level = Math.max(0, Number(item.level) || 0);
+            const setText = item.setName ? `👑 ${escapeHTML(item.setName)}` : 'Set: Yok';
+            const sourceText = item.source ? escapeHTML(item.source) : 'Bilinmiyor';
+
+            return `
+                <div class="showcase-eq-slot rarity-${rarity} ${getEnhancementVisualClass(level)}"
+                     onclick="socket.emit('unequipItem', { slot: '${slot}' })">
+                    <div class="showcase-slot-icon">${renderOverviewItemIcon(item)}</div>
+                    <div>
+                        <div class="showcase-slot-name rarity-${rarity}">${escapeHTML(cleanName)} ${level > 0 ? '+' + level : ''}</div>
+                        <div class="showcase-slot-label">${escapeHTML(label)} • ${escapeHTML(rarity)}</div>
+                    </div>
+                    <div class="showcase-tooltip">
+                        <div class="rarity-${rarity}" style="font-size:11px;font-weight:bold;margin-bottom:4px;">${escapeHTML(cleanName)} ${level > 0 ? '+' + level : ''}</div>
+                        <div>⭐ Nadirlik: <strong>${escapeHTML(rarity)}</strong></div>
+                        <div>⚔️ STR: <strong>+${Number(item.strBonus) || 0}</strong></div>
+                        <div>🛡️ VIT: <strong>+${Number(item.vitBonus) || 0}</strong></div>
+                        <div>🔥 Toplam Stat: <strong>${(Number(item.strBonus) || 0) + (Number(item.vitBonus) || 0)}</strong></div>
+                        <div>${setText}</div>
+                        <div>📍 Kaynak: <strong>${sourceText}</strong></div>
+                        <div style="margin-top:5px;color:#7c6f61;">Çıkarmak için slota tıkla.</div>
+                    </div>
+                </div>
+            `;
+        }
+
         function switchTab(tab) {
             activeTab = tab;
             const titles = {
@@ -2045,6 +2203,10 @@
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
             renderPanelContent();
+
+            if (tab === 'overview') {
+                socket.emit('getOverviewStatus');
+            }
 
             if (tab === 'metin') {
                 socket.emit('getMetinStatus');
@@ -2067,79 +2229,193 @@
             if(!u) return;
 
             if(activeTab === 'overview') {
-                let bonusStr = 0, bonusVit = 0;
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (item) { bonusStr += (item.strBonus || 0); bonusVit += (item.vitBonus || 0); }
-                    });
-                }
-                const totalStr = (u.str || 5) + bonusStr;
-                const totalVit = (u.vit || 5) + bonusVit;
+                const localStats = getClientTotalStats(u);
+                const combat = overviewState?.combat || {
+                    baseStr: Number(u.str) || 5,
+                    baseVit: Number(u.vit) || 5,
+                    equipmentStr: localStats.bonusStr,
+                    equipmentVit: localStats.bonusVit,
+                    totalStr: localStats.totalStr,
+                    totalVit: localStats.totalVit,
+                    combatPower: localStats.combatPower,
+                    armyPower: ((Number(u.army?.archer) || 0) * 10) + ((Number(u.army?.warrior) || 0) * 20) + ((Number(u.army?.cavalry) || 0) * 35) + localStats.totalStr,
+                    maxHp: localStats.totalVit * 20
+                };
+
+                const setData = overviewState?.set || {
+                    pieceCount: localStats.setCount,
+                    strPercent: localStats.setCount >= 2 ? 3 : 0,
+                    vitPercent: localStats.setCount >= 4 ? 5 : 0,
+                    castleAttackPercent: localStats.setCount >= 6 ? 3 : 0,
+                    combatPowerPercent: localStats.setCount >= 8 ? 5 : 0,
+                    ownedSlots: [],
+                    definitions: {}
+                };
+
+                const prestige = overviewState?.prestige || {
+                    honor: u.honor || 0,
+                    arenaWins: u.arenaWins || 0,
+                    castleVictories: u.castleVictories || 0,
+                    dungeonBossWins: u.dungeonBossWins || 0,
+                    metinKills: u.metinKills || 0,
+                    dungeonFloor: u.dungeonFloor || 1
+                };
+
+                const achievements = overviewState?.achievements || [];
+                const isThroneOwner = Boolean(overviewState?.isThroneOwner);
                 const currentLevel = Math.max(1, Math.min(MAX_LEVEL, Number(u.level) || 1));
                 const currentTitle = getTitleByLevel(currentLevel);
                 const nextTitle = getNextTitle(currentLevel);
                 const maxExp = currentLevel * 100;
 
+                const slotMeta = {
+                    helmet:{label:'Miğfer',placeholder:'🪖'},
+                    necklace:{label:'Kolye',placeholder:'📿'},
+                    armor:{label:'Zırh',placeholder:'🛡️'},
+                    weapon:{label:'Silah',placeholder:'🗡️'},
+                    shield:{label:'Kalkan',placeholder:'🛡'},
+                    ring:{label:'Yüzük',placeholder:'💍'},
+                    gloves:{label:'Eldiven',placeholder:'🧤'},
+                    boots:{label:'Çizme',placeholder:'👢'}
+                };
+
+                const leftSlots = ['helmet','armor','gloves','boots'];
+                const rightSlots = ['necklace','weapon','shield','ring'];
+                const setDefinitions = setData.definitions || {};
+                const ownedSlots = new Set(setData.ownedSlots || []);
+                const equippedSetCount = Number(setData.pieceCount) || 0;
+
                 body.innerHTML = `
-                    <div class="character-screen">
-                        <div class="char-stats-box">
-                            <h3>Nitelikler</h3>
-                            <div class="stat-row"><span>Seviye:</span><span>${currentLevel} / ${MAX_LEVEL}</span></div>
-                            <div class="stat-row"><span>Ünvan:</span><span><span class="title-badge">🏅 ${currentTitle}</span></span></div>
-                            <div class="stat-row"><span>Sonraki Ünvan:</span><span>${nextTitle ? `${nextTitle.title} (Lv ${nextTitle.level})` : '👑 En yüksek ünvan'}</span></div>
-                            <div class="stat-row"><span>Tecrübe:</span><span>${currentLevel >= MAX_LEVEL ? 'MAX' : `${u.exp} / ${maxExp}`}</span></div>
-                            <div class="stat-row"><span>Can Puanı (HP):</span><span>${u.hp} / ${totalVit * 20}</span></div>
-                            <div class="stat-row"><span>Altın:</span><span>${u.balance} 🪙</span></div>
-                            <div class="stat-row"><span>Yakut:</span><span>${u.rubies} 💎</span></div>
-                            <div class="stat-row"><span>Altın Anahtar:</span><span>${u.goldKeys || 0} 🔑</span></div>
-                            <div class="stat-row"><span>Onur Puanı:</span><span>${u.honor || 0} 🌟</span></div>
-                            <div class="stat-row"><span>Güç (STR):</span><span>${totalStr} ${bonusStr > 0 ? `(+${bonusStr})` : ''}</span></div>
-                            <div class="stat-row"><span>Dayanıklılık (VIT):</span><span>${totalVit} ${bonusVit > 0 ? `(+${bonusVit})` : ''}</span></div>
-                            <div class="stat-row"><span>Stat Puanı:</span><span style="color:#22c55e;">${u.statPoints}</span></div>
-                            ${u.statPoints > 0 ? `
-                                <div style="display:flex; gap:10px; margin-top:10px;">
-                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'str')">+ Güç Ver</button>
-                                    <button class="btn-stat" onclick="socket.emit('distributeStat', 'vit')">+ Dayanıklılık Ver</button>
+                    <div class="overview-v2">
+                        <div class="overview-hero ${isThroneOwner ? 'throne-active' : ''}">
+                            <div class="overview-title-row">
+                                <div>
+                                    <div class="overview-player-name">${escapeHTML((u.username || 'Savaşçı').toUpperCase())}</div>
+                                    <div style="color:#c4b5fd;font-size:10px;margin-top:3px;">🏅 ${currentTitle} • Seviye ${currentLevel}/${MAX_LEVEL}</div>
                                 </div>
-                            ` : ''}
-                            <div class="char-portrait"><img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter"></div>
-                        </div>
-                        <div class="equipment-wrapper">
-                            <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 5px;">Kuşanılan Ekipmanlar</h3>
-                            <div class="eq-slots-grid">
-                                <div class="eq-slot ${u.equipped?.helmet ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'helmet' })">${u.equipped?.helmet ? u.equipped.helmet.icon : '🪖'}</div>
-                                <div class="eq-slot ${u.equipped?.necklace ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'necklace' })">${u.equipped?.necklace ? u.equipped.necklace.icon : '📿'}</div>
-                                <div class="eq-slot ${u.equipped?.armor ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'armor' })">${u.equipped?.armor ? u.equipped.armor.icon : '🛡️'}</div>
-                                <div class="eq-slot ${u.equipped?.weapon ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'weapon' })">${u.equipped?.weapon ? u.equipped.weapon.icon : '🗡️'}</div>
-                                <div class="eq-slot ${u.equipped?.shield ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'shield' })">${u.equipped?.shield ? u.equipped.shield.icon : '🛡'}</div>
-                                <div class="eq-slot ${u.equipped?.ring ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'ring' })">${u.equipped?.ring ? u.equipped.ring.icon : '💍'}</div>
-                                <div class="eq-slot ${u.equipped?.gloves ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'gloves' })">${u.equipped?.gloves ? u.equipped.gloves.icon : '🧤'}</div>
-                                <div class="eq-slot ${u.equipped?.boots ? 'filled' : ''}" onclick="socket.emit('unequipItem', { slot: 'boots' })">${u.equipped?.boots ? u.equipped.boots.icon : '👢'}</div>
+                                ${isThroneOwner
+                                    ? `<div class="overview-throne-badge">👑 HÜKÜMDAR • TAHT SAHİBİ</div>`
+                                    : `<div style="color:#7c6f61;font-size:9px;text-align:right;">👑 Taht: ${escapeHTML(overviewState?.throneOwnerName || 'Saray Muhafızları')}</div>`}
+                            </div>
+
+                            <div class="overview-power-grid">
+                                <div class="overview-power-card">🔥 Savaş Gücü<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div class="overview-power-card">⚔️ Toplam STR<strong>${Number(combat.totalStr || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div class="overview-power-card">🛡️ Toplam VIT<strong>${Number(combat.totalVit || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div class="overview-power-card">🪖 Ordu Gücü<strong>${Number(combat.armyPower || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div class="overview-power-card">🌟 Onur<strong>${Number(prestige.honor || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div class="overview-power-card">🏰 Fetih<strong>${Number(prestige.castleVictories || 0).toLocaleString('tr-TR')}</strong></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="inventory-container">
-                        <h3 style="color: #f3cf7a; font-size: 13px; margin-bottom: 8px;">Envanter / Çanta</h3>
-                        <div class="inventory-grid">
-                            ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
-                                const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
-                                const rarityClass = item.rarity ? `rarity-${item.rarity}` : 'rarity-Sıradan';
-                                return `
-                                <div class="inventory-item-card">
-                                    <div class="item-info-area">
-                                        <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
-                                        <div class="item-details">
-                                            <span class="item-name ${rarityClass}">${cleanName} ${item.level ? '+' + item.level : ''}</span>
-                                            <span class="item-bonus">${item.type === 'material' ? escapeHTML(item.description || 'Özel malzeme') : `${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}`}</span>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 5px;">
-                                        ${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(item.type) ? `<button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>` : ''}
-                                        ${item.type === 'material' ? `<span style="font-size:10px; color:#60a5fa; border:1px solid #1d4ed8; padding:3px 6px; border-radius:3px;">Malzeme</span>` : ''}
-                                        <button onclick="socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Sil</button>
-                                    </div>
+
+                        <div class="character-showcase-v2 ${isThroneOwner ? 'is-ruler' : ''}">
+                            <div class="showcase-slot-column left">
+                                ${leftSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
+                            </div>
+
+                            <div class="showcase-character-center ${(equippedSetCount >= 8 || isThroneOwner) ? 'legendary-aura' : ''}">
+                                ${isThroneOwner ? `<div class="showcase-crown">👑</div>` : ''}
+                                <div class="showcase-portrait"><img src="https://i.hizliresim.com/su2pjrkt.jpg" alt="Karakter"></div>
+                                <div class="showcase-combat-power">SAVAŞ GÜCÜ<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div style="color:#9c8e7b;font-size:9px;text-align:center;margin-top:4px;line-height:1.45;">
+                                    Base STR ${Number(combat.baseStr || 0)} + Ekipman ${Number(combat.equipmentStr || 0)}<br>
+                                    Base VIT ${Number(combat.baseVit || 0)} + Ekipman ${Number(combat.equipmentVit || 0)}
                                 </div>
-                            `;}).join('') : '<p style="color:#9c8e7b; font-size:12px;">Envanteriniz boş.</p>'}
+                                ${equippedSetCount >= 8 ? `<div style="margin-top:8px;color:#facc15;font-size:10px;font-weight:bold;text-align:center;">✨ HÜKÜMDARIN KUDRETİ AKTİF</div>` : ''}
+                            </div>
+
+                            <div class="showcase-slot-column right">
+                                ${rightSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
+                            </div>
+                        </div>
+
+                        <div class="hukumdar-set-panel">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <div>
+                                    <div style="color:#facc15;font-size:14px;font-weight:900;">👑 Hükümdar Seti</div>
+                                    <div style="color:#9c8e7b;font-size:9px;margin-top:3px;">Efsanevi 8 parçalık Taht seti</div>
+                                </div>
+                                <div style="color:#f3cf7a;font-size:11px;font-weight:bold;">Kuşanılan: ${equippedSetCount}/8</div>
+                            </div>
+
+                            <div class="set-progress-shell"><div class="set-progress-fill" style="width:${Math.min(100,(equippedSetCount/8)*100)}%;"></div></div>
+
+                            <div class="set-bonus-grid">
+                                <div class="set-bonus-chip ${equippedSetCount >= 2 ? 'active' : ''}">⚔️ 2 Parça<br>STR +%3</div>
+                                <div class="set-bonus-chip ${equippedSetCount >= 4 ? 'active' : ''}">🛡️ 4 Parça<br>VIT +%5</div>
+                                <div class="set-bonus-chip ${equippedSetCount >= 6 ? 'active' : ''}">🏰 6 Parça<br>Kale Saldırısı +%3</div>
+                                <div class="set-bonus-chip ${equippedSetCount >= 8 ? 'active' : ''}">✨ 8 Parça<br>Savaş Gücü +%5</div>
+                            </div>
+
+                            <div class="set-collection-grid">
+                                ${Object.entries(Object.keys(setDefinitions).length > 0 ? setDefinitions : {
+                                    helmet:{name:'Tuğra Tacı',icon:'👑'}, necklace:{name:'Saray Kolyesi',icon:'📿'}, armor:{name:'Hümayun Zırhı',icon:'🛡️'}, weapon:{name:'Hakan Kılıcı',icon:'⚔️'}, shield:{name:'Cihan Kalkanı',icon:'🛡'}, ring:{name:'Fetih Yüzüğü',icon:'💍'}, gloves:{name:'Serdar Eldiveni',icon:'🧤'}, boots:{name:'Akıncı Çizmesi',icon:'👢'}
+                                }).map(([slot,item]) => `<div class="set-piece-mini ${ownedSlots.has(slot) ? 'owned' : ''}">${item.icon || '✨'} ${ownedSlots.has(slot) ? '✅' : '🔒'} ${escapeHTML(item.name || slot)}</div>`).join('')}
+                            </div>
+
+                            <div style="margin-top:9px;color:#7c6f61;font-size:8px;line-height:1.5;">📍 Düşme kaynakları: 10. Kat Final Boss %3 • Taht Metini %4 • Başarılı Kale Fethi %5</div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:12px;">
+                            <div style="border:1px solid #433222;border-radius:8px;padding:11px;background:#0d0a08;">
+                                <h3 style="color:#f3cf7a;font-size:12px;margin-bottom:6px;">📊 Karakter İlerlemesi</h3>
+                                <div class="stat-row"><span>Seviye:</span><span>${currentLevel}/${MAX_LEVEL}</span></div>
+                                <div class="stat-row"><span>Sonraki Ünvan:</span><span>${nextTitle ? `${nextTitle.title} (Lv ${nextTitle.level})` : '👑 En yüksek ünvan'}</span></div>
+                                <div class="stat-row"><span>Tecrübe:</span><span>${currentLevel >= MAX_LEVEL ? 'MAX' : `${Number(u.exp)||0}/${maxExp}`}</span></div>
+                                <div class="stat-row"><span>HP:</span><span>${Number(u.hp)||0}/${Number(combat.maxHp||0)}</span></div>
+                                <div class="stat-row"><span>Stat Puanı:</span><span style="color:#22c55e;">${Number(u.statPoints)||0}</span></div>
+                                ${Number(u.statPoints) > 0 ? `<div style="display:flex;gap:7px;margin-top:8px;"><button class="btn-stat" onclick="socket.emit('distributeStat','str')">+ STR</button><button class="btn-stat" onclick="socket.emit('distributeStat','vit')">+ VIT</button></div>` : ''}
+                            </div>
+
+                            <div style="border:1px solid #433222;border-radius:8px;padding:11px;background:#0d0a08;">
+                                <h3 style="color:#f3cf7a;font-size:12px;margin-bottom:6px;">🏆 Prestij</h3>
+                                <div class="stat-row"><span>Arena Zaferi:</span><span>${Number(prestige.arenaWins||0)}</span></div>
+                                <div class="stat-row"><span>Kale Fethi:</span><span>${Number(prestige.castleVictories||0)}</span></div>
+                                <div class="stat-row"><span>Zindan Final:</span><span>${Number(prestige.dungeonBossWins||0)}</span></div>
+                                <div class="stat-row"><span>Metin Kırımı:</span><span>${Number(prestige.metinKills||0)}</span></div>
+                                <div class="stat-row"><span>Zindan İlerlemesi:</span><span>Kat ${Number(prestige.dungeonFloor||1)}</span></div>
+                            </div>
+                        </div>
+
+                        <div style="color:#f3cf7a;font-size:12px;font-weight:bold;margin:2px 0 7px 0;">🏅 Başarı Rozetleri</div>
+                        <div class="prestige-grid">
+                            ${achievements.length > 0 ? achievements.map(a => `
+                                <div class="prestige-badge ${a.unlocked ? 'unlocked' : ''}">
+                                    <div style="font-size:22px;">${a.icon || '🏅'}</div>
+                                    <div style="color:${a.unlocked ? '#f3cf7a' : '#7c6f61'};font-size:10px;font-weight:bold;margin-top:3px;">${escapeHTML(a.name || 'Başarı')}</div>
+                                    <div style="color:#7c6f61;font-size:8px;margin-top:3px;line-height:1.35;">${escapeHTML(a.description || '')}</div>
+                                    <div style="color:${a.unlocked ? '#86efac' : '#665a50'};font-size:8px;margin-top:4px;">${a.unlocked ? '✅ AÇIK' : '🔒'} • ${escapeHTML(a.progress || '')}</div>
+                                </div>
+                            `).join('') : `<div style="color:#7c6f61;font-size:10px;">Başarı verileri yükleniyor...</div>`}
+                        </div>
+
+                        <div class="inventory-container">
+                            <h3 style="color:#f3cf7a;font-size:13px;margin-bottom:8px;">🎒 Envanter / Çanta</h3>
+                            <div class="inventory-grid">
+                                ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item,itemIndex) => {
+                                    const cleanName=(item.name||'Eşya').replace(/\s*\+\d+$/,'');
+                                    const rarity=item.rarity||'Sıradan';
+                                    const level=Math.max(0,Number(item.level)||0);
+                                    const equipable=['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(item.type);
+                                    return `
+                                        <div class="overview-inventory-card rarity-${rarity} ${getEnhancementVisualClass(level)}">
+                                            <div class="item-info-area">
+                                                <div class="item-icon-box">${renderOverviewItemIcon(item)}</div>
+                                                <div class="item-details">
+                                                    <span class="item-name rarity-${rarity}">${escapeHTML(cleanName)} ${equipable && level > 0 ? '+' + level : ''}</span>
+                                                    <span class="item-bonus">${item.type === 'material' ? escapeHTML(item.description || 'Özel malzeme') : `⚔️ +${Number(item.strBonus)||0} • 🛡️ +${Number(item.vitBonus)||0}${item.setName ? ` • 👑 ${escapeHTML(item.setName)}` : ''}`}</span>
+                                                    ${item.source ? `<span style="color:#6f6257;font-size:8px;margin-top:2px;">📍 ${escapeHTML(item.source)}</span>` : ''}
+                                                </div>
+                                            </div>
+                                            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;">
+                                                ${equipable ? `<button class="btn-equip" onclick="socket.emit('equipItem',{itemIndex:${itemIndex}})">Kuşan</button>` : ''}
+                                                ${item.type === 'material' ? `<span style="font-size:9px;color:#60a5fa;border:1px solid #1d4ed8;padding:3px 6px;border-radius:3px;">Malzeme</span>` : ''}
+                                                <button onclick="socket.emit('deleteItem',{itemIndex:${itemIndex}})" style="background:#7f1d1d;color:white;border:1px solid #dc2626;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:10px;">Sil</button>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('') : `<p style="color:#9c8e7b;font-size:12px;">Envanteriniz boş.</p>`}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -3536,16 +3812,8 @@
                     0
                 );
 
-                let myCommanderStr = Number(u.str) || 5;
-
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (item) {
-                            myCommanderStr +=
-                                Number(item.strBonus) || 0;
-                        }
-                    });
-                }
+                const barracksCharacterStats = getClientTotalStats(u);
+                const myCommanderStr = barracksCharacterStats.totalStr;
 
                 const myArmyPower =
                     myTroopPower + myCommanderStr;
@@ -4325,9 +4593,13 @@
                                     ${forgeItems.length > 0 ? forgeItems.map(({ item, index }) => {
                                         const level = Math.max(0, Number(item.level) || 0);
                                         const rarity = item.rarity || 'Sıradan';
-                                        const oreYield = rarity === 'Epik'
-                                            ? 10 + Math.floor(level / 3)
-                                            : (rarity === 'Nadir' ? 5 + Math.floor(level / 4) : 2 + Math.floor(level / 5));
+                                        const oreYield = rarity === 'Efsanevi'
+                                            ? 18 + Math.floor(level / 2)
+                                            : (rarity === 'Epik'
+                                                ? 10 + Math.floor(level / 3)
+                                                : (rarity === 'Nadir'
+                                                    ? 5 + Math.floor(level / 4)
+                                                    : 2 + Math.floor(level / 5)));
                                         const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
                                         const rarityClass = `rarity-${rarity}`;
 
@@ -4525,13 +4797,8 @@
                 `;
             } else if(activeTab === 'dungeon') {
                 const userDungeonFloor = Math.max(1, u.dungeonFloor || 1);
-                let dungeonBonusStr = 0;
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (item) dungeonBonusStr += Number(item.strBonus) || 0;
-                    });
-                }
-                const dungeonTotalStr = (u.str || 5) + dungeonBonusStr;
+                const dungeonCharacterStats = getClientTotalStats(u);
+                const dungeonTotalStr = dungeonCharacterStats.totalStr;
 
                 const dungeonDailyAttempts = Array.isArray(u.dungeonDailyAttempts)
                     ? u.dungeonDailyAttempts
@@ -4627,14 +4894,8 @@
                     { id:5, name:'Taht Metini', icon:'👑', requiredLevel:80, maxHp:35000, respawnHours:24, hpCostPercent:8, papers:'2-3 Kutsama Kağıdı' }
                 ];
 
-                let metinBonusStr = 0;
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (item) metinBonusStr += Number(item.strBonus) || 0;
-                    });
-                }
-
-                const metinTotalStr = (Number(u.str) || 5) + metinBonusStr;
+                const metinCharacterStats = getClientTotalStats(u);
+                const metinTotalStr = metinCharacterStats.totalStr;
 
                 let metinBonusVit = 0;
                 if (u.equipped) {
@@ -5820,6 +6081,13 @@
                 );
             }
 
+            if (Number(battle.attacker?.setCastleBonusPercent) > 0) {
+                addCastleFeedLine(
+                    `👑 <strong>Hükümdar Seti</strong> 6 parça bonusu — ` +
+                    `Kale saldırı gücü +%${Number(battle.attacker.setCastleBonusPercent)}.`
+                );
+            }
+
             await sleepCastle(700);
 
             const attackerFinalRetention =
@@ -6284,21 +6552,11 @@
         }
 
         function calculateClientArenaStats(player) {
-            let totalStr = Number(player?.str) || 5;
-            let totalVit = Number(player?.vit) || 5;
-
-            if (player?.equipped) {
-                Object.values(player.equipped).forEach(item => {
-                    if (!item) return;
-                    totalStr += Number(item.strBonus) || 0;
-                    totalVit += Number(item.vitBonus) || 0;
-                });
-            }
-
+            const stats = getClientTotalStats(player);
             return {
-                str: totalStr,
-                vit: totalVit,
-                power: (totalStr * 2) + totalVit
+                str: stats.totalStr,
+                vit: stats.totalVit,
+                power: stats.combatPower
             };
         }
 
@@ -6709,8 +6967,19 @@
             input.value = '';
         }
 
+        socket.on('overviewStatus', (res) => {
+            if (res?.userData) updateHeader(res.userData);
+            overviewState = res || overviewState;
+            if (activeTab === 'overview') renderPanelContent();
+        });
+
         socket.on('statUpdated', (u) => {
             updateHeader(u);
+
+            if (activeTab === 'overview') {
+                socket.emit('getOverviewStatus');
+                return;
+            }
 
             if (activeTab === 'timar') {
                 socket.emit('getTimarStatus');
@@ -6962,6 +7231,10 @@
             if (activeTab === 'barracks') {
                 socket.emit('getBarracksStatus');
             }
+
+            if (activeTab === 'overview') {
+                socket.emit('getOverviewStatus');
+            }
         });
 
         socket.on('castleDefenseNotice', (res) => {
@@ -6991,6 +7264,10 @@
                 socket.emit('getBarracksStatus');
             } else if (castleSiegeAnimating) {
                 castleRefreshPending = true;
+            }
+
+            if (activeTab === 'overview') {
+                socket.emit('getOverviewStatus');
             }
 
             const logEl = document.getElementById('barracksLogResult');
