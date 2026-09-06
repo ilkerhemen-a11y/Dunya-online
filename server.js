@@ -1098,8 +1098,16 @@ io.on('connection', (socket) => {
 
                 user.castleVictories = (user.castleVictories || 0) + 1;
 
+                // Kale fetih ödülü
+                const conquestGoldReward = 10000;
+                const conquestRubyReward = 100;
+
+                user.balance = (user.balance || 0) + conquestGoldReward;
+                user.rubies = (user.rubies || 0) + conquestRubyReward;
+
                 message =
                     `👑 KALE FETHEDİLDİ! ${user.username} kaleyi ele geçirdi ve TAHTIN yeni sahibi oldu! ` +
+                    `🎁 Fetih Ödülü: +${conquestGoldReward.toLocaleString('tr-TR')} Altın 🪙 ve +${conquestRubyReward} Yakut 💎. ` +
                     `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
                     `vs ${defenderBattlePower.toLocaleString('tr-TR')} (${oldOwnerName}). ` +
                     `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
