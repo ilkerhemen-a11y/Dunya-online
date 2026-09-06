@@ -1109,6 +1109,213 @@
                 transform: translate(-50%,-28px) scale(1);
             }
         }
+
+        /* === BANKA / VADELİ ALTIN === */
+        .bank-stage {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #d4af37;
+            border-radius: 10px;
+            padding: 16px;
+            background:
+                radial-gradient(circle at 50% 20%, rgba(212,175,55,.12), transparent 34%),
+                linear-gradient(135deg,#1d160e,#0b0806 72%);
+            box-shadow:
+                inset 0 0 34px rgba(212,175,55,.04),
+                0 7px 20px rgba(0,0,0,.38);
+        }
+
+        .bank-vault {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 8px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #8a6b3a;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle,#362a19 0%,#18120c 58%,#090705 100%);
+            font-size: 43px;
+            box-shadow:
+                0 0 0 7px rgba(212,175,55,.04),
+                0 0 25px rgba(212,175,55,.13);
+            animation: bankVaultIdle 3.2s ease-in-out infinite;
+        }
+
+        .bank-vault.depositing {
+            animation: bankVaultDeposit .85s ease 2;
+        }
+
+        .bank-vault.collecting {
+            animation: bankVaultCollect 1s ease 2;
+        }
+
+        .bank-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(145px,1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .bank-summary-box {
+            border: 1px solid #433222;
+            border-radius: 6px;
+            padding: 9px;
+            background: rgba(8,6,5,.72);
+            text-align: center;
+            font-size: 10px;
+            color: #9c8e7b;
+        }
+
+        .bank-summary-box strong {
+            display: block;
+            margin-top: 3px;
+            color: #f3cf7a;
+            font-size: 12px;
+        }
+
+        .bank-progress-shell {
+            height: 15px;
+            margin-top: 10px;
+            overflow: hidden;
+            border: 1px solid #433222;
+            border-radius: 999px;
+            background: #080605;
+        }
+
+        .bank-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right,#a16207,#facc15);
+            transition: width .6s ease;
+        }
+
+        .bank-amount-input {
+            width: 100%;
+            margin-top: 9px;
+            padding: 8px 9px;
+            border: 1px solid #433222;
+            border-radius: 5px;
+            background: #080605;
+            color: #f0e6d2;
+            text-align: center;
+            font-weight: 700;
+            outline: none;
+        }
+
+        .bank-amount-input:focus {
+            border-color: #d4af37;
+            box-shadow: 0 0 0 2px rgba(212,175,55,.08);
+        }
+
+        .bank-quick-row {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 5px;
+            margin-top: 7px;
+        }
+
+        .bank-quick-btn {
+            border: 1px solid #433222;
+            border-radius: 4px;
+            padding: 5px 3px;
+            background: #120e0c;
+            color: #d4c5b9;
+            font-size: 9px;
+            cursor: pointer;
+        }
+
+        .bank-quick-btn:hover {
+            color: #f3cf7a;
+            border-color: #d4af37;
+        }
+
+        .bank-coin-fx {
+            position: absolute;
+            z-index: 30;
+            left: 50%;
+            top: 48%;
+            opacity: 0;
+            pointer-events: none;
+            font-size: 26px;
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,.7));
+            animation: bankCoinsFly 1.25s ease-out forwards;
+        }
+
+        .bank-result-pop {
+            position: absolute;
+            z-index: 35;
+            top: 21%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            pointer-events: none;
+            color: #f3cf7a;
+            font-size: 15px;
+            font-weight: 900;
+            text-align: center;
+            text-shadow: 0 2px 5px #000;
+            animation: bankResultFloat 1.55s ease-out forwards;
+        }
+
+        @keyframes bankVaultIdle {
+            0%,100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(2deg) scale(1.025); }
+        }
+
+        @keyframes bankVaultDeposit {
+            0%,100% { transform: scale(1) rotate(0); }
+            40% { transform: scale(1.10) rotate(-7deg); }
+            70% { transform: scale(.96) rotate(5deg); }
+        }
+
+        @keyframes bankVaultCollect {
+            0%,100% {
+                transform: scale(1);
+                box-shadow:
+                    0 0 0 7px rgba(212,175,55,.04),
+                    0 0 25px rgba(212,175,55,.13);
+            }
+            50% {
+                transform: scale(1.13);
+                box-shadow:
+                    0 0 0 11px rgba(250,204,21,.10),
+                    0 0 38px rgba(250,204,21,.34);
+            }
+        }
+
+        @keyframes bankCoinsFly {
+            0% {
+                opacity: 0;
+                transform: translate(-50%,60px) scale(.65) rotate(-20deg);
+            }
+            18% { opacity: 1; }
+            62% {
+                opacity: 1;
+                transform: translate(-50%,-8px) scale(1.15) rotate(10deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%,-58px) scale(.85) rotate(28deg);
+            }
+        }
+
+        @keyframes bankResultFloat {
+            0% {
+                opacity: 0;
+                transform: translate(-50%,14px) scale(.76);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%,0) scale(1.08);
+            }
+            72% { opacity: 1; }
+            100% {
+                opacity: 0;
+                transform: translate(-50%,-28px) scale(1);
+            }
+        }
 </style>
 </head>
 <body>
@@ -1199,6 +1406,9 @@
         let castleSiegeAnimationToken = 0;
         let castleRefreshPending = false;
         let activeMarketCategory = 'potions';
+        const BANK_MAX_DEPOSIT = 100000;
+        const BANK_INTEREST_RATE = 0.50;
+        const BANK_TERM_MS = 24 * 60 * 60 * 1000;
 
         function escapeHTML(str) {
             if (!str) return "";
@@ -1871,6 +2081,11 @@
                             class="market-tab-btn ${activeMarketCategory === 'exchange' ? 'active' : ''}"
                             onclick="setMarketCategory('exchange')"
                         >💱 Sarraf</button>
+
+                        <button
+                            class="market-tab-btn ${activeMarketCategory === 'bank' ? 'active' : ''}"
+                            onclick="setMarketCategory('bank')"
+                        >🏦 Banka</button>
                     </div>
 
                     <div class="market-list">
@@ -2286,6 +2501,263 @@
                             `
                             : ''
                         }
+
+                        ${
+                            activeMarketCategory === 'bank'
+                            ? `
+                                <div
+                                    id="bankStage"
+                                    class="bank-stage"
+                                >
+                                    <div
+                                        id="bankVault"
+                                        class="bank-vault"
+                                    >
+                                        🏦
+                                    </div>
+
+                                    <h3 style="
+                                        color:#f3cf7a;
+                                        text-align:center;
+                                        margin-bottom:4px;
+                                    ">
+                                        Hazine Bankası
+                                    </h3>
+
+                                    <p style="
+                                        color:#9c8e7b;
+                                        font-size:11px;
+                                        line-height:1.55;
+                                        text-align:center;
+                                        max-width:600px;
+                                        margin:0 auto;
+                                    ">
+                                        Altınını <strong style="color:#f3cf7a;">24 saatlik vadeye</strong>
+                                        yatır. Vade sonunda anaparanın
+                                        <strong style="color:#22c55e;">%50'si kadar faiz</strong>
+                                        kazan. Tek hesapta en fazla
+                                        <strong style="color:#f3cf7a;">100.000 Altın</strong>
+                                        yatırılabilir.
+                                    </p>
+
+                                    ${
+                                        (Number(u.bankDeposit?.principal) || 0) > 0
+                                        ? `
+                                            <div class="bank-summary-grid">
+                                                <div class="bank-summary-box">
+                                                    Anapara
+                                                    <strong>
+                                                        ${Number(
+                                                            u.bankDeposit.principal || 0
+                                                        ).toLocaleString('tr-TR')}
+                                                        🪙
+                                                    </strong>
+                                                </div>
+
+                                                <div class="bank-summary-box">
+                                                    Faiz (%50)
+                                                    <strong style="color:#86efac;">
+                                                        +${Math.floor(
+                                                            (Number(
+                                                                u.bankDeposit.principal || 0
+                                                            ) * BANK_INTEREST_RATE)
+                                                        ).toLocaleString('tr-TR')}
+                                                        🪙
+                                                    </strong>
+                                                </div>
+
+                                                <div class="bank-summary-box">
+                                                    Vade Sonu
+                                                    <strong>
+                                                        ${(
+                                                            Number(
+                                                                u.bankDeposit.principal || 0
+                                                            ) +
+                                                            Math.floor(
+                                                                Number(
+                                                                    u.bankDeposit.principal || 0
+                                                                ) * BANK_INTEREST_RATE
+                                                            )
+                                                        ).toLocaleString('tr-TR')}
+                                                        🪙
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="bank-progress-shell">
+                                                <div
+                                                    id="bankProgressFill"
+                                                    class="bank-progress-fill"
+                                                ></div>
+                                            </div>
+
+                                            <div
+                                                id="bankCountdown"
+                                                style="
+                                                    text-align:center;
+                                                    color:#c4b5fd;
+                                                    font-size:11px;
+                                                    font-weight:bold;
+                                                    margin-top:8px;
+                                                "
+                                            >
+                                                Vade hesaplanıyor...
+                                            </div>
+
+                                            <div style="
+                                                text-align:center;
+                                                color:#7c6f61;
+                                                font-size:9px;
+                                                margin-top:4px;
+                                            ">
+                                                Vade tarihi:
+                                                ${new Date(
+                                                    Number(
+                                                        u.bankDeposit.maturesAt || 0
+                                                    )
+                                                ).toLocaleString('tr-TR')}
+                                            </div>
+
+                                            <button
+                                                id="bankCollectBtn"
+                                                class="btn-quest"
+                                                style="width:100%; margin-top:10px;"
+                                                ${
+                                                    Date.now() <
+                                                    Number(
+                                                        u.bankDeposit.maturesAt || 0
+                                                    )
+                                                        ? 'disabled'
+                                                        : ''
+                                                }
+                                                onclick="doAction(
+                                                    'collectBankInterest',
+                                                    {},
+                                                    'bankCollectBtn'
+                                                )"
+                                            >
+                                                ${
+                                                    Date.now() >=
+                                                    Number(
+                                                        u.bankDeposit.maturesAt || 0
+                                                    )
+                                                        ? '💰 Anapara + Faizi Tahsil Et'
+                                                        : '⏳ Vade Devam Ediyor'
+                                                }
+                                            </button>
+                                        `
+                                        : `
+                                            <div style="
+                                                margin-top:13px;
+                                                border:1px solid #433222;
+                                                border-radius:7px;
+                                                padding:12px;
+                                                background:rgba(8,6,5,.72);
+                                            ">
+                                                <div style="
+                                                    text-align:center;
+                                                    color:#f0e6d2;
+                                                    font-weight:bold;
+                                                ">
+                                                    Vadeli Hesap Aç
+                                                </div>
+
+                                                <input
+                                                    id="bankDepositAmount"
+                                                    class="bank-amount-input"
+                                                    type="number"
+                                                    min="1"
+                                                    max="${BANK_MAX_DEPOSIT}"
+                                                    step="1000"
+                                                    value="${Math.min(
+                                                        10000,
+                                                        Math.max(
+                                                            1,
+                                                            Number(u.balance) || 0
+                                                        )
+                                                    )}"
+                                                    oninput="updateBankPreview()"
+                                                >
+
+                                                <div class="bank-quick-row">
+                                                    <button
+                                                        class="bank-quick-btn"
+                                                        onclick="setBankAmount(10000)"
+                                                    >10K</button>
+
+                                                    <button
+                                                        class="bank-quick-btn"
+                                                        onclick="setBankAmount(50000)"
+                                                    >50K</button>
+
+                                                    <button
+                                                        class="bank-quick-btn"
+                                                        onclick="setBankAmount(100000)"
+                                                    >100K</button>
+
+                                                    <button
+                                                        class="bank-quick-btn"
+                                                        onclick="setBankMax()"
+                                                    >MAX</button>
+                                                </div>
+
+                                                <div
+                                                    id="bankPreview"
+                                                    style="
+                                                        text-align:center;
+                                                        color:#9c8e7b;
+                                                        font-size:10px;
+                                                        margin-top:8px;
+                                                        line-height:1.5;
+                                                    "
+                                                >
+                                                    Vade sonu hesaplanıyor...
+                                                </div>
+
+                                                <button
+                                                    id="bankDepositBtn"
+                                                    class="btn-quest"
+                                                    style="width:100%; margin-top:8px;"
+                                                    onclick="depositToBank()"
+                                                >
+                                                    🏦 Altını Faize Yatır
+                                                </button>
+                                            </div>
+                                        `
+                                    }
+
+                                    <div style="
+                                        display:flex;
+                                        justify-content:center;
+                                        flex-wrap:wrap;
+                                        gap:12px;
+                                        margin-top:12px;
+                                        color:#9c8e7b;
+                                        font-size:9px;
+                                    ">
+                                        <span>
+                                            🪙 Cüzdan:
+                                            <strong style="color:#f3cf7a;">
+                                                ${(u.balance || 0).toLocaleString('tr-TR')}
+                                            </strong>
+                                        </span>
+                                        <span>
+                                            📈 Faiz:
+                                            <strong style="color:#86efac;">%50</strong>
+                                        </span>
+                                        <span>
+                                            🔒 Üst Sınır:
+                                            <strong>100.000 🪙</strong>
+                                        </span>
+                                        <span>
+                                            ⏳ Vade:
+                                            <strong>24 Saat</strong>
+                                        </span>
+                                    </div>
+                                </div>
+                            `
+                            : ''
+                        }
                     </div>
 
                     <div
@@ -2296,6 +2768,13 @@
                         Market işlemleri burada görünecektir...
                     </div>
                 `;
+
+                if (activeMarketCategory === 'bank') {
+                    requestAnimationFrame(() => {
+                        updateBankPreview();
+                        updateBankCountdown();
+                    });
+                }
             } else if(activeTab === 'playerMarket') {
                 body.innerHTML = `
                     <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #d4af37; border-radius: 6px; padding: 12px;">
@@ -3594,6 +4073,323 @@
             });
         }
 
+        function normalizeBankAmount(raw) {
+            const amount = Math.floor(Number(raw) || 0);
+
+            return Math.max(
+                1,
+                Math.min(BANK_MAX_DEPOSIT, amount)
+            );
+        }
+
+        function updateBankPreview() {
+            const input =
+                document.getElementById('bankDepositAmount');
+
+            const preview =
+                document.getElementById('bankPreview');
+
+            if (!input || !preview) return;
+
+            const amount =
+                normalizeBankAmount(input.value);
+
+            const interest =
+                Math.floor(amount * BANK_INTEREST_RATE);
+
+            const payout =
+                amount + interest;
+
+            preview.innerHTML =
+                `🏦 Anapara: <strong>${amount.toLocaleString('tr-TR')} Altın</strong>` +
+                ` • 📈 Faiz: <strong style="color:#86efac;">+${interest.toLocaleString('tr-TR')}</strong>` +
+                `<br>💰 24 saat sonunda: <strong style="color:#f3cf7a;">${payout.toLocaleString('tr-TR')} Altın</strong>`;
+        }
+
+        function setBankAmount(amount) {
+            const input =
+                document.getElementById('bankDepositAmount');
+
+            if (!input) return;
+
+            const wallet =
+                Number(currentUserData?.balance) || 0;
+
+            input.value =
+                Math.max(
+                    1,
+                    Math.min(
+                        BANK_MAX_DEPOSIT,
+                        wallet,
+                        Number(amount) || 1
+                    )
+                );
+
+            updateBankPreview();
+        }
+
+        function setBankMax() {
+            const wallet =
+                Number(currentUserData?.balance) || 0;
+
+            setBankAmount(
+                Math.min(BANK_MAX_DEPOSIT, wallet)
+            );
+        }
+
+        function depositToBank() {
+            const input =
+                document.getElementById('bankDepositAmount');
+
+            if (!input) return;
+
+            const amount =
+                normalizeBankAmount(input.value);
+
+            const wallet =
+                Number(currentUserData?.balance) || 0;
+
+            if (amount > wallet) {
+                const logEl =
+                    document.getElementById('marketLogResult');
+
+                if (logEl) {
+                    logEl.innerText =
+                        '🪙 Banka: Bu miktarı yatırmak için yeterli Altının yok.';
+                    logEl.style.color = '#fca5a5';
+                    logEl.style.borderColor = '#ef4444';
+                }
+                return;
+            }
+
+            input.value = amount;
+            updateBankPreview();
+
+            const btn =
+                document.getElementById('bankDepositBtn');
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = '🏦 Kasa Açılıyor...';
+            }
+
+            const vault =
+                document.getElementById('bankVault');
+
+            if (vault) {
+                vault.classList.add('depositing');
+            }
+
+            socket.emit('depositBankGold', {
+                amount
+            });
+        }
+
+        function formatBankRemaining(ms) {
+            const totalSeconds =
+                Math.max(
+                    0,
+                    Math.ceil((Number(ms) || 0) / 1000)
+                );
+
+            const hours =
+                Math.floor(totalSeconds / 3600);
+
+            const minutes =
+                Math.floor(
+                    (totalSeconds % 3600) / 60
+                );
+
+            const seconds =
+                totalSeconds % 60;
+
+            return (
+                `${String(hours).padStart(2,'0')}:` +
+                `${String(minutes).padStart(2,'0')}:` +
+                `${String(seconds).padStart(2,'0')}`
+            );
+        }
+
+        function updateBankCountdown() {
+            if (
+                activeTab !== 'market' ||
+                activeMarketCategory !== 'bank' ||
+                !currentUserData
+            ) {
+                return;
+            }
+
+            const deposit =
+                currentUserData.bankDeposit;
+
+            if (
+                !deposit ||
+                (Number(deposit.principal) || 0) <= 0
+            ) {
+                updateBankPreview();
+                return;
+            }
+
+            const countdown =
+                document.getElementById('bankCountdown');
+
+            const progress =
+                document.getElementById('bankProgressFill');
+
+            const collectBtn =
+                document.getElementById('bankCollectBtn');
+
+            const startedAt =
+                Number(deposit.startedAt) || 0;
+
+            const maturesAt =
+                Number(deposit.maturesAt) || 0;
+
+            const now = Date.now();
+            const remaining =
+                Math.max(0, maturesAt - now);
+
+            const totalDuration =
+                Math.max(
+                    1,
+                    maturesAt - startedAt
+                );
+
+            const elapsed =
+                Math.max(
+                    0,
+                    Math.min(
+                        totalDuration,
+                        now - startedAt
+                    )
+                );
+
+            const percent =
+                (elapsed / totalDuration) * 100;
+
+            if (progress) {
+                progress.style.width =
+                    `${Math.max(
+                        0,
+                        Math.min(100, percent)
+                    )}%`;
+            }
+
+            if (remaining > 0) {
+                if (countdown) {
+                    countdown.innerText =
+                        `⏳ Faizin hazır olmasına: ${formatBankRemaining(remaining)}`;
+                }
+
+                if (collectBtn) {
+                    collectBtn.disabled = true;
+                    collectBtn.innerText =
+                        '⏳ Vade Devam Ediyor';
+                }
+            } else {
+                if (countdown) {
+                    countdown.innerText =
+                        '✅ VADE TAMAMLANDI — %50 FAİZ HAZIR';
+                    countdown.style.color = '#86efac';
+                }
+
+                if (collectBtn) {
+                    collectBtn.disabled = false;
+                    collectBtn.innerText =
+                        '💰 Anapara + Faizi Tahsil Et';
+                }
+            }
+        }
+
+        function playBankAnimation(bankAction) {
+            if (
+                !bankAction ||
+                activeTab !== 'market' ||
+                activeMarketCategory !== 'bank'
+            ) {
+                return;
+            }
+
+            const stage =
+                document.getElementById('bankStage');
+
+            const vault =
+                document.getElementById('bankVault');
+
+            if (!stage || !vault) return;
+
+            vault.classList.remove(
+                'depositing',
+                'collecting'
+            );
+
+            void vault.offsetWidth;
+
+            vault.classList.add(
+                bankAction.type === 'collect'
+                    ? 'collecting'
+                    : 'depositing'
+            );
+
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const coin =
+                        document.createElement('div');
+
+                    coin.className =
+                        'bank-coin-fx';
+
+                    coin.innerText = '🪙';
+
+                    coin.style.left =
+                        `${43 + Math.random() * 14}%`;
+
+                    coin.style.animationDelay =
+                        `${Math.random() * .1}s`;
+
+                    stage.appendChild(coin);
+
+                    setTimeout(() => {
+                        coin.remove();
+                    }, 1400);
+                }, i * 90);
+            }
+
+            const result =
+                document.createElement('div');
+
+            result.className =
+                'bank-result-pop';
+
+            result.innerHTML =
+                bankAction.type === 'collect'
+                    ? `💰 +${Number(
+                        bankAction.payout || 0
+                    ).toLocaleString('tr-TR')} Altın<br>` +
+                      `<span style="font-size:10px;color:#86efac;">Faiz +${Number(
+                        bankAction.interest || 0
+                      ).toLocaleString('tr-TR')}</span>`
+                    : `🔒 ${Number(
+                        bankAction.principal || 0
+                    ).toLocaleString('tr-TR')} Altın Vadede<br>` +
+                      `<span style="font-size:10px;color:#86efac;">%50 Faiz Bekleniyor</span>`;
+
+            stage.appendChild(result);
+
+            setTimeout(() => {
+                result.remove();
+
+                if (vault) {
+                    vault.classList.remove(
+                        'depositing',
+                        'collecting'
+                    );
+                }
+            }, 1700);
+        }
+
+        setInterval(updateBankCountdown, 1000);
+
         function normalizeSarrafAmount(raw) {
             const amount = Math.floor(Number(raw) || 0);
 
@@ -3845,7 +4641,7 @@
         }
 
         function setMarketCategory(category) {
-            const allowed = ['potions', 'army', 'chests', 'special', 'exchange'];
+            const allowed = ['potions', 'army', 'chests', 'special', 'exchange', 'bank'];
 
             if (!allowed.includes(category)) return;
 
@@ -5006,6 +5802,20 @@
                     playSarrafExchangeAnimation(
                         res.exchange
                     );
+                });
+            }
+
+            if (
+                res.success &&
+                res.bankAction &&
+                activeTab === 'market' &&
+                activeMarketCategory === 'bank'
+            ) {
+                requestAnimationFrame(() => {
+                    playBankAnimation(
+                        res.bankAction
+                    );
+                    updateBankCountdown();
                 });
             }
         });
