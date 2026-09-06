@@ -241,6 +241,72 @@
                 .find(tier => tier.level > safeLevel) || null;
         }
 
+        const SEFER_MAX = 20;
+        const SEFER_REFILL_MS = 3 * 60 * 1000;
+
+        function formatSeferCountdown(ms) {
+            const safeMs = Math.max(0, Number(ms) || 0);
+            const totalSeconds = Math.ceil(safeMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateSeferCountdownOnly() {
+            if (!currentUserData) return;
+
+            const label = document.getElementById('seferLabel');
+            if (!label) return;
+
+            const seferLimit = Math.max(
+                0,
+                Math.min(SEFER_MAX, Number(currentUserData.seferLimiti) || 0)
+            );
+
+            if (seferLimit >= SEFER_MAX) {
+                label.innerText = `Sefer Limiti (${seferLimit}/${SEFER_MAX})`;
+                return;
+            }
+
+            const nextRefill = Number(currentUserData.seferNextRefill) || 0;
+
+            if (!nextRefill) {
+                label.innerText = `Sefer (${seferLimit}/${SEFER_MAX}) • +1 hazırlanıyor`;
+                return;
+            }
+
+            const remaining = nextRefill - Date.now();
+
+            label.innerText = remaining > 0
+                ? `Sefer (${seferLimit}/${SEFER_MAX}) • +1: ${formatSeferCountdown(remaining)}`
+                : `Sefer (${seferLimit}/${SEFER_MAX}) • +1 yenileniyor...`;
+        }
+
+        // Görsel sayaç her saniye akar; gerçek hak artışı sunucudan gelir.
+        setInterval(() => {
+            updateSeferCountdownOnly();
+
+            const workTimer = document.getElementById('workSeferTimer');
+
+            if (workTimer && currentUserData) {
+                const current = Math.max(
+                    0,
+                    Math.min(SEFER_MAX, Number(currentUserData.seferLimiti) || 0)
+                );
+
+                if (current >= SEFER_MAX) {
+                    workTimer.innerText = '✅ Seferler Dolu';
+                } else {
+                    const nextRefill = Number(currentUserData.seferNextRefill) || 0;
+                    const remaining = nextRefill - Date.now();
+
+                    workTimer.innerText = remaining > 0
+                        ? `⏳ Sonraki +1: ${formatSeferCountdown(remaining)}`
+                        : '⏳ Sonraki +1: yenileniyor...';
+                }
+            }
+        }, 1000);
+
         function cooldownButton(btnId, duration = 1500) {
             const btn = document.getElementById(btnId);
             if (btn) {
@@ -357,10 +423,17 @@
                 ? `Tecrübe (MAX SEVİYE ${MAX_LEVEL})`
                 : `Tecrübe (${data.exp || 0}/${maxExp})`;
 
-            const seferLimit = (data.seferLimiti !== undefined) ? data.seferLimiti : 20;
-            const seferPercent = Math.max(0, Math.min(100, (seferLimit / 20) * 100));
+            const seferLimit = (data.seferLimiti !== undefined)
+                ? Math.max(0, Math.min(SEFER_MAX, Number(data.seferLimiti) || 0))
+                : SEFER_MAX;
+
+            const seferPercent = Math.max(
+                0,
+                Math.min(100, (seferLimit / SEFER_MAX) * 100)
+            );
+
             document.getElementById('seferBarFill').style.width = `${seferPercent}%`;
-            document.getElementById('seferLabel').innerText = `Sefer Limiti (${seferLimit}/20)`;
+            updateSeferCountdownOnly();
         }
 
         function switchTab(tab) {
@@ -605,6 +678,7 @@
                             İmparatorluğa hizmet ederek Altın ve Tecrübe kazan.
                             Zorlu görevler daha yüksek seviye ve daha fazla Can gerektirir.
                             Başlatılan her görev <strong style="color:#60a5fa;">1 Sefer Hakkı</strong> kullanır.
+                            Eksik her Sefer Hakkı <strong style="color:#c4b5fd;">3 dakikada 1</strong> otomatik geri dolar.
                         </p>
 
                         <div style="
@@ -617,6 +691,17 @@
                             <span style="color:#f3cf7a;">⭐ Seviye: ${currentLevel}</span>
                             <span style="color:#fca5a5;">❤️ Can: ${currentHp}</span>
                             <span style="color:#93c5fd;">🧭 Sefer Hakkı: ${u.seferLimiti ?? 20}/20</span>
+                            <span id="workSeferTimer" style="color:#c4b5fd;">
+                                ${
+                                    (Number(u.seferLimiti) || 0) >= SEFER_MAX
+                                        ? '✅ Seferler Dolu'
+                                        : `⏳ Sonraki +1: ${
+                                            Number(u.seferNextRefill) > Date.now()
+                                                ? formatSeferCountdown(Number(u.seferNextRefill) - Date.now())
+                                                : 'yenileniyor...'
+                                        }`
+                                }
+                            </span>
                         </div>
                     </div>
 
