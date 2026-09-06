@@ -191,6 +191,60 @@ function getArmyCount(army) {
     return safe.archer + safe.warrior + safe.cavalry;
 }
 
+function normalizeSiegeMarketState(user) {
+    let changed = false;
+
+    if (!user.siegePreparations) {
+        user.siegePreparations = {
+            armyRations: false,
+            warDrum: false,
+            commanderEdict: false
+        };
+        changed = true;
+    }
+
+    for (const key of ['armyRations', 'warDrum', 'commanderEdict']) {
+        const value = Boolean(user.siegePreparations[key]);
+
+        if (user.siegePreparations[key] !== value) {
+            user.siegePreparations[key] = value;
+            changed = true;
+        }
+    }
+
+    if (!user.lastCastleLosses) {
+        user.lastCastleLosses = {
+            archer: 0,
+            warrior: 0,
+            cavalry: 0,
+            available: false
+        };
+        changed = true;
+    }
+
+    for (const type of ['archer', 'warrior', 'cavalry']) {
+        const amount = Math.max(
+            0,
+            Number.parseInt(user.lastCastleLosses[type], 10) || 0
+        );
+
+        if (user.lastCastleLosses[type] !== amount) {
+            user.lastCastleLosses[type] = amount;
+            changed = true;
+        }
+    }
+
+    user.lastCastleLosses.available =
+        Boolean(user.lastCastleLosses.available);
+
+    if (changed) {
+        user.markModified('siegePreparations');
+        user.markModified('lastCastleLosses');
+    }
+
+    return changed;
+}
+
 function formatArmyLosses(lost) {
     return `🏹 ${lost.archer || 0} Okçu | ⚔️ ${lost.warrior || 0} Savaşçı | 🐎 ${lost.cavalry || 0} Süvari`;
 }
@@ -477,6 +531,20 @@ const userSchema = new mongoose.Schema({
         cavalry: { type: Number, default: 0 }
     },
     castleVictories: { type: Number, default: 0 },
+
+    siegePreparations: {
+        armyRations: { type: Boolean, default: false },
+        warDrum: { type: Boolean, default: false },
+        commanderEdict: { type: Boolean, default: false }
+    },
+
+    lastCastleLosses: {
+        archer: { type: Number, default: 0 },
+        warrior: { type: Number, default: 0 },
+        cavalry: { type: Number, default: 0 },
+        available: { type: Boolean, default: false }
+    },
+
     equipped: { 
         helmet: { type: Object, default: null }, 
         necklace: { type: Object, default: null }, 
@@ -677,6 +745,7 @@ io.on('connection', (socket) => {
             normalizePlayerLevel(dbUser);
             normalizeMetinState(dbUser);
             normalizeArmy(dbUser);
+            normalizeSiegeMarketState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -704,6 +773,7 @@ io.on('connection', (socket) => {
             normalizePlayerLevel(dbUser);
             normalizeMetinState(dbUser);
             normalizeArmy(dbUser);
+            normalizeSiegeMarketState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -1197,14 +1267,31 @@ io.on('connection', (socket) => {
 
         try {
             normalizeArmy(user);
+            normalizeSiegeMarketState(user);
 
             const attackerArmy = cloneArmy(user.army);
             const attackerTroopPower = getArmyPower(attackerArmy);
 
-            // Oyuncunun ekipman dahil toplam STR değeri artık ordusuna doğrudan eklenir.
+            const preparationsUsed = {
+                armyRations: Boolean(user.siegePreparations.armyRations),
+                warDrum: Boolean(user.siegePreparations.warDrum),
+                commanderEdict: Boolean(user.siegePreparations.commanderEdict)
+            };
+
+            // Oyuncunun ekipman dahil toplam STR değeri ordusuna eklenir.
             const attackerCommanderStr = getTotalStr(user);
-            const attackerBasePower =
-                attackerTroopPower + attackerCommanderStr;
+
+            const effectiveCommanderStr = preparationsUsed.commanderEdict
+                ? Math.floor(attackerCommanderStr * 1.25)
+                : attackerCommanderStr;
+
+            const attackerPowerBeforeDrum =
+                attackerTroopPower + effectiveCommanderStr;
+
+            // Savaş Davulu bir sonraki kuşatmada toplam saldırı gücüne %5 verir.
+            const attackerBasePower = preparationsUsed.warDrum
+                ? Math.floor(attackerPowerBeforeDrum * 1.05)
+                : attackerPowerBeforeDrum;
 
             if (
                 attackerTroopPower <= 0 ||
@@ -1294,9 +1381,14 @@ io.on('connection', (socket) => {
                 attackerBattlePower > defenderBattlePower;
 
             // Kazanan da kayıp verir; kaybeden taraf daha ağır kayıp verir.
-            const attackerLossRate = attackerWon
+            let attackerLossRate = attackerWon
                 ? 0.15 + (Math.random() * 0.20)   // %15–35
                 : 0.45 + (Math.random() * 0.30); // %45–75
+
+            // Ordu Erzağı asker kaybını %10 azaltır.
+            if (preparationsUsed.armyRations) {
+                attackerLossRate *= 0.90;
+            }
 
             const defenderLossRate = attackerWon
                 ? 0.55 + (Math.random() * 0.30)  // %55–85
@@ -1315,7 +1407,27 @@ io.on('connection', (socket) => {
             user.army.archer = attackerLossResult.after.archer;
             user.army.warrior = attackerLossResult.after.warrior;
             user.army.cavalry = attackerLossResult.after.cavalry;
+
+            user.lastCastleLosses = {
+                archer: attackerLossResult.lost.archer || 0,
+                warrior: attackerLossResult.lost.warrior || 0,
+                cavalry: attackerLossResult.lost.cavalry || 0,
+                available:
+                    (
+                        (attackerLossResult.lost.archer || 0) +
+                        (attackerLossResult.lost.warrior || 0) +
+                        (attackerLossResult.lost.cavalry || 0)
+                    ) > 0
+            };
+
+            // Hazırlık ürünleri bu gerçek kuşatmada tüketilir.
+            user.siegePreparations.armyRations = false;
+            user.siegePreparations.warDrum = false;
+            user.siegePreparations.commanderEdict = false;
+
             user.markModified('army');
+            user.markModified('lastCastleLosses');
+            user.markModified('siegePreparations');
 
             if (defenderUser) {
                 defenderUser.army.archer =
@@ -1327,7 +1439,23 @@ io.on('connection', (socket) => {
                 defenderUser.army.cavalry =
                     defenderLossResult.after.cavalry;
 
+                normalizeSiegeMarketState(defenderUser);
+
+                defenderUser.lastCastleLosses = {
+                    archer: defenderLossResult.lost.archer || 0,
+                    warrior: defenderLossResult.lost.warrior || 0,
+                    cavalry: defenderLossResult.lost.cavalry || 0,
+                    available:
+                        (
+                            (defenderLossResult.lost.archer || 0) +
+                            (defenderLossResult.lost.warrior || 0) +
+                            (defenderLossResult.lost.cavalry || 0)
+                        ) > 0
+                };
+
                 defenderUser.markModified('army');
+                defenderUser.markModified('lastCastleLosses');
+
                 await defenderUser.save();
             }
 
@@ -1368,7 +1496,7 @@ io.on('connection', (socket) => {
                     `👑 KALE FETHEDİLDİ! ${user.username} kaleyi ele geçirdi ve TAHTIN yeni sahibi oldu! ` +
                     `🎁 Fetih Ödülü: +${conquestGoldReward.toLocaleString('tr-TR')} Altın 🪙 ve +${conquestRubyReward} Yakut 💎. ` +
                     `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
-                    `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${attackerCommanderStr.toLocaleString('tr-TR')}) ` +
+                    `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${effectiveCommanderStr.toLocaleString('tr-TR')}${preparationsUsed.warDrum ? ' + Davul %5' : ''}) ` +
                     `vs ${defenderBattlePower.toLocaleString('tr-TR')} (${oldOwnerName}). ` +
                     `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
 
@@ -1384,7 +1512,7 @@ io.on('connection', (socket) => {
                 message =
                     `❌ KUŞATMA BAŞARISIZ! ${defenderName} kaleyi savundu. ` +
                     `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
-                    `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${attackerCommanderStr.toLocaleString('tr-TR')}) ` +
+                    `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${effectiveCommanderStr.toLocaleString('tr-TR')}${preparationsUsed.warDrum ? ' + Davul %5' : ''}) ` +
                     `vs ${defenderBattlePower.toLocaleString('tr-TR')}. ` +
                     `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
 
@@ -1458,7 +1586,9 @@ io.on('connection', (socket) => {
                         army: attackerArmy,
                         troopPower: attackerTroopPower,
                         commanderStr: attackerCommanderStr,
+                        effectiveCommanderStr,
                         basePower: attackerBasePower,
+                        preparationsUsed,
                         battlePower: attackerBattlePower,
                         losses: attackerLossResult.lost,
                         remainingArmy: attackerLossResult.after
@@ -2366,18 +2496,243 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitin tamamen yenilendi! 20/20 🧭" });
     });
 
+    socket.on('buyArmyRations', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeSiegeMarketState(user);
+
+        const cost = 15000;
+
+        if (user.siegePreparations.armyRations) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🍖 Ordu Erzağı zaten hazır. Bir sonraki kuşatmada otomatik kullanılacak."
+            });
+        }
+
+        if ((user.balance || 0) < cost) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: `🪙 Ordu Erzağı için ${cost.toLocaleString('tr-TR')} Altın gerekiyor.`
+            });
+        }
+
+        user.balance -= cost;
+        user.siegePreparations.armyRations = true;
+        user.markModified('siegePreparations');
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message: "🍖 Ordu Erzağı hazırlandı! Bir sonraki Kale Kuşatmasında asker kaybın %10 azalacak."
+        });
+    });
+
+    socket.on('buyWarDrum', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeSiegeMarketState(user);
+
+        const cost = 25;
+
+        if (user.siegePreparations.warDrum) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🥁 Savaş Davulu zaten hazır. Bir sonraki kuşatmada otomatik kullanılacak."
+            });
+        }
+
+        if ((user.rubies || 0) < cost) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: `💎 Savaş Davulu için ${cost} Yakut gerekiyor.`
+            });
+        }
+
+        user.rubies -= cost;
+        user.siegePreparations.warDrum = true;
+        user.markModified('siegePreparations');
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message: "🥁 Savaş Davulu hazır! Bir sonraki Kale Kuşatmasında toplam saldırı gücün %5 artacak."
+        });
+    });
+
+    socket.on('buyCommanderEdict', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeSiegeMarketState(user);
+
+        const cost = 50;
+
+        if (user.siegePreparations.commanderEdict) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "📜 Komutan Fermanı zaten hazır. Bir sonraki kuşatmada otomatik kullanılacak."
+            });
+        }
+
+        if ((user.rubies || 0) < cost) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: `💎 Komutan Fermanı için ${cost} Yakut gerekiyor.`
+            });
+        }
+
+        user.rubies -= cost;
+        user.siegePreparations.commanderEdict = true;
+        user.markModified('siegePreparations');
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message: "📜 Komutan Fermanı hazır! Bir sonraki Kale Kuşatmasında karakter STR katkın %25 artacak."
+        });
+    });
+
+    socket.on('useArmyDoctor', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeArmy(user);
+        normalizeSiegeMarketState(user);
+
+        const cost = 40000;
+        const losses = user.lastCastleLosses || {};
+
+        const totalLosses =
+            (Number(losses.archer) || 0) +
+            (Number(losses.warrior) || 0) +
+            (Number(losses.cavalry) || 0);
+
+        if (!losses.available || totalLosses <= 0) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🩹 Tedavi edilecek son kuşatma kaybın bulunmuyor."
+            });
+        }
+
+        if ((user.balance || 0) < cost) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: `🪙 Ordu Hekimi için ${cost.toLocaleString('tr-TR')} Altın gerekiyor.`
+            });
+        }
+
+        const restored = {
+            archer: Math.ceil((Number(losses.archer) || 0) * 0.10),
+            warrior: Math.ceil((Number(losses.warrior) || 0) * 0.10),
+            cavalry: Math.ceil((Number(losses.cavalry) || 0) * 0.10)
+        };
+
+        user.balance -= cost;
+
+        user.army.archer += restored.archer;
+        user.army.warrior += restored.warrior;
+        user.army.cavalry += restored.cavalry;
+
+        user.lastCastleLosses = {
+            archer: 0,
+            warrior: 0,
+            cavalry: 0,
+            available: false
+        };
+
+        user.markModified('army');
+        user.markModified('lastCastleLosses');
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message:
+                `🩹 Ordu Hekimi yaralı askerleri geri döndürdü! ` +
+                `🏹 +${restored.archer} Okçu | ` +
+                `⚔️ +${restored.warrior} Savaşçı | ` +
+                `🐎 +${restored.cavalry} Süvari.`
+        });
+    });
+
     socket.on('buyMysteryBox', async () => {
         if (!checkRateLimit(socket.id)) return;
+
         const user = users[socket.id];
-        if (!user || user.balance < 10000) return socket.emit('marketResult', { success: false, userData: user, message: "Sandık için 300 altın gerekli!" });
-        
+
+        if (!user || user.balance < 10000) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🎁 Hazine Sandığı için 10.000 Altın gerekiyor."
+            });
+        }
+
         user.balance -= 10000;
-        
+
+        const rewardRoll = Math.random();
+
+        // %10 Yakut ödülü
+        if (rewardRoll < 0.10) {
+            const rubyReward = Math.floor(Math.random() * 11) + 5; // 5-15
+            user.rubies = (user.rubies || 0) + rubyReward;
+
+            await user.save();
+
+            return socket.emit('marketResult', {
+                success: true,
+                userData: user,
+                message: `💎 Hazine Sandığından ${rubyReward} Yakut çıktı!`
+            });
+        }
+
+        // %20 Altın ödülü
+        if (rewardRoll < 0.30) {
+            const goldReward = Math.floor(Math.random() * 10001) + 5000; // 5k-15k
+            user.balance += goldReward;
+
+            await user.save();
+
+            return socket.emit('marketResult', {
+                success: true,
+                userData: user,
+                message: `🪙 Hazine Sandığından ${goldReward.toLocaleString('tr-TR')} Altın çıktı!`
+            });
+        }
+
+        // %70 ekipman
         const randRarity = Math.random();
+
         let rarity = 'Sıradan';
         let statMultiplier = 1;
         let bonusLevel = Math.floor(Math.random() * 2);
-        
+
         if (randRarity > 0.90) {
             rarity = 'Epik';
             statMultiplier = 3;
@@ -2387,7 +2742,7 @@ io.on('connection', (socket) => {
             statMultiplier = 2;
             bonusLevel = Math.floor(Math.random() * 2) + 1;
         }
-        
+
         const baseItems = [
             { id: 'item_sword', name: 'Savaş Baltası', icon: '🪓', type: 'weapon', baseStr: 7, baseVit: 2 },
             { id: 'item_shield', name: 'Demir Kalkan', icon: '🛡', type: 'shield', baseStr: 2, baseVit: 6 },
@@ -2398,23 +2753,37 @@ io.on('connection', (socket) => {
             { id: 'item_gloves', name: 'Deri Eldiven', icon: '🧤', type: 'gloves', baseStr: 3, baseVit: 3 },
             { id: 'item_necklace', name: 'Antik Kolye', icon: '📿', type: 'necklace', baseStr: 5, baseVit: 2 }
         ];
-        const base = baseItems[Math.floor(Math.random() * baseItems.length)];
-        
+
+        const base =
+            baseItems[Math.floor(Math.random() * baseItems.length)];
+
         const wonItem = {
-            id: base.id,
+            id: `${base.id}_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
             name: base.name.replace(/\s*\+\d+$/, ''),
             icon: base.icon,
             type: base.type,
             level: bonusLevel,
-            rarity: rarity,
-            strBonus: (base.baseStr * statMultiplier) + (bonusLevel * 2),
-            vitBonus: (base.baseVit * statMultiplier) + (bonusLevel * 2)
+            rarity,
+            strBonus:
+                (base.baseStr * statMultiplier) +
+                (bonusLevel * 2),
+            vitBonus:
+                (base.baseVit * statMultiplier) +
+                (bonusLevel * 2)
         };
 
         user.inventory.push(wonItem);
         user.markModified('inventory');
+
         await user.save();
-        socket.emit('marketResult', { success: true, userData: user, message: `🎁 Sandıktan [${rarity}] ${wonItem.name} +${wonItem.level} çıktı!` });
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message:
+                `🎁 Hazine Sandığından [${rarity}] ` +
+                `${wonItem.name} +${wonItem.level} çıktı!`
+        });
     });
 
     socket.on('buyEstate', async (data) => {
