@@ -475,13 +475,238 @@
                     </div>
                 `;
             } else if(activeTab === 'work') {
+                const questDefinitions = [
+                    {
+                        id: 1,
+                        icon: '🛡️',
+                        name: 'Köy Devriyesi',
+                        description: 'İmparatorluk köylerini eşkıya ve yağmacılara karşı koru.',
+                        requiredLevel: 1,
+                        gold: 45,
+                        exp: 20,
+                        hpCost: 10,
+                        difficulty: 'Kolay'
+                    },
+                    {
+                        id: 2,
+                        icon: '🗡️',
+                        name: 'Haydut Avı',
+                        description: 'Ticaret yollarını kesen haydut çetesini dağıt.',
+                        requiredLevel: 5,
+                        gold: 80,
+                        exp: 35,
+                        hpCost: 15,
+                        difficulty: 'Kolay'
+                    },
+                    {
+                        id: 3,
+                        icon: '🐫',
+                        name: 'Kervan Muhafızlığı',
+                        description: 'Hazineye giden değerli ticaret kervanına refakat et.',
+                        requiredLevel: 10,
+                        gold: 140,
+                        exp: 55,
+                        hpCost: 20,
+                        difficulty: 'Normal'
+                    },
+                    {
+                        id: 4,
+                        icon: '🏯',
+                        name: 'Sınır Karakolu',
+                        description: 'Sınırdaki düşman akınını durdur ve karakolu savun.',
+                        requiredLevel: 20,
+                        gold: 220,
+                        exp: 80,
+                        hpCost: 30,
+                        difficulty: 'Normal'
+                    },
+                    {
+                        id: 5,
+                        icon: '🔥',
+                        name: 'Asi Beyliği Baskını',
+                        description: 'Tahta baş kaldıran asi beyliğin kampına gece baskını düzenle.',
+                        requiredLevel: 30,
+                        gold: 320,
+                        exp: 115,
+                        hpCost: 40,
+                        difficulty: 'Zor'
+                    },
+                    {
+                        id: 6,
+                        icon: '🕵️',
+                        name: 'Düşman Casusları',
+                        description: 'Başkent yakınlarında faaliyet gösteren casus ağını ortadan kaldır.',
+                        requiredLevel: 40,
+                        gold: 450,
+                        exp: 160,
+                        hpCost: 50,
+                        difficulty: 'Zor'
+                    },
+                    {
+                        id: 7,
+                        icon: '👑',
+                        name: 'Şehzade Konvoyu',
+                        description: 'Şehzadenin konvoyunu düşman pusularından geçirerek saraya ulaştır.',
+                        requiredLevel: 50,
+                        gold: 600,
+                        exp: 220,
+                        hpCost: 65,
+                        difficulty: 'Çok Zor'
+                    },
+                    {
+                        id: 8,
+                        icon: '📦',
+                        name: 'Düşman Erzak Hattı',
+                        description: 'Rakip ordunun erzak hattına saldır ve ikmal gücünü kır.',
+                        requiredLevel: 60,
+                        gold: 800,
+                        exp: 300,
+                        hpCost: 80,
+                        difficulty: 'Çok Zor'
+                    },
+                    {
+                        id: 9,
+                        icon: '⚔️',
+                        name: 'Han Ordusu Seferi',
+                        description: 'İmparatorluk ordusunun öncü kuvvetlerine komuta et.',
+                        requiredLevel: 75,
+                        gold: 1100,
+                        exp: 420,
+                        hpCost: 100,
+                        difficulty: 'Destansı'
+                    },
+                    {
+                        id: 10,
+                        icon: '🏰',
+                        name: 'Taht Yolu Muharebesi',
+                        description: 'Tahta uzanan yolda düşmanın seçkin birlikleriyle büyük meydan savaşına gir.',
+                        requiredLevel: 90,
+                        gold: 1500,
+                        exp: 600,
+                        hpCost: 125,
+                        difficulty: 'Efsanevi'
+                    }
+                ];
+
+                const currentLevel = Number(u.level) || 1;
+                const currentHp = Number(u.hp) || 0;
+
                 body.innerHTML = `
-                    <div class="quest-list">
-                        <div class="quest-card"><div class="quest-info"><h4>Karanlık Orman</h4><p>Ormandaki gölgelerle savaş.</p><div class="quest-rewards"><span>+45 Altın</span><span>+20 Tecrübe</span><span style="color:#ef4444;">-15 HP</span></div></div><button id="q1Btn" class="btn-quest" onclick="doAction('doQuest', { questId: 1 }, 'q1Btn')">Sefer Et</button></div>
-                        <div class="quest-card"><div class="quest-info"><h4>Unutulmuş Tapınak</h4><p>Antik tapınaktaki mahluklar.</p><div class="quest-rewards"><span>+120 Altın</span><span>+55 Tecrübe</span><span style="color:#ef4444;">-35 HP</span></div></div><button id="q2Btn" class="btn-quest" onclick="doAction('doQuest', { questId: 2 }, 'q2Btn')">Sefer Et</button></div>
-                        <div class="quest-card"><div class="quest-info"><h4>Ejderha Dağı</h4><p>Zirvedeki ejderha yuvası.</p><div class="quest-rewards"><span>+10.000 Altın</span><span>+140 Tecrübe</span><span style="color:#ef4444;">-70 HP</span></div></div><button id="q3Btn" class="btn-quest" onclick="doAction('doQuest', { questId: 3 }, 'q3Btn')">Sefer Et</button></div>
+                    <div style="
+                        background:#120e0c;
+                        border:1px solid #6b4f35;
+                        border-radius:7px;
+                        padding:12px;
+                        margin-bottom:15px;
+                    ">
+                        <h3 style="color:#f3cf7a; font-size:15px;">⚔️ İş & Sefer Görevleri</h3>
+
+                        <p style="color:#9c8e7b; font-size:11px; margin-top:5px; line-height:1.5;">
+                            İmparatorluğa hizmet ederek Altın ve Tecrübe kazan.
+                            Zorlu görevler daha yüksek seviye ve daha fazla Can gerektirir.
+                            Başlatılan her görev <strong style="color:#60a5fa;">1 Sefer Hakkı</strong> kullanır.
+                        </p>
+
+                        <div style="
+                            display:flex;
+                            flex-wrap:wrap;
+                            gap:12px;
+                            margin-top:8px;
+                            font-size:11px;
+                        ">
+                            <span style="color:#f3cf7a;">⭐ Seviye: ${currentLevel}</span>
+                            <span style="color:#fca5a5;">❤️ Can: ${currentHp}</span>
+                            <span style="color:#93c5fd;">🧭 Sefer Hakkı: ${u.seferLimiti ?? 20}/20</span>
+                        </div>
                     </div>
-                    <div id="questLogResult" class="quest-log">Sefer sonuçları burada görünecektir...</div>
+
+                    <div class="quest-list">
+                        ${questDefinitions.map(quest => {
+                            const levelLocked = currentLevel < quest.requiredLevel;
+                            const hpLocked = currentHp < quest.hpCost;
+                            const noSefer = (Number(u.seferLimiti) || 0) <= 0;
+                            const disabled = levelLocked || hpLocked || noSefer;
+
+                            let buttonText = 'Sefer Et';
+
+                            if (levelLocked) {
+                                buttonText = `🔒 Lv ${quest.requiredLevel}`;
+                            } else if (hpLocked) {
+                                buttonText = `❤️ ${quest.hpCost} HP Gerekli`;
+                            } else if (noSefer) {
+                                buttonText = '⏳ Sefer Hakkı Yok';
+                            }
+
+                            const difficultyColor =
+                                quest.difficulty === 'Efsanevi' ? '#a855f7' :
+                                quest.difficulty === 'Destansı' ? '#ef4444' :
+                                quest.difficulty === 'Çok Zor' ? '#f97316' :
+                                quest.difficulty === 'Zor' ? '#f59e0b' :
+                                quest.difficulty === 'Normal' ? '#60a5fa' :
+                                '#22c55e';
+
+                            return `
+                                <div
+                                    class="quest-card"
+                                    style="
+                                        ${levelLocked ? 'opacity:.58;' : ''}
+                                        border-left:3px solid ${difficultyColor};
+                                    "
+                                >
+                                    <div style="
+                                        font-size:28px;
+                                        width:38px;
+                                        flex-shrink:0;
+                                        text-align:center;
+                                    ">${quest.icon}</div>
+
+                                    <div class="quest-info" style="flex:1;">
+                                        <div style="
+                                            display:flex;
+                                            align-items:center;
+                                            gap:7px;
+                                            flex-wrap:wrap;
+                                        ">
+                                            <h4>${quest.name}</h4>
+
+                                            <span style="
+                                                font-size:9px;
+                                                color:${difficultyColor};
+                                                border:1px solid ${difficultyColor};
+                                                border-radius:3px;
+                                                padding:1px 5px;
+                                            ">${quest.difficulty}</span>
+
+                                            <span style="
+                                                font-size:9px;
+                                                color:#9c8e7b;
+                                            ">Lv ${quest.requiredLevel}+</span>
+                                        </div>
+
+                                        <p>${quest.description}</p>
+
+                                        <div class="quest-rewards" style="flex-wrap:wrap;">
+                                            <span>🪙 +${quest.gold.toLocaleString('tr-TR')} Altın</span>
+                                            <span>✨ +${quest.exp} Tecrübe</span>
+                                            <span style="color:#ef4444;">❤️ -${quest.hpCost} HP</span>
+                                            <span style="color:#60a5fa;">🧭 -1 Sefer</span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        id="q${quest.id}Btn"
+                                        class="btn-quest"
+                                        ${disabled ? 'disabled' : ''}
+                                        onclick="doAction('doQuest', { questId: ${quest.id} }, 'q${quest.id}Btn')"
+                                    >${buttonText}</button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div id="questLogResult" class="quest-log">
+                        Sefer sonuçları burada görünecektir...
+                    </div>
                 `;
             } else if(activeTab === 'market') {
                 body.innerHTML = `
@@ -1358,7 +1583,27 @@
             updateHeader(u);
             renderPanelContent();
         });
-        socket.on('questResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('questLogResult').innerText = res.message; });
+        socket.on('questResult', (res) => {
+            if (res.userData) {
+                updateHeader(res.userData);
+            }
+
+            if (activeTab === 'work') {
+                renderPanelContent();
+            }
+
+            const logEl = document.getElementById('questLogResult');
+
+            if (logEl) {
+                logEl.innerText = res.message || 'Sefer işlemi tamamlandı.';
+                logEl.style.fontWeight = 'bold';
+                logEl.style.borderColor = res.success ? '#22c55e' : '#ef4444';
+                logEl.style.color = res.success ? '#86efac' : '#fca5a5';
+                logEl.style.background = res.success
+                    ? 'rgba(34,197,94,.08)'
+                    : 'rgba(239,68,68,.08)';
+            }
+        });
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
         socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
         socket.on('barracksStatus', (res) => {
