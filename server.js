@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-clan-economy-levels-v3';
+const GAME_BUILD_ID = '2026-09-06-live-stat-ui-fix-v4';
 
 const app = express();
 const server = http.createServer(app);
@@ -2639,8 +2639,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('getOverviewStatus', async () => {
-        if (!checkRateLimit(socket.id)) return;
-
+        // Salt-okuma isteği. Stat dağıtımından hemen sonra da çalışabilmesi için
+        // global işlem rate-limitine tabi tutulmuyor.
         const user = users[socket.id];
         if (!user) return;
 
