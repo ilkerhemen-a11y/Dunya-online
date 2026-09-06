@@ -735,11 +735,11 @@
                 `;
             } else if(activeTab === 'metin') {
                 const metinDefinitions = [
-                    { id:1, name:'Savaş Metini', icon:'🪨', requiredLevel:1,  maxHp:500,   respawnMin:2,  papers:'1 Kutsama Kağıdı' },
-                    { id:2, name:'Gölge Metini', icon:'🌑', requiredLevel:20, maxHp:2000,  respawnMin:3,  papers:'1 Kutsama Kağıdı' },
-                    { id:3, name:'Ruh Metini', icon:'💠', requiredLevel:40, maxHp:6000,  respawnMin:4,  papers:'1-2 Kutsama Kağıdı' },
-                    { id:4, name:'Kıyamet Metini', icon:'🔥', requiredLevel:60, maxHp:15000, respawnMin:5,  papers:'1-2 Kutsama Kağıdı' },
-                    { id:5, name:'Taht Metini', icon:'👑', requiredLevel:80, maxHp:35000, respawnMin:10, papers:'2-3 Kutsama Kağıdı' }
+                    { id:1, name:'Savaş Metini', icon:'🪨', requiredLevel:1,  maxHp:500,   respawnHours:4,  hpCostPercent:4, papers:'1 Kutsama Kağıdı' },
+                    { id:2, name:'Gölge Metini', icon:'🌑', requiredLevel:20, maxHp:2000,  respawnHours:6,  hpCostPercent:5, papers:'1 Kutsama Kağıdı' },
+                    { id:3, name:'Ruh Metini', icon:'💠', requiredLevel:40, maxHp:6000,  respawnHours:8,  hpCostPercent:6, papers:'1-2 Kutsama Kağıdı' },
+                    { id:4, name:'Kıyamet Metini', icon:'🔥', requiredLevel:60, maxHp:15000, respawnHours:12, hpCostPercent:7, papers:'1-2 Kutsama Kağıdı' },
+                    { id:5, name:'Taht Metini', icon:'👑', requiredLevel:80, maxHp:35000, respawnHours:24, hpCostPercent:8, papers:'2-3 Kutsama Kağıdı' }
                 ];
 
                 let metinBonusStr = 0;
@@ -750,6 +750,16 @@
                 }
 
                 const metinTotalStr = (Number(u.str) || 5) + metinBonusStr;
+
+                let metinBonusVit = 0;
+                if (u.equipped) {
+                    Object.values(u.equipped).forEach(item => {
+                        if (item) metinBonusVit += Number(item.vitBonus) || 0;
+                    });
+                }
+                const metinTotalVit = (Number(u.vit) || 5) + metinBonusVit;
+                const metinMaxPlayerHp = Math.max(20, metinTotalVit * 20);
+
                 const hpList = Array.isArray(u.metinStoneHp) ? u.metinStoneHp : [];
                 const respawnList = Array.isArray(u.metinStoneRespawnAt) ? u.metinStoneRespawnAt : [];
                 const now = Date.now();
@@ -765,7 +775,7 @@
                             ⚔️ Toplam Saldırı Gücün: ${metinTotalStr} STR
                         </p>
                         <p style="color:#9c8e7b; font-size:10px; margin-top:4px;">
-                            Her vuruş toplam STR ×4 civarında hasar verir. Taşların canı sunucuda saklanır.
+                            Her vuruş toplam STR ×4 civarında hasar verir ve karakterinden HP götürür. Kırılan Metinlerin yeniden doğma süresi minimum 4 saattir.
                         </p>
                     </div>
 
@@ -779,14 +789,24 @@
                             const playerLevel = Number(u.level) || 1;
                             const levelLocked = playerLevel < stone.requiredLevel;
                             const hpPercent = Math.max(0, Math.min(100, (currentHp / stone.maxHp) * 100));
-                            const secondsLeft = waiting ? Math.max(0, Math.ceil((respawnAt - now) / 1000)) : 0;
+                            const remainingMs = waiting ? Math.max(0, respawnAt - now) : 0;
+                            const hoursLeft = Math.floor(remainingMs / (60 * 60 * 1000));
+                            const minutesLeft = Math.ceil((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+                            const respawnText = waiting
+                                ? `${hoursLeft}s ${minutesLeft}dk`
+                                : `${stone.respawnHours} saat`;
 
                             let buttonText = '⚔️ Metine Vur';
                             if (levelLocked) buttonText = `🔒 Lv ${stone.requiredLevel} Gerekli`;
-                            if (waiting) buttonText = `⏳ ${secondsLeft} sn`;
+                            if (waiting) buttonText = `⏳ ${respawnText}`;
 
                             const minDamage = Math.max(1, Math.floor(metinTotalStr * 4 * 0.85));
                             const maxDamage = Math.max(1, Math.floor(metinTotalStr * 4 * 1.15));
+                            const hpCost = Math.max(1, Math.ceil(metinMaxPlayerHp * (stone.hpCostPercent / 100)));
+                            const insufficientHp = (Number(u.hp) || 0) < hpCost;
+                            if (!waiting && !levelLocked && insufficientHp) {
+                                buttonText = `❤️ ${hpCost} HP Gerekli`;
+                            }
 
                             return `
                                 <div class="quest-card" style="align-items:stretch; gap:12px; ${levelLocked ? 'opacity:.65;' : ''}">
@@ -795,15 +815,21 @@
 
                                         <div class="quest-info" style="flex:1;">
                                             <h4>${stone.name}</h4>
-                                            <p>Gerekli Seviye: ${stone.requiredLevel} • Yenilenme: ${stone.respawnMin} dk • Ganimet: 📜 ${stone.papers}</p>
+                                            <p>
+                                                Gerekli Seviye: ${stone.requiredLevel} •
+                                                Yenilenme: ${stone.respawnHours} saat •
+                                                Vuruş Maliyeti: ❤️ %${stone.hpCostPercent} Max HP •
+                                                Ganimet: 📜 ${stone.papers}
+                                            </p>
 
                                             <div style="height:12px; background:#080605; border:1px solid #3d2f23; border-radius:4px; overflow:hidden; margin:7px 0 4px;">
                                                 <div style="height:100%; width:${hpPercent}%; background:linear-gradient(to right,#ef4444,#991b1b); transition:width .25s ease;"></div>
                                             </div>
 
                                             <div style="display:flex; justify-content:space-between; gap:8px; font-size:10px; flex-wrap:wrap;">
-                                                <span style="color:#fca5a5;">❤️ ${waiting ? 'Yenileniyor' : `${currentHp}/${stone.maxHp}`}</span>
+                                                <span style="color:#fca5a5;">🪨 HP: ${waiting ? 'Yenileniyor' : `${currentHp}/${stone.maxHp}`}</span>
                                                 <span style="color:#f97316;">⚔️ Hasar: ${minDamage}-${maxDamage}</span>
+                                                <span style="color:${insufficientHp ? '#ef4444' : '#22c55e'};">❤️ Vuruş: -${hpCost} HP | Sen: ${u.hp}/${metinMaxPlayerHp}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -811,7 +837,7 @@
                                     <button
                                         id="metinBtn${stone.id}"
                                         class="btn-quest"
-                                        ${levelLocked || waiting ? 'disabled' : ''}
+                                        ${levelLocked || waiting || insufficientHp ? 'disabled' : ''}
                                         onclick="doAction('attackMetinStone', { stoneId: ${stone.id} }, 'metinBtn${stone.id}')"
                                     >${buttonText}</button>
                                 </div>
