@@ -535,6 +535,7 @@ async function getCastleStatusForUser(user) {
     let defenderArmy = cloneArmy(NPC_CASTLE_ARMY);
     let defenderName = 'Saray Muhafızları';
     let defenderIsNpc = true;
+    let defenderCommanderStr = 0;
 
     if (castle.ownerId) {
         const defenderUser = await User.findById(castle.ownerId);
@@ -551,12 +552,17 @@ async function getCastleStatusForUser(user) {
             defenderArmy = cloneArmy(defenderUser.army);
             defenderName = defenderUser.username;
             defenderIsNpc = false;
+
+            // Kale sahibinin ekipman dahil toplam STR değeri ordusuna eklenir.
+            defenderCommanderStr = getTotalStr(defenderUser);
         }
     }
 
-    const rawArmyPower = getArmyPower(defenderArmy);
+    const troopPower = getArmyPower(defenderArmy);
+    const combinedArmyPower = troopPower + defenderCommanderStr;
+
     const defensePower = Math.floor(
-        (rawArmyPower + CASTLE_WALL_POWER) * CASTLE_DEFENSE_BONUS
+        (combinedArmyPower + CASTLE_WALL_POWER) * CASTLE_DEFENSE_BONUS
     );
 
     return {
@@ -566,10 +572,15 @@ async function getCastleStatusForUser(user) {
         defenderName,
         defenderIsNpc,
         defenderArmy,
-        armyPower: rawArmyPower,
+
+        // Güç dökümü
+        troopPower,
+        commanderStr: defenderCommanderStr,
+        armyPower: combinedArmyPower,
         wallPower: CASTLE_WALL_POWER,
         defensePower,
         defenseBonusPercent: Math.round((CASTLE_DEFENSE_BONUS - 1) * 100),
+
         conqueredAt: castle.conqueredAt || 0,
         battleCount: castle.battleCount || 0,
         isOwner: !!(
@@ -1068,11 +1079,17 @@ io.on('connection', (socket) => {
 
             const castle = await getCastleStatusForUser(user);
 
+            const troopPower = getArmyPower(user.army);
+            const commanderStr = getTotalStr(user);
+            const armyPower = troopPower + commanderStr;
+
             socket.emit('barracksStatus', {
                 userData: user,
                 troops: TROOP_TYPES,
                 castle,
-                armyPower: getArmyPower(user.army),
+                troopPower,
+                commanderStr,
+                armyPower,
                 armyCount: getArmyCount(user.army)
             });
         } catch (err) {
@@ -1129,15 +1146,23 @@ io.on('connection', (socket) => {
 
             const castle = await getCastleStatusForUser(user);
 
+            const troopPower = getArmyPower(user.army);
+            const commanderStr = getTotalStr(user);
+            const armyPower = troopPower + commanderStr;
+
             socket.emit('barracksResult', {
                 success: true,
                 userData: user,
                 castle,
-                armyPower: getArmyPower(user.army),
+                troopPower,
+                commanderStr,
+                armyPower,
                 armyCount: getArmyCount(user.army),
                 message:
                     `${troop.icon} ${quantity} ${troop.name} yetiştirildi! ` +
-                    `🪙 ${totalCost.toLocaleString('tr-TR')} Altın harcandı.`
+                    `🪙 ${totalCost.toLocaleString('tr-TR')} Altın harcandı. ` +
+                    `⚔️ Toplam Ordu Gücü: ${armyPower.toLocaleString('tr-TR')} ` +
+                    `(Birlik ${troopPower.toLocaleString('tr-TR')} + Komutan STR ${commanderStr.toLocaleString('tr-TR')}).`
             });
 
             // Taht sahibi asker yetiştirirse kalenin savunması da anında değişir.
@@ -1174,9 +1199,17 @@ io.on('connection', (socket) => {
             normalizeArmy(user);
 
             const attackerArmy = cloneArmy(user.army);
-            const attackerBasePower = getArmyPower(attackerArmy);
+            const attackerTroopPower = getArmyPower(attackerArmy);
 
-            if (attackerBasePower <= 0 || getArmyCount(attackerArmy) <= 0) {
+            // Oyuncunun ekipman dahil toplam STR değeri artık ordusuna doğrudan eklenir.
+            const attackerCommanderStr = getTotalStr(user);
+            const attackerBasePower =
+                attackerTroopPower + attackerCommanderStr;
+
+            if (
+                attackerTroopPower <= 0 ||
+                getArmyCount(attackerArmy) <= 0
+            ) {
                 return socket.emit('castleBattleResult', {
                     success: false,
                     userData: user,
@@ -1201,6 +1234,7 @@ io.on('connection', (socket) => {
             let defenderArmy = cloneArmy(NPC_CASTLE_ARMY);
             let defenderName = 'Saray Muhafızları';
             let defenderIsNpc = true;
+            let defenderCommanderStr = 0;
 
             if (castle.ownerId) {
                 defenderUser = await User.findById(castle.ownerId);
@@ -1215,29 +1249,49 @@ io.on('connection', (socket) => {
                     defenderArmy = cloneArmy(defenderUser.army);
                     defenderName = defenderUser.username;
                     defenderIsNpc = false;
+
+                    // Taht sahibinin STR değeri de savunma ordusuna eklenir.
+                    defenderCommanderStr = getTotalStr(defenderUser);
                 }
             }
 
-            const defenderArmyPower = getArmyPower(defenderArmy);
+            const defenderTroopPower = getArmyPower(defenderArmy);
+            const defenderCombinedArmyPower =
+                defenderTroopPower + defenderCommanderStr;
+
             const defenderBasePower = Math.floor(
-                (defenderArmyPower + CASTLE_WALL_POWER) * CASTLE_DEFENSE_BONUS
+                (
+                    defenderCombinedArmyPower +
+                    CASTLE_WALL_POWER
+                ) *
+                CASTLE_DEFENSE_BONUS
             );
 
             // Savaşta iki taraf da %90–110 performans gösterebilir.
-            const attackerRollMultiplier = 0.90 + (Math.random() * 0.20);
-            const defenderRollMultiplier = 0.90 + (Math.random() * 0.20);
+            const attackerRollMultiplier =
+                0.90 + (Math.random() * 0.20);
+
+            const defenderRollMultiplier =
+                0.90 + (Math.random() * 0.20);
 
             const attackerBattlePower = Math.max(
                 1,
-                Math.floor(attackerBasePower * attackerRollMultiplier)
+                Math.floor(
+                    attackerBasePower *
+                    attackerRollMultiplier
+                )
             );
 
             const defenderBattlePower = Math.max(
                 1,
-                Math.floor(defenderBasePower * defenderRollMultiplier)
+                Math.floor(
+                    defenderBasePower *
+                    defenderRollMultiplier
+                )
             );
 
-            const attackerWon = attackerBattlePower > defenderBattlePower;
+            const attackerWon =
+                attackerBattlePower > defenderBattlePower;
 
             // Kazanan da kayıp verir; kaybeden taraf daha ağır kayıp verir.
             const attackerLossRate = attackerWon
@@ -1264,40 +1318,57 @@ io.on('connection', (socket) => {
             user.markModified('army');
 
             if (defenderUser) {
-                defenderUser.army.archer = defenderLossResult.after.archer;
-                defenderUser.army.warrior = defenderLossResult.after.warrior;
-                defenderUser.army.cavalry = defenderLossResult.after.cavalry;
+                defenderUser.army.archer =
+                    defenderLossResult.after.archer;
+
+                defenderUser.army.warrior =
+                    defenderLossResult.after.warrior;
+
+                defenderUser.army.cavalry =
+                    defenderLossResult.after.cavalry;
+
                 defenderUser.markModified('army');
                 await defenderUser.save();
             }
 
-            castle.battleCount = (castle.battleCount || 0) + 1;
+            castle.battleCount =
+                (castle.battleCount || 0) + 1;
 
             let message = '';
             let throneChanged = false;
 
+            const conquestGoldReward =
+                attackerWon ? 10000 : 0;
+
+            const conquestRubyReward =
+                attackerWon ? 100 : 0;
+
             if (attackerWon) {
                 throneChanged = true;
 
-                const oldOwnerName = castle.ownerName || 'Saray Muhafızları';
+                const oldOwnerName =
+                    castle.ownerName || 'Saray Muhafızları';
 
                 castle.ownerId = user._id;
                 castle.ownerName = user.username;
                 castle.conqueredAt = Date.now();
 
-                user.castleVictories = (user.castleVictories || 0) + 1;
+                user.castleVictories =
+                    (user.castleVictories || 0) + 1;
 
-                // Kale fetih ödülü
-                const conquestGoldReward = 10000;
-                const conquestRubyReward = 100;
+                user.balance =
+                    (user.balance || 0) +
+                    conquestGoldReward;
 
-                user.balance = (user.balance || 0) + conquestGoldReward;
-                user.rubies = (user.rubies || 0) + conquestRubyReward;
+                user.rubies =
+                    (user.rubies || 0) +
+                    conquestRubyReward;
 
                 message =
                     `👑 KALE FETHEDİLDİ! ${user.username} kaleyi ele geçirdi ve TAHTIN yeni sahibi oldu! ` +
                     `🎁 Fetih Ödülü: +${conquestGoldReward.toLocaleString('tr-TR')} Altın 🪙 ve +${conquestRubyReward} Yakut 💎. ` +
                     `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
+                    `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${attackerCommanderStr.toLocaleString('tr-TR')}) ` +
                     `vs ${defenderBattlePower.toLocaleString('tr-TR')} (${oldOwnerName}). ` +
                     `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
 
@@ -1313,6 +1384,7 @@ io.on('connection', (socket) => {
                 message =
                     `❌ KUŞATMA BAŞARISIZ! ${defenderName} kaleyi savundu. ` +
                     `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
+                    `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${attackerCommanderStr.toLocaleString('tr-TR')}) ` +
                     `vs ${defenderBattlePower.toLocaleString('tr-TR')}. ` +
                     `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
 
@@ -1329,7 +1401,41 @@ io.on('connection', (socket) => {
             await user.save();
             await castle.save();
 
-            const updatedCastle = await getCastleStatusForUser(user);
+            const updatedCastle =
+                await getCastleStatusForUser(user);
+
+            // Animasyonda kullanılacak savaş safhaları.
+            // Sonuç yine tamamen sunucuda hesaplanmıştır.
+            const battlePhases = [
+                {
+                    id: 'archery',
+                    icon: '🏹',
+                    name: 'Okçu Yaylımı',
+                    attackerUnits: attackerArmy.archer,
+                    defenderUnits: defenderArmy.archer
+                },
+                {
+                    id: 'infantry',
+                    icon: '⚔️',
+                    name: 'Piyade Çarpışması',
+                    attackerUnits: attackerArmy.warrior,
+                    defenderUnits: defenderArmy.warrior
+                },
+                {
+                    id: 'cavalry',
+                    icon: '🐎',
+                    name: 'Süvari Hücumu',
+                    attackerUnits: attackerArmy.cavalry,
+                    defenderUnits: defenderArmy.cavalry
+                },
+                {
+                    id: 'final',
+                    icon: '🧱',
+                    name: 'Son Taarruz',
+                    attackerUnits: getArmyCount(attackerArmy),
+                    defenderUnits: getArmyCount(defenderArmy)
+                }
+            ];
 
             socket.emit('castleBattleResult', {
                 success: attackerWon,
@@ -1341,15 +1447,58 @@ io.on('connection', (socket) => {
                 defenderBattlePower,
                 attackerLosses: attackerLossResult.lost,
                 defenderLosses: defenderLossResult.lost,
-                message
+                message,
+
+                battle: {
+                    attackerWon,
+                    throneChanged,
+
+                    attacker: {
+                        username: user.username,
+                        army: attackerArmy,
+                        troopPower: attackerTroopPower,
+                        commanderStr: attackerCommanderStr,
+                        basePower: attackerBasePower,
+                        battlePower: attackerBattlePower,
+                        losses: attackerLossResult.lost,
+                        remainingArmy: attackerLossResult.after
+                    },
+
+                    defender: {
+                        username: defenderName,
+                        isNpc: defenderIsNpc,
+                        army: defenderArmy,
+                        troopPower: defenderTroopPower,
+                        commanderStr: defenderCommanderStr,
+                        basePower: defenderBasePower,
+                        battlePower: defenderBattlePower,
+                        wallPower: CASTLE_WALL_POWER,
+                        defenseBonusPercent:
+                            Math.round(
+                                (CASTLE_DEFENSE_BONUS - 1) * 100
+                            ),
+                        losses: defenderLossResult.lost,
+                        remainingArmy: defenderLossResult.after
+                    },
+
+                    phases: battlePhases,
+
+                    rewards: {
+                        gold: conquestGoldReward,
+                        rubies: conquestRubyReward
+                    }
+                }
             });
 
-            io.emit('castleRefresh');
+            // Diğer oyuncular kalenin yeni durumunu görsün.
+            // Saldıran oyuncu animasyon bitince kendi durumunu ayrıca yeniler.
+            socket.broadcast.emit('castleRefresh');
 
             if (throneChanged) {
                 io.emit('throneAnnouncement', {
                     ownerName: user.username,
-                    message: `👑 ${user.username} kaleyi ele geçirdi ve Tahtın yeni sahibi oldu!`
+                    message:
+                        `👑 ${user.username} kaleyi ele geçirdi ve Tahtın yeni sahibi oldu!`
                 });
             }
         } catch (err) {
