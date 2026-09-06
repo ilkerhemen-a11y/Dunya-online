@@ -402,6 +402,12 @@
             }
         }
 
+
+        @keyframes arenaRefreshSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
 </style>
 </head>
 <body>
@@ -1575,8 +1581,9 @@
                         </div>
 
                         <button
+                            id="arenaRefreshBtn"
                             class="btn-quest"
-                            onclick="socket.emit('getArenaOpponents')"
+                            onclick="refreshArenaOpponents()"
                         >🔄 Rakipleri Yenile</button>
                     </div>
 
@@ -1591,7 +1598,7 @@
                     </div>
                 `;
 
-                socket.emit('getArenaOpponents');
+                refreshArenaOpponents();
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
@@ -2032,6 +2039,34 @@
                 vit: totalVit,
                 power: (totalStr * 2) + totalVit
             };
+        }
+
+        function refreshArenaOpponents() {
+            const listEl = document.getElementById('arenaOpponentsList');
+            const btn = document.getElementById('arenaRefreshBtn');
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = '⏳ Rakipler Yenileniyor...';
+            }
+
+            if (listEl) {
+                listEl.innerHTML = `
+                    <div style="
+                        text-align:center;
+                        padding:18px;
+                        color:#c4b5fd;
+                        border:1px dashed #433222;
+                        border-radius:6px;
+                        background:rgba(168,85,247,.04);
+                    ">
+                        <div style="font-size:24px; animation:arenaRefreshSpin .8s linear infinite; display:inline-block;">⚔️</div>
+                        <div style="font-size:11px; margin-top:6px;">Yeni rakipler aranıyor...</div>
+                    </div>
+                `;
+            }
+
+            socket.emit('getArenaOpponents');
         }
 
         function startArenaChallenge(defenderId, btnId) {
@@ -2513,6 +2548,12 @@
         
         socket.on('arenaOpponentsList', (opponents) => {
             const listEl = document.getElementById('arenaOpponentsList');
+            const refreshBtn = document.getElementById('arenaRefreshBtn');
+
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerText = '🔄 Rakipleri Yenile';
+            }
 
             if (!listEl) return;
 
@@ -2584,6 +2625,13 @@
         });
 
         socket.on('arenaResult', (res) => {
+            const refreshBtn = document.getElementById('arenaRefreshBtn');
+
+            if (refreshBtn && !res.battleCompleted) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerText = '🔄 Rakipleri Yenile';
+            }
+
             if (res.userData) {
                 updateHeader(res.userData);
 
