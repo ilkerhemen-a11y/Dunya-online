@@ -3573,6 +3573,11 @@
             <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
             <button class="menu-btn" onclick="switchTab('metin')">🪨 Metin Taşı Kes</button>
             <button class="menu-btn" onclick="switchTab('clanWar')">🏰 Klan Kale Savaşı</button>
+
+            <div class="menu-category-title" style="margin-top: 8px;">Macera</div>
+            <button class="menu-btn" onclick="switchTab('adventure')">🎯 Macera Merkezi</button>
+            <button class="menu-btn" onclick="switchTab('worldBoss')">👹 Dünya Bossu</button>
+
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('clan')">🛡️ Klan</button>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
@@ -3617,6 +3622,14 @@
         let timarState = null;
         let timarAnimationToken = 0;
         let overviewState = null;
+
+        // Macera Paketi V1 istemci durumu
+        let adventureState = null;
+        let worldBossState = null;
+        let adventureCountdownTimer = null;
+        let worldBossCountdownTimer = null;
+        let lastAdventureMessage = '';
+        let lastWorldBossMessage = '';
 
         // Ses ve görsel efekt durumu
         let gameAudioEnabled =
@@ -4649,6 +4662,13 @@
                 alert(`İmparatorluğun sen yokken çalışmaya devam etti!\nTımar hazinelerine toplam ${data.offlineGoldEarned} Altın birikti.`);
             }
 
+            if (data.loginRewardMessage) {
+                setTimeout(
+                    () => alert(data.loginRewardMessage),
+                    250
+                );
+            }
+
             currentUserData = data;
             updateHeader(data);
             switchTab('overview');
@@ -5044,6 +5064,313 @@
             });
         }
 
+        function formatAdventureReward(reward = {}) {
+            const parts = [];
+
+            if ((Number(reward.gold) || 0) > 0) {
+                parts.push(`🪙 ${Number(reward.gold).toLocaleString('tr-TR')} Altın`);
+            }
+
+            if ((Number(reward.rubies) || 0) > 0) {
+                parts.push(`💎 ${Number(reward.rubies)} Yakut`);
+            }
+
+            if ((Number(reward.honor) || 0) !== 0) {
+                parts.push(`🌟 ${Number(reward.honor)} Onur`);
+            }
+
+            if ((Number(reward.fragments) || 0) > 0) {
+                parts.push(`🗺️ ${Number(reward.fragments)} Parça`);
+            }
+
+            if ((Number(reward.iron) || 0) > 0) {
+                parts.push(`⛏️ ${Number(reward.iron)} Cevher`);
+            }
+
+            if (reward.mount) {
+                parts.push('🐎 Binek');
+            }
+
+            if (reward.companion) {
+                parts.push('🐺 Yoldaş');
+            }
+
+            return parts.join(' • ') || 'Özel ödül';
+        }
+
+        function formatAdventureDateTime(timestamp) {
+            if (!timestamp) return '-';
+
+            try {
+                return new Date(timestamp).toLocaleString(
+                    'tr-TR',
+                    {
+                        timeZone:'Europe/Istanbul',
+                        day:'2-digit',
+                        month:'2-digit',
+                        hour:'2-digit',
+                        minute:'2-digit'
+                    }
+                );
+            } catch (_) {
+                return new Date(timestamp).toLocaleString('tr-TR');
+            }
+        }
+
+        function formatAdventureRemaining(ms) {
+            const totalSeconds =
+                Math.max(
+                    0,
+                    Math.ceil(
+                        (Number(ms) || 0) / 1000
+                    )
+                );
+
+            const hours =
+                Math.floor(
+                    totalSeconds / 3600
+                );
+
+            const minutes =
+                Math.floor(
+                    (totalSeconds % 3600) / 60
+                );
+
+            const seconds =
+                totalSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours}s ${minutes}dk ${seconds}sn`;
+            }
+
+            return `${minutes}dk ${seconds}sn`;
+        }
+
+        function stopAdventureCountdowns() {
+            if (adventureCountdownTimer) {
+                clearInterval(adventureCountdownTimer);
+                adventureCountdownTimer = null;
+            }
+
+            if (worldBossCountdownTimer) {
+                clearInterval(worldBossCountdownTimer);
+                worldBossCountdownTimer = null;
+            }
+        }
+
+        function startAdventureCountdown() {
+            if (adventureCountdownTimer) {
+                clearInterval(adventureCountdownTimer);
+            }
+
+            const update = () => {
+                if (
+                    activeTab !== 'adventure' ||
+                    !adventureState?.worldEvent
+                ) {
+                    return;
+                }
+
+                const event =
+                    adventureState.worldEvent;
+
+                const target =
+                    event.active
+                        ? Number(event.endAt)
+                        : Number(event.nextStartAt);
+
+                const el =
+                    document.getElementById(
+                        'worldEventCountdown'
+                    );
+
+                if (el) {
+                    el.innerText =
+                        event.active
+                            ? `Etkinliğin bitmesine: ${formatAdventureRemaining(target - Date.now())}`
+                            : `Sonraki Dünya Olayına: ${formatAdventureRemaining(target - Date.now())}`;
+                }
+
+                if (
+                    target > 0 &&
+                    target <= Date.now()
+                ) {
+                    setTimeout(
+                        () => socket.emit('getAdventureHubStatus'),
+                        700
+                    );
+                }
+            };
+
+            update();
+
+            adventureCountdownTimer =
+                setInterval(
+                    update,
+                    1000
+                );
+        }
+
+        function startWorldBossCountdown() {
+            if (worldBossCountdownTimer) {
+                clearInterval(worldBossCountdownTimer);
+            }
+
+            const update = () => {
+                if (
+                    activeTab !== 'worldBoss' ||
+                    !worldBossState
+                ) {
+                    return;
+                }
+
+                const schedule =
+                    worldBossState.schedule || {};
+
+                const target =
+                    schedule.active
+                        ? Number(schedule.endAt)
+                        : Number(schedule.nextStartAt);
+
+                const el =
+                    document.getElementById(
+                        'worldBossCountdown'
+                    );
+
+                if (el) {
+                    el.innerText =
+                        schedule.active
+                            ? `Boss penceresinin bitmesine: ${formatAdventureRemaining(target - Date.now())}`
+                            : `Bossun açılmasına: ${formatAdventureRemaining(target - Date.now())}`;
+                }
+
+                if (
+                    Number(worldBossState.cooldownRemainingMs) > 0
+                ) {
+                    worldBossState.cooldownRemainingMs =
+                        Math.max(
+                            0,
+                            Number(worldBossState.cooldownRemainingMs) - 1000
+                        );
+
+                    const cooldownEl =
+                        document.getElementById(
+                            'worldBossCooldown'
+                        );
+
+                    if (cooldownEl) {
+                        cooldownEl.innerText =
+                            worldBossState.cooldownRemainingMs > 0
+                                ? `⏳ Yeni saldırı: ${Math.ceil(worldBossState.cooldownRemainingMs / 1000)} sn`
+                                : '⚔️ Saldırı hazır';
+                    }
+                }
+            };
+
+            update();
+
+            worldBossCountdownTimer =
+                setInterval(
+                    update,
+                    1000
+                );
+        }
+
+        function claimAdventureTask(scope, taskId) {
+            socket.emit(
+                'claimAdventureTask',
+                {
+                    scope,
+                    taskId
+                }
+            );
+        }
+
+        function claimAdventureAchievement(achievementId) {
+            socket.emit(
+                'claimAchievementReward',
+                {
+                    achievementId
+                }
+            );
+        }
+
+        function openAdventureTreasure() {
+            socket.emit(
+                'openTreasureChest'
+            );
+        }
+
+        function selectAdventureMount(key) {
+            socket.emit(
+                'selectAdventureMount',
+                { key }
+            );
+        }
+
+        function selectAdventureCompanion(key) {
+            socket.emit(
+                'selectAdventureCompanion',
+                { key }
+            );
+        }
+
+        function doPeacefulAdventure(type) {
+            socket.emit(
+                'doPeacefulActivity',
+                { type }
+            );
+        }
+
+        function claimAdventureStory() {
+            socket.emit(
+                'claimStoryChapter'
+            );
+        }
+
+        function claimAdventureWorldEvent() {
+            socket.emit(
+                'claimWorldEvent'
+            );
+        }
+
+        function attackAdventureWorldBoss() {
+            if (!worldBossState?.active) {
+                return alert(
+                    'Dünya Bossu şu anda saldırıya açık değil.'
+                );
+            }
+
+            if (
+                Number(
+                    worldBossState.attacksRemaining
+                ) <= 0
+            ) {
+                return alert(
+                    'Bugünkü Dünya Bossu saldırı haklarını kullandın.'
+                );
+            }
+
+            if (
+                Number(
+                    worldBossState.cooldownRemainingMs
+                ) > 0
+            ) {
+                return alert(
+                    'Yeni saldırı için bekleme süresi devam ediyor.'
+                );
+            }
+
+            cooldownButton(
+                'worldBossAttackBtn',
+                1200
+            );
+
+            socket.emit(
+                'attackWorldBoss'
+            );
+        }
+
         function switchTab(tab) {
             activeTab = tab;
             applyWorldTheme(tab);
@@ -5059,6 +5386,8 @@
                 'arena': 'Kolosseum / PvP Arena',
                 'clan': 'Klan Merkezi',
                 'clanWar': 'Klan Kale Savaşı',
+                'adventure': 'Macera Merkezi',
+                'worldBoss': 'Dünya Bossu — Kadim Ejder',
                 'chat': 'Diyar Meclisi (Sohbet)',
                 'howto': 'Nasıl Oynanır? — Taht Savaşları Rehberi',
                 'dungeon': 'Zindan Adası',
@@ -5074,6 +5403,16 @@
 
             if (tab === 'overview') {
                 socket.emit('getOverviewStatus');
+            }
+
+            if (tab === 'adventure') {
+                adventureState = null;
+                socket.emit('getAdventureHubStatus');
+            }
+
+            if (tab === 'worldBoss') {
+                worldBossState = null;
+                socket.emit('getWorldBossStatus');
             }
 
             if (tab === 'metin') {
@@ -8363,6 +8702,1123 @@
                 }
 
 
+            } else if(activeTab === 'adventure') {
+                if (!adventureState) {
+                    body.innerHTML = `
+                        <div style="
+                            text-align:center;
+                            padding:55px 15px;
+                            color:#9c8e7b;
+                        ">
+                            <div style="font-size:34px;margin-bottom:10px;">🎯</div>
+                            Macera Merkezi yükleniyor...
+                        </div>
+                    `;
+
+                    socket.emit(
+                        'getAdventureHubStatus'
+                    );
+
+                    return;
+                }
+
+                const a = adventureState;
+
+                const renderTask = (
+                    task,
+                    scope
+                ) => {
+                    const percent =
+                        Math.min(
+                            100,
+                            Math.floor(
+                                (
+                                    Number(task.current || 0) /
+                                    Math.max(
+                                        1,
+                                        Number(task.target || 1)
+                                    )
+                                ) * 100
+                            )
+                        );
+
+                    return `
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid ${task.completed ? '#3f6f45' : '#33241b'};
+                            border-radius:7px;
+                            padding:10px;
+                            margin-bottom:7px;
+                        ">
+                            <div style="
+                                display:flex;
+                                justify-content:space-between;
+                                gap:8px;
+                                align-items:flex-start;
+                            ">
+                                <div>
+                                    <div style="
+                                        color:#f3cf7a;
+                                        font-size:11px;
+                                        font-weight:bold;
+                                    ">
+                                        ${escapeHTML(task.icon || '🎯')}
+                                        ${escapeHTML(task.name || '')}
+                                    </div>
+
+                                    <div style="
+                                        color:#9c8e7b;
+                                        font-size:9px;
+                                        margin-top:3px;
+                                    ">
+                                        ${escapeHTML(task.description || '')}
+                                    </div>
+                                </div>
+
+                                <div style="
+                                    color:#22c55e;
+                                    font-size:9px;
+                                    text-align:right;
+                                    min-width:90px;
+                                ">
+                                    ${escapeHTML(formatAdventureReward(task.reward))}
+                                </div>
+                            </div>
+
+                            <div style="
+                                margin-top:7px;
+                                height:7px;
+                                background:#080605;
+                                border-radius:8px;
+                                overflow:hidden;
+                                border:1px solid #2d2017;
+                            ">
+                                <div style="
+                                    width:${percent}%;
+                                    height:100%;
+                                    background:linear-gradient(to right,#8c6d36,#d4af37);
+                                "></div>
+                            </div>
+
+                            <div style="
+                                display:flex;
+                                justify-content:space-between;
+                                align-items:center;
+                                margin-top:5px;
+                                font-size:9px;
+                            ">
+                                <span style="color:#9c8e7b;">
+                                    ${Number(task.current || 0)}/${Number(task.target || 0)}
+                                </span>
+
+                                <button
+                                    class="btn-quest"
+                                    style="padding:4px 8px;font-size:9px;"
+                                    ${
+                                        !task.completed ||
+                                        task.claimed
+                                            ? 'disabled'
+                                            : ''
+                                    }
+                                    onclick="claimAdventureTask('${scope}','${escapeHTML(task.id)}')"
+                                >
+                                    ${
+                                        task.claimed
+                                            ? '✅ Alındı'
+                                            : (
+                                                task.completed
+                                                    ? '🎁 Ödülü Al'
+                                                    : '🔒 Devam Et'
+                                            )
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                };
+
+                const event =
+                    a.worldEvent || {};
+
+                const story =
+                    a.story || {};
+
+                body.innerHTML = `
+                    ${
+                        lastAdventureMessage
+                            ? `
+                                <div style="
+                                    margin-bottom:10px;
+                                    padding:9px;
+                                    border:1px solid #5b4720;
+                                    background:rgba(212,175,55,.06);
+                                    border-radius:6px;
+                                    color:#f3cf7a;
+                                    font-size:10px;
+                                ">
+                                    ${escapeHTML(lastAdventureMessage)}
+                                </div>
+                            `
+                            : ''
+                    }
+
+                    <div style="
+                        display:grid;
+                        grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+                        gap:8px;
+                        margin-bottom:12px;
+                    ">
+                        <div style="background:#120e0c;border:1px solid #33241b;padding:10px;border-radius:6px;font-size:10px;color:#9c8e7b;">
+                            🏆 Sezon Puanı<br>
+                            <strong style="color:#f3cf7a;font-size:15px;">
+                                ${Number(a.season?.points || 0).toLocaleString('tr-TR')}
+                            </strong>
+                        </div>
+
+                        <div style="background:#120e0c;border:1px solid #33241b;padding:10px;border-radius:6px;font-size:10px;color:#9c8e7b;">
+                            🗺️ Hazine Parçası<br>
+                            <strong style="color:#60a5fa;font-size:15px;">
+                                ${Number(a.treasure?.fragments || 0)}/${Number(a.treasure?.needed || 5)}
+                            </strong>
+                        </div>
+
+                        <div style="background:#120e0c;border:1px solid #33241b;padding:10px;border-radius:6px;font-size:10px;color:#9c8e7b;">
+                            🔥 Giriş Serisi<br>
+                            <strong style="color:#f97316;font-size:15px;">
+                                ${Number(a.login?.streak || 0)}/7
+                            </strong>
+                        </div>
+
+                        <div style="background:#120e0c;border:1px solid #33241b;padding:10px;border-radius:6px;font-size:10px;color:#9c8e7b;">
+                            🐎 Yoldaş Bonusu<br>
+                            <strong style="color:#22c55e;font-size:15px;">
+                                +%${Number(a.combatBonusPercent || 0)}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div style="
+                        background:linear-gradient(145deg,#16120d,#0b0907);
+                        border:1px solid ${event.active ? '#22c55e' : '#433222'};
+                        border-radius:8px;
+                        padding:12px;
+                        margin-bottom:12px;
+                    ">
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            gap:8px;
+                        ">
+                            <div style="
+                                color:#f3cf7a;
+                                font-weight:bold;
+                                font-size:12px;
+                            ">
+                                ${escapeHTML(event.icon || '🌍')}
+                                Dünya Olayı — ${escapeHTML(event.name || '')}
+                            </div>
+
+                            <span style="
+                                color:${event.active ? '#86efac' : '#93c5fd'};
+                                font-size:9px;
+                            ">
+                                ${event.active ? 'AKTİF' : 'BEKLENİYOR'}
+                            </span>
+                        </div>
+
+                        <div style="
+                            color:#9c8e7b;
+                            font-size:9px;
+                            margin-top:5px;
+                            line-height:1.5;
+                        ">
+                            ${escapeHTML(event.description || '')}
+                        </div>
+
+                        <div id="worldEventCountdown" style="
+                            color:#60a5fa;
+                            font-size:9px;
+                            font-weight:bold;
+                            margin-top:6px;
+                        "></div>
+
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            gap:8px;
+                            margin-top:7px;
+                        ">
+                            <span style="font-size:9px;color:#22c55e;">
+                                Ödül: ${escapeHTML(formatAdventureReward(event.reward || {}))}
+                            </span>
+
+                            <button
+                                class="btn-quest"
+                                style="font-size:9px;padding:5px 8px;"
+                                ${
+                                    !event.active ||
+                                    event.claimed
+                                        ? 'disabled'
+                                        : ''
+                                }
+                                onclick="claimAdventureWorldEvent()"
+                            >
+                                ${
+                                    event.claimed
+                                        ? '✅ Katıldın'
+                                        : '🌍 Katıl'
+                                }
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="
+                        display:grid;
+                        grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+                        gap:12px;
+                    ">
+                        <div>
+                            <h3 style="color:#f3cf7a;font-size:12px;margin-bottom:7px;">
+                                📅 Günlük Görevler
+                            </h3>
+
+                            ${
+                                (a.dailyTasks || [])
+                                    .map(
+                                        task =>
+                                            renderTask(
+                                                task,
+                                                'daily'
+                                            )
+                                    )
+                                    .join('')
+                            }
+                        </div>
+
+                        <div>
+                            <h3 style="color:#c4b5fd;font-size:12px;margin-bottom:7px;">
+                                📆 Haftalık Görevler
+                            </h3>
+
+                            ${
+                                (a.weeklyTasks || [])
+                                    .map(
+                                        task =>
+                                            renderTask(
+                                                task,
+                                                'weekly'
+                                            )
+                                    )
+                                    .join('')
+                            }
+                        </div>
+                    </div>
+
+                    <div style="
+                        display:grid;
+                        grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+                        gap:12px;
+                        margin-top:14px;
+                    ">
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:7px;
+                            padding:12px;
+                        ">
+                            <h3 style="color:#f3cf7a;font-size:12px;">
+                                📜 Hikâye Zinciri
+                            </h3>
+
+                            ${
+                                story.completed
+                                    ? `
+                                        <div style="
+                                            color:#86efac;
+                                            font-size:10px;
+                                            margin-top:8px;
+                                        ">
+                                            ✅ Mevcut 6 hikâye bölümü tamamlandı.
+                                        </div>
+                                    `
+                                    : `
+                                        <div style="
+                                            color:#c4b5fd;
+                                            font-size:11px;
+                                            font-weight:bold;
+                                            margin-top:8px;
+                                        ">
+                                            Bölüm ${Number(story.currentChapter || 1)}:
+                                            ${escapeHTML(story.chapter?.title || '')}
+                                        </div>
+
+                                        <div style="
+                                            color:#9c8e7b;
+                                            font-size:9px;
+                                            line-height:1.5;
+                                            margin-top:5px;
+                                        ">
+                                            ${escapeHTML(story.chapter?.description || '')}
+                                        </div>
+
+                                        <div style="
+                                            color:#60a5fa;
+                                            font-size:9px;
+                                            margin-top:5px;
+                                        ">
+                                            Şart: ${escapeHTML(story.chapter?.requirementText || '')}
+                                        </div>
+
+                                        <div style="
+                                            color:#22c55e;
+                                            font-size:9px;
+                                            margin-top:4px;
+                                        ">
+                                            Ödül: ${escapeHTML(formatAdventureReward(story.chapter?.reward || {}))}
+                                        </div>
+
+                                        <button
+                                            class="btn-quest"
+                                            style="width:100%;margin-top:8px;"
+                                            ${
+                                                story.chapter?.ready
+                                                    ? ''
+                                                    : 'disabled'
+                                            }
+                                            onclick="claimAdventureStory()"
+                                        >
+                                            ${
+                                                story.chapter?.ready
+                                                    ? '📜 Bölümü Tamamla'
+                                                    : '🔒 Şartı Tamamla'
+                                            }
+                                        </button>
+                                    `
+                            }
+                        </div>
+
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #5b4720;
+                            border-radius:7px;
+                            padding:12px;
+                        ">
+                            <h3 style="color:#facc15;font-size:12px;">
+                                🗺️ Hazine Haritası
+                            </h3>
+
+                            <div style="
+                                font-size:28px;
+                                text-align:center;
+                                margin:12px 0 6px;
+                            ">
+                                🧩 ${Number(a.treasure?.fragments || 0)}/5
+                            </div>
+
+                            <div style="
+                                color:#9c8e7b;
+                                font-size:9px;
+                                text-align:center;
+                                line-height:1.5;
+                            ">
+                                5 harita parçasını birleştirerek rastgele Hazine Sandığı aç.
+                                Altın, Yakut, binek veya yoldaş çıkabilir.
+                            </div>
+
+                            <button
+                                class="btn-quest"
+                                style="width:100%;margin-top:9px;"
+                                ${
+                                    Number(a.treasure?.fragments || 0) < 5
+                                        ? 'disabled'
+                                        : ''
+                                }
+                                onclick="openAdventureTreasure()"
+                            >
+                                🗺️ Hazine Sandığını Aç
+                            </button>
+
+                            <div style="
+                                color:#6b7280;
+                                font-size:8px;
+                                text-align:center;
+                                margin-top:5px;
+                            ">
+                                Açılan sandık: ${Number(a.treasure?.chestsOpened || 0)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="
+                        margin-top:14px;
+                        background:#120e0c;
+                        border:1px solid #33241b;
+                        border-radius:7px;
+                        padding:12px;
+                    ">
+                        <h3 style="color:#f3cf7a;font-size:12px;margin-bottom:8px;">
+                            🏆 Başarımlar
+                        </h3>
+
+                        <div style="
+                            display:grid;
+                            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+                            gap:7px;
+                        ">
+                            ${
+                                (a.achievements || [])
+                                    .map(achievement => `
+                                        <div style="
+                                            background:#0b0806;
+                                            border:1px solid ${achievement.unlocked ? '#446c3e' : '#2d2017'};
+                                            border-radius:6px;
+                                            padding:9px;
+                                        ">
+                                            <div style="
+                                                color:${achievement.unlocked ? '#86efac' : '#d4c5b9'};
+                                                font-size:10px;
+                                                font-weight:bold;
+                                            ">
+                                                ${escapeHTML(achievement.icon || '🏆')}
+                                                ${escapeHTML(achievement.name || '')}
+                                            </div>
+
+                                            <div style="
+                                                color:#7c7064;
+                                                font-size:8px;
+                                                margin-top:3px;
+                                                min-height:30px;
+                                            ">
+                                                ${escapeHTML(achievement.description || '')}
+                                            </div>
+
+                                            <div style="
+                                                display:flex;
+                                                justify-content:space-between;
+                                                align-items:center;
+                                                margin-top:5px;
+                                                gap:5px;
+                                            ">
+                                                <span style="font-size:8px;color:#60a5fa;">
+                                                    ${escapeHTML(achievement.progress || '')}
+                                                </span>
+
+                                                <button
+                                                    class="btn-quest"
+                                                    style="font-size:8px;padding:4px 6px;"
+                                                    ${
+                                                        !achievement.unlocked ||
+                                                        achievement.claimed
+                                                            ? 'disabled'
+                                                            : ''
+                                                    }
+                                                    onclick="claimAdventureAchievement('${escapeHTML(achievement.id)}')"
+                                                >
+                                                    ${
+                                                        achievement.claimed
+                                                            ? '✅'
+                                                            : (
+                                                                achievement.unlocked
+                                                                    ? '🎁 Al'
+                                                                    : '🔒'
+                                                            )
+                                                    }
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `)
+                                    .join('')
+                            }
+                        </div>
+                    </div>
+
+                    <div style="
+                        display:grid;
+                        grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+                        gap:12px;
+                        margin-top:14px;
+                    ">
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:7px;
+                            padding:12px;
+                        ">
+                            <h3 style="color:#60a5fa;font-size:12px;">
+                                🎣 Sakin Aktiviteler
+                            </h3>
+
+                            <div style="
+                                display:grid;
+                                grid-template-columns:1fr 1fr;
+                                gap:8px;
+                                margin-top:9px;
+                            ">
+                                <button
+                                    class="btn-quest"
+                                    ${
+                                        Number(a.peaceful?.fishingUsed || 0) >= 5
+                                            ? 'disabled'
+                                            : ''
+                                    }
+                                    onclick="doPeacefulAdventure('fishing')"
+                                >
+                                    🎣 Balık Tut<br>
+                                    <span style="font-size:8px;">
+                                        ${Number(a.peaceful?.fishingUsed || 0)}/5
+                                    </span>
+                                </button>
+
+                                <button
+                                    class="btn-quest"
+                                    ${
+                                        Number(a.peaceful?.miningUsed || 0) >= 5
+                                            ? 'disabled'
+                                            : ''
+                                    }
+                                    onclick="doPeacefulAdventure('mining')"
+                                >
+                                    ⛏️ Maden Kaz<br>
+                                    <span style="font-size:8px;">
+                                        ${Number(a.peaceful?.miningUsed || 0)}/5
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div style="
+                                color:#9c8e7b;
+                                font-size:9px;
+                                margin-top:8px;
+                            ">
+                                🎣 Toplam Balık: ${Number(a.peaceful?.fishCaught || 0)}
+                                • ⛏️ Toplam Cevher: ${Number(a.peaceful?.oreMined || 0)}
+                            </div>
+                        </div>
+
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:7px;
+                            padding:12px;
+                        ">
+                            <h3 style="color:#f3cf7a;font-size:12px;">
+                                🐎 Binekler
+                            </h3>
+
+                            <div style="margin-top:8px;">
+                                ${
+                                    (a.mounts?.owned || [])
+                                        .map(item => `
+                                            <button
+                                                class="btn-quest"
+                                                style="
+                                                    width:100%;
+                                                    margin-bottom:5px;
+                                                    text-align:left;
+                                                "
+                                                ${
+                                                    !item.owned ||
+                                                    item.active
+                                                        ? 'disabled'
+                                                        : ''
+                                                }
+                                                onclick="selectAdventureMount('${escapeHTML(item.key)}')"
+                                            >
+                                                ${escapeHTML(item.icon)}
+                                                ${escapeHTML(item.name)}
+                                                — +%${Number(item.combatBonusPercent || 0)}
+                                                ${
+                                                    item.active
+                                                        ? ' ✅'
+                                                        : (
+                                                            item.owned
+                                                                ? ''
+                                                                : ' 🔒'
+                                                        )
+                                                }
+                                            </button>
+                                        `)
+                                        .join('')
+                                }
+                            </div>
+
+                            <h3 style="color:#c4b5fd;font-size:12px;margin-top:10px;">
+                                🐺 Yoldaşlar
+                            </h3>
+
+                            <div style="margin-top:8px;">
+                                ${
+                                    (a.companions?.owned || [])
+                                        .map(item => `
+                                            <button
+                                                class="btn-quest"
+                                                style="
+                                                    width:100%;
+                                                    margin-bottom:5px;
+                                                    text-align:left;
+                                                "
+                                                ${
+                                                    !item.owned ||
+                                                    item.active
+                                                        ? 'disabled'
+                                                        : ''
+                                                }
+                                                onclick="selectAdventureCompanion('${escapeHTML(item.key)}')"
+                                            >
+                                                ${escapeHTML(item.icon)}
+                                                ${escapeHTML(item.name)}
+                                                — +%${Number(item.combatBonusPercent || 0)}
+                                                ${
+                                                    item.active
+                                                        ? ' ✅'
+                                                        : (
+                                                            item.owned
+                                                                ? ''
+                                                                : ' 🔒'
+                                                        )
+                                                }
+                                            </button>
+                                        `)
+                                        .join('')
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="
+                        margin-top:14px;
+                        background:#120e0c;
+                        border:1px solid #33241b;
+                        border-radius:7px;
+                        padding:12px;
+                    ">
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <h3 style="color:#f3cf7a;font-size:12px;">
+                                📚 Koleksiyon / Ansiklopedi
+                            </h3>
+
+                            <span style="color:#60a5fa;font-size:9px;">
+                                ${Number(a.collection?.unlocked || 0)}/${Number(a.collection?.total || 0)}
+                            </span>
+                        </div>
+
+                        <div style="
+                            display:grid;
+                            grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+                            gap:6px;
+                            margin-top:8px;
+                        ">
+                            ${
+                                (a.collection?.entries || [])
+                                    .map(entry => `
+                                        <div
+                                            title="${escapeHTML(entry.description || '')}"
+                                            style="
+                                                padding:8px;
+                                                border-radius:5px;
+                                                border:1px solid ${entry.unlocked ? '#5b4720' : '#221912'};
+                                                background:${entry.unlocked ? 'rgba(212,175,55,.06)' : '#0b0806'};
+                                                opacity:${entry.unlocked ? '1' : '.42'};
+                                            "
+                                        >
+                                            <div style="font-size:20px;">
+                                                ${escapeHTML(entry.icon || '❔')}
+                                            </div>
+                                            <div style="
+                                                font-size:9px;
+                                                color:${entry.unlocked ? '#f3cf7a' : '#6b6259'};
+                                                margin-top:3px;
+                                            ">
+                                                ${entry.unlocked ? escapeHTML(entry.name || '') : '???'}
+                                            </div>
+                                        </div>
+                                    `)
+                                    .join('')
+                            }
+                        </div>
+                    </div>
+
+                    <div style="
+                        display:grid;
+                        grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+                        gap:12px;
+                        margin-top:14px;
+                    ">
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:7px;
+                            padding:12px;
+                        ">
+                            <h3 style="color:#facc15;font-size:12px;">
+                                🏅 ${escapeHTML(a.season?.key || '')} Sezonu — Top 10
+                            </h3>
+
+                            <div style="margin-top:8px;">
+                                ${
+                                    (a.season?.leaderboard || [])
+                                        .map(row => `
+                                            <div style="
+                                                display:flex;
+                                                justify-content:space-between;
+                                                gap:8px;
+                                                padding:5px 0;
+                                                border-bottom:1px dashed #221912;
+                                                font-size:9px;
+                                                color:${row.isMe ? '#f3cf7a' : '#d4c5b9'};
+                                            ">
+                                                <span>
+                                                    #${Number(row.rank)}
+                                                    ${escapeHTML(row.username || '')}
+                                                    <small style="color:#6b7280;">
+                                                        Sv.${Number(row.level || 1)}
+                                                    </small>
+                                                </span>
+
+                                                <strong style="color:#22c55e;">
+                                                    ${Number(row.points || 0).toLocaleString('tr-TR')} P
+                                                </strong>
+                                            </div>
+                                        `)
+                                        .join('')
+                                }
+                            </div>
+                        </div>
+
+                        <div style="
+                            background:#120e0c;
+                            border:1px solid #33241b;
+                            border-radius:7px;
+                            padding:12px;
+                        ">
+                            <h3 style="color:#60a5fa;font-size:12px;">
+                                📢 Dünya Akışı
+                            </h3>
+
+                            <div style="
+                                margin-top:8px;
+                                max-height:260px;
+                                overflow-y:auto;
+                            ">
+                                ${
+                                    (a.feed || []).length > 0
+                                        ? (a.feed || [])
+                                            .map(item => `
+                                                <div style="
+                                                    padding:6px 0;
+                                                    border-bottom:1px dashed #221912;
+                                                    font-size:9px;
+                                                    color:#c7b9aa;
+                                                    line-height:1.4;
+                                                ">
+                                                    ${escapeHTML(item.icon || '📢')}
+                                                    ${escapeHTML(item.message || '')}
+                                                    <div style="
+                                                        color:#5f574f;
+                                                        font-size:8px;
+                                                        margin-top:2px;
+                                                    ">
+                                                        ${escapeHTML(formatAdventureDateTime(item.createdAt))}
+                                                    </div>
+                                                </div>
+                                            `)
+                                            .join('')
+                                        : `
+                                            <div style="font-size:9px;color:#6b7280;">
+                                                Henüz önemli bir dünya olayı kaydedilmedi.
+                                            </div>
+                                        `
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                startAdventureCountdown();
+
+            } else if(activeTab === 'worldBoss') {
+                if (!worldBossState) {
+                    body.innerHTML = `
+                        <div style="
+                            text-align:center;
+                            padding:55px 15px;
+                            color:#9c8e7b;
+                        ">
+                            <div style="font-size:38px;margin-bottom:10px;">👹</div>
+                            Dünya Bossu bilgileri yükleniyor...
+                        </div>
+                    `;
+
+                    socket.emit(
+                        'getWorldBossStatus'
+                    );
+
+                    return;
+                }
+
+                const boss = worldBossState;
+
+                const hpPercent =
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            (
+                                Number(boss.hp || 0) /
+                                Math.max(
+                                    1,
+                                    Number(boss.maxHp || 1)
+                                )
+                            ) * 100
+                        )
+                    );
+
+                const canAttack =
+                    boss.active &&
+                    Number(boss.attacksRemaining || 0) > 0 &&
+                    Number(boss.cooldownRemainingMs || 0) <= 0;
+
+                body.innerHTML = `
+                    ${
+                        lastWorldBossMessage
+                            ? `
+                                <div style="
+                                    margin-bottom:10px;
+                                    padding:9px;
+                                    border:1px solid ${lastWorldBossMessage.includes('hasar') ? '#7f1d1d' : '#433222'};
+                                    background:rgba(127,29,29,.10);
+                                    border-radius:6px;
+                                    color:#fca5a5;
+                                    font-size:10px;
+                                ">
+                                    ${escapeHTML(lastWorldBossMessage)}
+                                </div>
+                            `
+                            : ''
+                    }
+
+                    <div style="
+                        background:
+                            radial-gradient(circle at 50% 10%,rgba(239,68,68,.11),transparent 35%),
+                            linear-gradient(145deg,#1a0d0c,#090706);
+                        border:1px solid #7f1d1d;
+                        border-radius:9px;
+                        padding:16px;
+                    ">
+                        <div style="
+                            text-align:center;
+                            font-size:54px;
+                            margin-bottom:5px;
+                        ">🐉</div>
+
+                        <div style="
+                            text-align:center;
+                            color:#fca5a5;
+                            font-size:16px;
+                            font-weight:900;
+                        ">
+                            ${escapeHTML(boss.name || 'Kadim Ejder')}
+                        </div>
+
+                        <div style="
+                            text-align:center;
+                            color:${boss.killed ? '#86efac' : (boss.active ? '#f97316' : '#93c5fd')};
+                            font-size:10px;
+                            font-weight:bold;
+                            margin-top:4px;
+                        ">
+                            ${
+                                boss.killed
+                                    ? '🏆 BUGÜN YENİLDİ'
+                                    : (
+                                        boss.active
+                                            ? '🔥 SALDIRIYA AÇIK'
+                                            : '⏳ BEKLENİYOR'
+                                    )
+                            }
+                        </div>
+
+                        <div style="
+                            margin:14px auto 5px;
+                            max-width:600px;
+                            height:18px;
+                            background:#080605;
+                            border:1px solid #4c1d1d;
+                            border-radius:10px;
+                            overflow:hidden;
+                        ">
+                            <div style="
+                                height:100%;
+                                width:${hpPercent}%;
+                                background:linear-gradient(to right,#991b1b,#ef4444);
+                                transition:width .4s ease;
+                            "></div>
+                        </div>
+
+                        <div style="
+                            text-align:center;
+                            color:#d4c5b9;
+                            font-size:11px;
+                        ">
+                            ❤️ ${Number(boss.hp || 0).toLocaleString('tr-TR')}
+                            /
+                            ${Number(boss.maxHp || 0).toLocaleString('tr-TR')}
+                        </div>
+
+                        <div id="worldBossCountdown" style="
+                            text-align:center;
+                            color:#60a5fa;
+                            font-size:9px;
+                            font-weight:bold;
+                            margin-top:7px;
+                        "></div>
+
+                        <div style="
+                            display:grid;
+                            grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+                            gap:7px;
+                            max-width:650px;
+                            margin:12px auto 0;
+                        ">
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">
+                                ⚔️ Karakter Gücü<br>
+                                <strong style="color:#f3cf7a;font-size:12px;">
+                                    ${Number(boss.characterPower || 0).toLocaleString('tr-TR')}
+                                </strong>
+                            </div>
+
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">
+                                🪖 Ordu Gücü<br>
+                                <strong style="color:#f97316;font-size:12px;">
+                                    ${Number(boss.armyPower || 0).toLocaleString('tr-TR')}
+                                </strong>
+                            </div>
+
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">
+                                🎯 Kalan Saldırı<br>
+                                <strong style="color:#60a5fa;font-size:12px;">
+                                    ${Number(boss.attacksRemaining || 0)}/${Number(boss.attackLimit || 5)}
+                                </strong>
+                            </div>
+
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">
+                                💥 Senin Hasarın<br>
+                                <strong style="color:#22c55e;font-size:12px;">
+                                    ${Number(boss.myDamage || 0).toLocaleString('tr-TR')}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div id="worldBossCooldown" style="
+                            text-align:center;
+                            font-size:9px;
+                            color:#9c8e7b;
+                            margin-top:9px;
+                        ">
+                            ${
+                                Number(boss.cooldownRemainingMs || 0) > 0
+                                    ? `⏳ Yeni saldırı: ${Math.ceil(Number(boss.cooldownRemainingMs) / 1000)} sn`
+                                    : '⚔️ Saldırı hazır'
+                            }
+                        </div>
+
+                        <button
+                            id="worldBossAttackBtn"
+                            class="btn-quest"
+                            style="
+                                width:min(420px,100%);
+                                display:block;
+                                margin:8px auto 0;
+                                padding:10px;
+                            "
+                            ${canAttack ? '' : 'disabled'}
+                            onclick="attackAdventureWorldBoss()"
+                        >
+                            ${
+                                boss.killed
+                                    ? '🏆 Boss Yenildi'
+                                    : (
+                                        !boss.active
+                                            ? '⏳ 18:00–23:59 Arasında Açık'
+                                            : (
+                                                Number(boss.attacksRemaining || 0) <= 0
+                                                    ? '⛔ Saldırı Hakkın Bitti'
+                                                    : '⚔️ Kadim Ejder’e Saldır'
+                                            )
+                                    )
+                            }
+                        </button>
+                    </div>
+
+                    <div style="
+                        margin-top:14px;
+                        background:#120e0c;
+                        border:1px solid #33241b;
+                        border-radius:7px;
+                        padding:12px;
+                    ">
+                        <h3 style="color:#f3cf7a;font-size:12px;">
+                            🏆 Dünya Bossu Hasar Sıralaması
+                        </h3>
+
+                        <div style="margin-top:8px;">
+                            ${
+                                (boss.leaderboard || []).length > 0
+                                    ? (boss.leaderboard || [])
+                                        .map(row => `
+                                            <div style="
+                                                display:flex;
+                                                justify-content:space-between;
+                                                align-items:center;
+                                                gap:8px;
+                                                padding:6px 0;
+                                                border-bottom:1px dashed #221912;
+                                                font-size:10px;
+                                                color:${row.isMe ? '#f3cf7a' : '#d4c5b9'};
+                                            ">
+                                                <span>
+                                                    #${Number(row.rank)}
+                                                    ${escapeHTML(row.username || '')}
+                                                    <small style="color:#6b7280;">
+                                                        (${Number(row.attacks || 0)} saldırı)
+                                                    </small>
+                                                </span>
+
+                                                <strong style="color:#ef4444;">
+                                                    ${Number(row.damage || 0).toLocaleString('tr-TR')}
+                                                </strong>
+                                            </div>
+                                        `)
+                                        .join('')
+                                    : `
+                                        <div style="font-size:9px;color:#6b7280;">
+                                            Bugün henüz kimse Dünya Bossuna saldırmadı.
+                                        </div>
+                                    `
+                            }
+                        </div>
+
+                        <div style="
+                            margin-top:9px;
+                            font-size:9px;
+                            color:#9c8e7b;
+                            line-height:1.55;
+                        ">
+                            💡 Boss öldüğünde saldırı yapan herkes katkısına göre ödül alır.
+                            İlk 3 oyuncu ekstra Altın, Onur ve Hazine Parçası kazanır.
+                            Hasar hesabında karakter gücü, binek/yoldaş bonusu ve tüm ordun kullanılır.
+                        </div>
+                    </div>
+                `;
+
+                startWorldBossCountdown();
+
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
                     <div class="chat-container">
@@ -8489,6 +9945,7 @@
                         <button onclick="scrollHowToSection('guide_castle')">👑 Taht</button>
                         <button onclick="scrollHowToSection('guide_clanwar')">🏰 Klan Kale</button>
                         <button onclick="scrollHowToSection('guide_set')">✨ Hükümdar Seti</button>
+                        <button onclick="scrollHowToSection('guide_adventure')">🎯 Macera</button>
                         <button onclick="scrollHowToSection('guide_limits')">⏱️ Limitler</button>
                     </div>
 
@@ -9552,6 +11009,55 @@
                                 Her iki sohbette de Enter tuşu veya Gönder butonu ile
                                 mesaj gönderebilirsin.
                             </p>
+                        </div>
+                    </details>
+
+                    <details id="guide_adventure" class="howto-section">
+                        <summary>🎯 Macera Merkezi, Dünya Bossu ve Sezon</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Macera Merkezi oyundaki günlük ve uzun vadeli hedefleri tek yerde toplar.
+                                Buradan günlük/haftalık görevleri, başarımları, hikâyeyi, koleksiyonu,
+                                binekleri, yoldaşları, Hazine Haritasını ve sezon sıralamasını takip edebilirsin.
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>📅 Günlük / Haftalık</b>
+                                    Görev, Zindan, Metin, Arena, Ordu ve Klan Kale aktiviteleri otomatik ilerleme yazar.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>👹 Dünya Bossu</b>
+                                    Her gün 18:00–23:59 arasında açılır. Oyuncu başına 5 saldırı hakkı vardır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🌍 Dünya Olayı</b>
+                                    İki saatte bir 30 dakikalık kısa etkinlik açılır ve katılım ödülü verir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🗺️ Hazine</b>
+                                    5 Hazine Parçası = 1 sandık. Altın, Yakut ve nadir binek/yoldaş çıkabilir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🎣 Balık / ⛏️ Maden</b>
+                                    Her biri günde 5 kez yapılabilir; savaş dışı kısa aktiviteler sunar.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🏅 Sezon</b>
+                                    Ay boyunca aktivitelerden sezon puanı kazanılır ve Top 10 sıralaması oluşur.
+                                </div>
+                            </div>
+
+                            <div class="howto-tip">
+                                💡 Binek ve yoldaşlar küçük savaş gücü bonusu verir.
+                                Ama asıl değerleri koleksiyon, prestij ve uzun vadeli ilerlemedir.
+                            </div>
                         </div>
                     </details>
 
@@ -13177,6 +14683,142 @@
             }
         });
 
+        socket.on('adventureHubStatus', (data) => {
+            adventureState =
+                data || null;
+
+            if (data?.userData) {
+                updateHeader(
+                    data.userData
+                );
+            }
+
+            if (
+                activeTab === 'adventure'
+            ) {
+                renderPanelContent();
+            }
+        });
+
+        socket.on('adventureHubResult', (res) => {
+            if (res?.userData) {
+                updateHeader(
+                    res.userData
+                );
+            }
+
+            if (res?.message) {
+                lastAdventureMessage =
+                    res.message;
+            }
+
+            if (res?.success) {
+                playGameSfx(
+                    res?.special
+                        ? 'legendary'
+                        : 'coin'
+                );
+            }
+
+            socket.emit(
+                'getAdventureHubStatus'
+            );
+        });
+
+        socket.on('worldFeedRefresh', () => {
+            if (
+                activeTab === 'adventure'
+            ) {
+                socket.emit(
+                    'getAdventureHubStatus'
+                );
+            }
+        });
+
+        socket.on('worldBossStatus', (data) => {
+            worldBossState =
+                data || null;
+
+            if (
+                activeTab === 'worldBoss'
+            ) {
+                renderPanelContent();
+            }
+        });
+
+        socket.on('worldBossResult', (res) => {
+            if (res?.userData) {
+                updateHeader(
+                    res.userData
+                );
+            }
+
+            if (res?.status) {
+                worldBossState =
+                    res.status;
+            }
+
+            if (res?.message) {
+                lastWorldBossMessage =
+                    res.message;
+            }
+
+            if (res?.success) {
+                playGameSfx(
+                    res?.killed
+                        ? 'victory'
+                        : 'catapult'
+                );
+            }
+
+            if (
+                activeTab === 'worldBoss'
+            ) {
+                renderPanelContent();
+            }
+        });
+
+        socket.on('worldBossReward', (res) => {
+            if (res?.userData) {
+                updateHeader(
+                    res.userData
+                );
+            }
+
+            if (res?.message) {
+                lastWorldBossMessage =
+                    res.message;
+            }
+
+            playGameSfx('victory');
+
+            if (
+                activeTab === 'worldBoss'
+            ) {
+                socket.emit(
+                    'getWorldBossStatus'
+                );
+            }
+
+            if (
+                activeTab === 'adventure'
+            ) {
+                socket.emit(
+                    'getAdventureHubStatus'
+                );
+            }
+        });
+
+        socket.on('worldBossRefresh', () => {
+            if (
+                activeTab === 'worldBoss'
+            ) {
+                socket.emit(
+                    'getWorldBossStatus'
+                );
+            }
+        });
+
         socket.on('receiveChatMessage', (data) => {
             const box = document.getElementById('chatMessagesBox');
             if(box) { 
@@ -13205,6 +14847,13 @@
 
             legendaryTrackingReady = false;
             knownLegendaryItemIds = new Set();
+
+            adventureState = null;
+            worldBossState = null;
+            lastAdventureMessage = '';
+            lastWorldBossMessage = '';
+            stopAdventureCountdowns();
+
             clanCastleWarState = null;
             stopClanCastleWarCountdown();
 
