@@ -3946,6 +3946,28 @@
             }
         }
 
+        function distributeOverviewStat(statName) {
+            if (!['str', 'vit'].includes(statName)) return;
+            if (!currentUserData || Number(currentUserData.statPoints || 0) <= 0) return;
+
+            // Sunucudaki 800ms işlem limitine uyumlu küçük buton kilidi.
+            const strBtn = document.getElementById('overviewStrBtn');
+            const vitBtn = document.getElementById('overviewVitBtn');
+
+            if (strBtn) strBtn.disabled = true;
+            if (vitBtn) vitBtn.disabled = true;
+
+            socket.emit('distributeStat', statName);
+
+            setTimeout(() => {
+                const newStrBtn = document.getElementById('overviewStrBtn');
+                const newVitBtn = document.getElementById('overviewVitBtn');
+
+                if (newStrBtn) newStrBtn.disabled = false;
+                if (newVitBtn) newVitBtn.disabled = false;
+            }, 850);
+        }
+
         function renderPanelContent() {
             const body = document.getElementById('panelContentBody');
             const u = currentUserData;
@@ -4096,7 +4118,7 @@
                                 <div class="stat-row"><span>Tecrübe:</span><span>${currentLevel >= MAX_LEVEL ? 'MAX' : `${Number(u.exp)||0}/${maxExp}`}</span></div>
                                 <div class="stat-row"><span>HP:</span><span>${Number(u.hp)||0}/${Number(combat.maxHp||0)}</span></div>
                                 <div class="stat-row"><span>Stat Puanı:</span><span style="color:#22c55e;">${Number(u.statPoints)||0}</span></div>
-                                ${Number(u.statPoints) > 0 ? `<div style="display:flex;gap:7px;margin-top:8px;"><button class="btn-stat" onclick="socket.emit('distributeStat','str')">+ STR</button><button class="btn-stat" onclick="socket.emit('distributeStat','vit')">+ VIT</button></div>` : ''}
+                                ${Number(u.statPoints) > 0 ? `<div style="display:flex;gap:7px;margin-top:8px;"><button id="overviewStrBtn" class="btn-stat" onclick="distributeOverviewStat('str')">+ STR</button><button id="overviewVitBtn" class="btn-stat" onclick="distributeOverviewStat('vit')">+ VIT</button></div>` : ''}
                             </div>
 
                             <div style="border:1px solid #433222;border-radius:8px;padding:11px;background:#0d0a08;">
@@ -11462,6 +11484,45 @@
             updateHeader(u);
 
             if (activeTab === 'overview') {
+                // Stat puanı basıldığı anda Genel Durum ekranını yerelde güncelle.
+                // Böylece server overview cevabını beklemeden STR/VIT, Savaş Gücü,
+                // HP ve kalan Stat Puanı anında değişir.
+                const localStats = getClientTotalStats(u);
+
+                overviewState = {
+                    ...(overviewState || {}),
+                    userData: u,
+                    combat: {
+                        ...(overviewState?.combat || {}),
+                        baseStr: Number(u.str) || 5,
+                        baseVit: Number(u.vit) || 5,
+                        equipmentStr: localStats.bonusStr,
+                        equipmentVit: localStats.bonusVit,
+                        totalStr: localStats.totalStr,
+                        totalVit: localStats.totalVit,
+                        combatPower: localStats.combatPower,
+                        armyPower:
+                            ((Number(u.army?.archer) || 0) * 10) +
+                            ((Number(u.army?.warrior) || 0) * 20) +
+                            ((Number(u.army?.cavalry) || 0) * 35) +
+                            ((Number(u.army?.catapult) || 0) * 100) +
+                            localStats.totalStr,
+                        maxHp: localStats.totalVit * 20
+                    },
+                    prestige: {
+                        ...(overviewState?.prestige || {}),
+                        honor: Number(u.honor) || 0,
+                        arenaWins: Number(u.arenaWins) || 0,
+                        castleVictories: Number(u.castleVictories) || 0,
+                        dungeonBossWins: Number(u.dungeonBossWins) || 0,
+                        metinKills: Number(u.metinKills) || 0,
+                        dungeonFloor: Number(u.dungeonFloor) || 1
+                    }
+                };
+
+                renderPanelContent();
+
+                // Ardından sunucudan otoriter/eksiksiz Genel Durum verisini al.
                 socket.emit('getOverviewStatus');
                 return;
             }
