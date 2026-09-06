@@ -3200,6 +3200,8 @@
         let clanListData = [];
         let clanDataLoaded = false;
         let lastClanMessage = '';
+        let clanLoadTimer = null;
+        let serverBuildInfo = null;
 
         let barracksState = null;
         let arenaOpponentCache = {};
@@ -3332,6 +3334,8 @@
         }
 
         socket.on('connect', () => {
+            socket.emit('getGameBuildInfo');
+
             const token = localStorage.getItem('throne_token');
             if (token) {
                 document.getElementById('authMessage').innerText = "Otomatik giriş yapılıyor...";
@@ -3346,6 +3350,36 @@
             const el = document.getElementById('headerOnlineCount');
             if (el) el.innerText = count.toLocaleString('tr-TR');
         });
+
+        socket.on('gameBuildInfo', (data) => {
+            serverBuildInfo = data || null;
+        });
+
+        function requestClanData() {
+            clanDataLoaded = false;
+
+            if (clanLoadTimer) {
+                clearTimeout(clanLoadTimer);
+                clanLoadTimer = null;
+            }
+
+            socket.emit('getClanData');
+            socket.emit('getClanList');
+
+            clanLoadTimer = setTimeout(() => {
+                if (clanDataLoaded) return;
+
+                clanDataLoaded = true;
+                currentClanData = null;
+                lastClanMessage =
+                    '⚠️ Klan sunucusundan cevap alınamadı. ' +
+                    'Render üzerinde güncel server.js dosyasının deploy edildiğini kontrol et.';
+
+                if (activeTab === 'clan') {
+                    renderPanelContent();
+                }
+            }, 4000);
+        }
 
         function switchAuthTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
@@ -3725,9 +3759,7 @@
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
 
             if (tab === 'clan') {
-                clanDataLoaded = false;
-                socket.emit('getClanData');
-                socket.emit('getClanList');
+                requestClanData();
             }
 
             renderPanelContent();
@@ -5311,30 +5343,32 @@
                     catapult: 0
                 };
 
-                const troopDefs = barracksState?.troops || {
-                    archer:  {
-                        name:'Okçu',
-                        icon:'🏹',
-                        cost:250,
-                        power:10
+                // Sunucu eski/eksik troops objesi gönderse bile Mancınık kaybolmasın.
+                const defaultTroopDefs = {
+                    archer:  { name:'Okçu',     icon:'🏹', cost:250,  power:10 },
+                    warrior: { name:'Savaşçı',  icon:'⚔️', cost:500,  power:20 },
+                    cavalry: { name:'Süvari',   icon:'🐎', cost:1000, power:35 },
+                    catapult:{ name:'Mancınık', icon:'🏗️', cost:3000, power:100 }
+                };
+
+                const serverTroopDefs = barracksState?.troops || {};
+
+                const troopDefs = {
+                    archer: {
+                        ...defaultTroopDefs.archer,
+                        ...(serverTroopDefs.archer || {})
                     },
                     warrior: {
-                        name:'Savaşçı',
-                        icon:'⚔️',
-                        cost:500,
-                        power:20
+                        ...defaultTroopDefs.warrior,
+                        ...(serverTroopDefs.warrior || {})
                     },
                     cavalry: {
-                        name:'Süvari',
-                        icon:'🐎',
-                        cost:1000,
-                        power:35
+                        ...defaultTroopDefs.cavalry,
+                        ...(serverTroopDefs.cavalry || {})
                     },
                     catapult: {
-                        name:'Mancınık',
-                        icon:'🏗️',
-                        cost:3000,
-                        power:100
+                        ...defaultTroopDefs.catapult,
+                        ...(serverTroopDefs.catapult || {})
                     }
                 };
 
@@ -6357,7 +6391,10 @@
                             color:#9c8e7b;
                         ">
                             <div style="font-size:32px;margin-bottom:8px;">🛡️</div>
-                            Klan bilgileri yükleniyor...
+                            <div>Klan bilgileri yükleniyor...</div>
+                            <div style="font-size:10px;margin-top:7px;color:#6b7280;">
+                                Sunucudan klan verisi bekleniyor.
+                            </div>
                         </div>
                     `;
                     return;
@@ -10396,14 +10433,20 @@
         }
 
         socket.on('clanData', (data) => {
+            if (clanLoadTimer) {
+                clearTimeout(clanLoadTimer);
+                clanLoadTimer = null;
+            }
+
             clanDataLoaded = true;
-            currentClanData =
-                data?.clan || null;
+            currentClanData = data?.clan || null;
+
+            if (data?.error) {
+                lastClanMessage = `⚠️ ${data.error}`;
+            }
 
             if (data?.userData) {
-                updateHeader(
-                    data.userData
-                );
+                updateHeader(data.userData);
             }
 
             if (activeTab === 'clan') {
@@ -10426,6 +10469,16 @@
             }
         });
 
+        socket.on('clanListError', (data) => {
+            if (data?.message) {
+                lastClanMessage = `⚠️ ${data.message}`;
+            }
+
+            if (activeTab === 'clan' && clanDataLoaded) {
+                renderPanelContent();
+            }
+        });
+
         socket.on('clanResult', (res) => {
             if (res?.userData) {
                 updateHeader(
@@ -10438,13 +10491,9 @@
                     res.message;
             }
 
-            socket.emit(
-                'getClanData'
-            );
-
-            socket.emit(
-                'getClanList'
-            );
+            if (res?.success) {
+                requestClanData();
+            }
 
             if (activeTab === 'clan') {
                 const logEl =
@@ -10477,14 +10526,7 @@
                 lastClanMessage =
                     data.message;
             }
-
-            socket.emit(
-                'getClanData'
-            );
-
-            socket.emit(
-                'getClanList'
-            );
+            requestClanData();
         });
 
         socket.on(
@@ -10687,8 +10729,22 @@
         socket.on('barracksStatus', (res) => {
             if (res.userData) updateHeader(res.userData);
 
+            const previousTroops = barracksState?.troops || {};
+            const incomingTroops = res.troops || {};
+
             barracksState = {
-                troops: res.troops || barracksState?.troops,
+                troops: {
+                    ...previousTroops,
+                    ...incomingTroops,
+                    catapult: {
+                        name: 'Mancınık',
+                        icon: '🏗️',
+                        cost: 3000,
+                        power: 100,
+                        ...(previousTroops.catapult || {}),
+                        ...(incomingTroops.catapult || {})
+                    }
+                },
                 castle: res.castle || barracksState?.castle,
                 troopPower: res.troopPower || 0,
                 commanderStr: res.commanderStr || 0,
@@ -11069,6 +11125,11 @@
             clanListData = [];
             clanDataLoaded = false;
             lastClanMessage = '';
+
+            if (clanLoadTimer) {
+                clearTimeout(clanLoadTimer);
+                clanLoadTimer = null;
+            }
             document.getElementById('authMessage').innerText = "Başarıyla çıkış yapıldı.";
         });
 
