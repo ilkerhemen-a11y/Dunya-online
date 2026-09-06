@@ -19,6 +19,100 @@ const BANK_MAX_DEPOSIT = 100000;
 const BANK_INTEREST_RATE = 0.50;
 const BANK_TERM_MS = 24 * 60 * 60 * 1000;
 
+const TIMAR_MAX_LEVEL = 5;
+const TIMAR_BUILDING_MAX_LEVEL = 3;
+const TIMAR_THRONE_BONUS = 0.10;
+
+const TIMAR_DEFINITIONS = {
+    1: {
+        id: 1,
+        name: 'Küçük Çiftlik',
+        icon: '🌾',
+        purchaseCost: 500,
+        baseIncome: 10,
+        baseTreasuryCap: 25000,
+        description: 'İmparatorluğun temel tarım bölgesi.'
+    },
+    2: {
+        id: 2,
+        name: 'Kervansaray',
+        icon: '🏘️',
+        purchaseCost: 2000,
+        baseIncome: 15,
+        baseTreasuryCap: 40000,
+        description: 'Ticaret yollarını besleyen zengin geçiş noktası.'
+    },
+    3: {
+        id: 3,
+        name: 'Altın Madeni',
+        icon: '⛏️',
+        purchaseCost: 7500,
+        baseIncome: 20,
+        baseTreasuryCap: 60000,
+        description: 'Yüksek gelirli fakat korunması gereken maden bölgesi.'
+    }
+};
+
+const TIMAR_LEVEL_MULTIPLIERS = {
+    1: 1.00,
+    2: 1.20,
+    3: 1.50,
+    4: 1.80,
+    5: 2.20
+};
+
+const TIMAR_TAX_POLICIES = {
+    low: {
+        key: 'low',
+        name: 'Düşük Vergi',
+        incomeMultiplier: 0.80,
+        loyaltyPerHour: 3
+    },
+    normal: {
+        key: 'normal',
+        name: 'Normal Vergi',
+        incomeMultiplier: 1.00,
+        loyaltyPerHour: 0.5
+    },
+    heavy: {
+        key: 'heavy',
+        name: 'Ağır Vergi',
+        incomeMultiplier: 1.25,
+        loyaltyPerHour: -4
+    }
+};
+
+const TIMAR_BUILDINGS = {
+    farm: {
+        key: 'farm',
+        name: 'Çiftlik',
+        icon: '🌾',
+        costMultiplier: 2,
+        description: 'Her seviye Tımar gelirini %5 artırır.'
+    },
+    market: {
+        key: 'market',
+        name: 'Pazar',
+        icon: '🏪',
+        costMultiplier: 3,
+        description: 'Her seviye geliri %3, hazine kapasitesini %15 artırır.'
+    },
+    guard: {
+        key: 'guard',
+        name: 'Karakol',
+        icon: '🛡️',
+        costMultiplier: 4,
+        description: 'Eşkıya/İsyan ihtimalini ve olay gelir kaybını azaltır.'
+    },
+    stable: {
+        key: 'stable',
+        name: 'Ahır',
+        icon: '🐎',
+        costMultiplier: 5,
+        description: 'En yüksek Ahır seviyesi Süvari maliyetini seviye başına %3 azaltır.'
+    }
+};
+
 const BLACKSMITH_MAX_LEVEL = 20;
 const BLACKSMITH_BASE_XP = 100;
 
@@ -621,29 +715,436 @@ function getSmeltOreYield(item) {
     return 2 + Math.floor(level / 5);
 }
 
-function calculateOfflineGold(user) {
-    if (!user.lastCollected) { 
-        user.lastCollected = Date.now(); 
-        return 0; 
-    }
-    const now = Date.now();
-    const minutesPassed = Math.floor((now - user.lastCollected) / 60000);
-    
-    if (minutesPassed <= 0) return 0;
+function createDefaultTimarState(estateId, user, now = Date.now()) {
+    const fallbackTime =
+        Number(user?.lastCollected) > 0
+            ? Number(user.lastCollected)
+            : now;
 
-    let incomePerMin = 0;
-    if (user.estates.includes(1)) incomePerMin += 10;
-    if (user.estates.includes(2)) incomePerMin += 15;
-    if (user.estates.includes(3)) incomePerMin += 20;
+    return {
+        estateId: Number(estateId),
+        level: 1,
+        loyalty: 75,
+        taxPolicy: 'normal',
+        treasury: 0,
+        lastAccruedAt: fallbackTime,
+        buildings: {
+            farm: 0,
+            market: 0,
+            guard: 0,
+            stable: 0
+        },
+        event: {
+            active: false,
+            type: '',
+            name: '',
+            penaltyPercent: 0,
+            createdAt: 0
+        }
+    };
+}
 
-    const totalEarned = minutesPassed * incomePerMin;
-    user.lastCollected += minutesPassed * 60000;
-    
-    if (totalEarned > 0) {
-        user.balance += totalEarned;
+function normalizeTimarState(user) {
+    if (!user) return false;
+
+    let changed = false;
+
+    if (!Array.isArray(user.estates)) {
+        user.estates = [];
+        changed = true;
     }
-    
-    return totalEarned;
+
+    if (!Array.isArray(user.timarStates)) {
+        user.timarStates = [];
+        changed = true;
+    }
+
+    const ownedIds = user.estates
+        .map(id => Number(id))
+        .filter(id => !!TIMAR_DEFINITIONS[id]);
+
+    for (const estateId of ownedIds) {
+        let state = user.timarStates.find(
+            item => Number(item?.estateId) === estateId
+        );
+
+        if (!state) {
+            user.timarStates.push(
+                createDefaultTimarState(estateId, user)
+            );
+            changed = true;
+            continue;
+        }
+
+        const safeLevel = Math.max(
+            1,
+            Math.min(
+                TIMAR_MAX_LEVEL,
+                Number.parseInt(state.level, 10) || 1
+            )
+        );
+
+        const safeLoyalty = Math.max(
+            0,
+            Math.min(100, Number(state.loyalty) || 0)
+        );
+
+        const safeTaxPolicy =
+            TIMAR_TAX_POLICIES[state.taxPolicy]
+                ? state.taxPolicy
+                : 'normal';
+
+        const safeTreasury = Math.max(
+            0,
+            Number(state.treasury) || 0
+        );
+
+        const safeLastAccruedAt =
+            Number(state.lastAccruedAt) > 0
+                ? Number(state.lastAccruedAt)
+                : Date.now();
+
+        if (state.level !== safeLevel) {
+            state.level = safeLevel;
+            changed = true;
+        }
+        if (Number(state.loyalty) !== safeLoyalty) {
+            state.loyalty = safeLoyalty;
+            changed = true;
+        }
+        if (state.taxPolicy !== safeTaxPolicy) {
+            state.taxPolicy = safeTaxPolicy;
+            changed = true;
+        }
+        if (Number(state.treasury) !== safeTreasury) {
+            state.treasury = safeTreasury;
+            changed = true;
+        }
+        if (Number(state.lastAccruedAt) !== safeLastAccruedAt) {
+            state.lastAccruedAt = safeLastAccruedAt;
+            changed = true;
+        }
+
+        if (!state.buildings) {
+            state.buildings = { farm: 0, market: 0, guard: 0, stable: 0 };
+            changed = true;
+        }
+
+        for (const buildingType of Object.keys(TIMAR_BUILDINGS)) {
+            const safeBuildingLevel = Math.max(
+                0,
+                Math.min(
+                    TIMAR_BUILDING_MAX_LEVEL,
+                    Number.parseInt(state.buildings?.[buildingType], 10) || 0
+                )
+            );
+
+            if (Number(state.buildings?.[buildingType]) !== safeBuildingLevel) {
+                state.buildings[buildingType] = safeBuildingLevel;
+                changed = true;
+            }
+        }
+
+        if (!state.event) {
+            state.event = {
+                active: false,
+                type: '',
+                name: '',
+                penaltyPercent: 0,
+                createdAt: 0
+            };
+            changed = true;
+        }
+
+        state.event.active = Boolean(state.event.active);
+        state.event.penaltyPercent = Math.max(
+            0,
+            Math.min(50, Number(state.event.penaltyPercent) || 0)
+        );
+    }
+
+    if (changed) {
+        user.markModified('estates');
+        user.markModified('timarStates');
+    }
+
+    return changed;
+}
+
+function getTimarState(user, estateId) {
+    normalizeTimarState(user);
+    return user.timarStates.find(
+        state => Number(state?.estateId) === Number(estateId)
+    ) || null;
+}
+
+function getTimarLoyaltyMultiplier(loyalty) {
+    const safe = Math.max(0, Math.min(100, Number(loyalty) || 0));
+    if (safe >= 80) return 1.10;
+    if (safe >= 60) return 1.05;
+    if (safe >= 40) return 1.00;
+    if (safe >= 20) return 0.85;
+    return 0.65;
+}
+
+function getTimarTreasuryCap(state) {
+    const definition = TIMAR_DEFINITIONS[Number(state?.estateId)];
+    if (!definition) return 0;
+
+    const level = Math.max(1, Math.min(TIMAR_MAX_LEVEL, Number(state?.level) || 1));
+    const marketLevel = Math.max(
+        0,
+        Math.min(TIMAR_BUILDING_MAX_LEVEL, Number(state?.buildings?.market) || 0)
+    );
+
+    const levelCapacityMultiplier = 1 + ((level - 1) * 0.25);
+    const marketCapacityMultiplier = 1 + (marketLevel * 0.15);
+
+    return Math.floor(
+        definition.baseTreasuryCap *
+        levelCapacityMultiplier *
+        marketCapacityMultiplier
+    );
+}
+
+function getTimarIncomePerMinute(state, isThroneOwner = false) {
+    const definition = TIMAR_DEFINITIONS[Number(state?.estateId)];
+    if (!definition) return 0;
+
+    const level = Math.max(1, Math.min(TIMAR_MAX_LEVEL, Number(state?.level) || 1));
+    const tax = TIMAR_TAX_POLICIES[state?.taxPolicy] || TIMAR_TAX_POLICIES.normal;
+    const farmLevel = Math.max(0, Math.min(TIMAR_BUILDING_MAX_LEVEL, Number(state?.buildings?.farm) || 0));
+    const marketLevel = Math.max(0, Math.min(TIMAR_BUILDING_MAX_LEVEL, Number(state?.buildings?.market) || 0));
+    const levelMultiplier = TIMAR_LEVEL_MULTIPLIERS[level] || 1;
+    const farmMultiplier = 1 + (farmLevel * 0.05);
+    const marketMultiplier = 1 + (marketLevel * 0.03);
+    const loyaltyMultiplier = getTimarLoyaltyMultiplier(state?.loyalty);
+    const throneMultiplier = isThroneOwner ? (1 + TIMAR_THRONE_BONUS) : 1;
+    const eventPenalty = state?.event?.active
+        ? Math.max(0, Math.min(0.50, (Number(state.event.penaltyPercent) || 0) / 100))
+        : 0;
+
+    const income =
+        definition.baseIncome *
+        levelMultiplier *
+        tax.incomeMultiplier *
+        farmMultiplier *
+        marketMultiplier *
+        loyaltyMultiplier *
+        throneMultiplier *
+        (1 - eventPenalty);
+
+    return Math.max(1, Math.round(income));
+}
+
+function getTimarLevelUpgradeCost(state) {
+    const definition = TIMAR_DEFINITIONS[Number(state?.estateId)];
+    if (!definition) return 0;
+    const currentLevel = Math.max(1, Number(state?.level) || 1);
+    if (currentLevel >= TIMAR_MAX_LEVEL) return 0;
+    return Math.floor(definition.purchaseCost * currentLevel * 2);
+}
+
+function getTimarBuildingUpgradeCost(state, buildingType) {
+    const definition = TIMAR_DEFINITIONS[Number(state?.estateId)];
+    const building = TIMAR_BUILDINGS[buildingType];
+    if (!definition || !building) return 0;
+
+    const currentLevel = Math.max(0, Number(state?.buildings?.[buildingType]) || 0);
+    if (currentLevel >= TIMAR_BUILDING_MAX_LEVEL) return 0;
+
+    return Math.floor(
+        definition.purchaseCost *
+        building.costMultiplier *
+        (currentLevel + 1)
+    );
+}
+
+function maybeTriggerTimarEvent(state, elapsedMinutes) {
+    if (!state || state?.event?.active || elapsedMinutes <= 0) return false;
+
+    const guardLevel = Math.max(
+        0,
+        Math.min(TIMAR_BUILDING_MAX_LEVEL, Number(state?.buildings?.guard) || 0)
+    );
+
+    const elapsedHours = elapsedMinutes / 60;
+    const protectionMultiplier = Math.max(0.35, 1 - (guardLevel * 0.20));
+    const chance = Math.min(0.35, elapsedHours * 0.025 * protectionMultiplier);
+
+    if (Math.random() >= chance) return false;
+
+    const events = [
+        { type: 'bandits', name: 'Eşkıya Baskını' },
+        { type: 'rebellion', name: 'Vergi İsyanı' },
+        { type: 'caravan', name: 'Kervan Yağması' }
+    ];
+    const chosen = events[Math.floor(Math.random() * events.length)];
+    const penaltyPercent = Math.max(8, 20 - (guardLevel * 4));
+
+    state.event.active = true;
+    state.event.type = chosen.type;
+    state.event.name = chosen.name;
+    state.event.penaltyPercent = penaltyPercent;
+    state.event.createdAt = Date.now();
+    return true;
+}
+
+function accrueTimarIncome(user, now = Date.now(), isThroneOwner = false) {
+    normalizeTimarState(user);
+
+    let totalAdded = 0;
+    let changed = false;
+    let eventTriggered = false;
+
+    for (const estateId of user.estates) {
+        const state = getTimarState(user, estateId);
+        if (!state) continue;
+
+        const lastAccruedAt = Number(state.lastAccruedAt) || now;
+        const elapsedMinutes = Math.floor((now - lastAccruedAt) / 60000);
+        if (elapsedMinutes <= 0) continue;
+
+        const incomePerMinute = getTimarIncomePerMinute(state, isThroneOwner);
+        const earned = Math.max(0, Math.floor(elapsedMinutes * incomePerMinute));
+        const capacity = getTimarTreasuryCap(state);
+        const currentTreasury = Math.max(0, Number(state.treasury) || 0);
+        const freeSpace = Math.max(0, capacity - currentTreasury);
+        const added = Math.min(freeSpace, earned);
+
+        if (added > 0) {
+            state.treasury = currentTreasury + added;
+            totalAdded += added;
+            changed = true;
+        }
+
+        const tax = TIMAR_TAX_POLICIES[state.taxPolicy] || TIMAR_TAX_POLICIES.normal;
+        const loyaltyDelta = (elapsedMinutes / 60) * tax.loyaltyPerHour;
+        const nextLoyalty = Math.max(
+            0,
+            Math.min(100, (Number(state.loyalty) || 0) + loyaltyDelta)
+        );
+
+        if (Math.abs(nextLoyalty - (Number(state.loyalty) || 0)) > 0.001) {
+            state.loyalty = Math.round(nextLoyalty * 10) / 10;
+            changed = true;
+        }
+
+        state.lastAccruedAt = lastAccruedAt + (elapsedMinutes * 60000);
+        changed = true;
+
+        if (maybeTriggerTimarEvent(state, elapsedMinutes)) {
+            eventTriggered = true;
+            changed = true;
+        }
+    }
+
+    user.lastCollected = now;
+    if (changed) user.markModified('timarStates');
+
+    return { totalAdded, changed, eventTriggered };
+}
+
+function getTimarCavalryDiscount(user) {
+    normalizeTimarState(user);
+    let highestStableLevel = 0;
+
+    for (const estateId of user.estates) {
+        const state = getTimarState(user, estateId);
+        highestStableLevel = Math.max(
+            highestStableLevel,
+            Number(state?.buildings?.stable) || 0
+        );
+    }
+
+    return Math.min(0.09, highestStableLevel * 0.03);
+}
+
+function buildTimarStatusPayload(user, isThroneOwner = false) {
+    normalizeTimarState(user);
+
+    const timars = [];
+    let totalTreasury = 0;
+    let totalIncomePerMin = 0;
+
+    for (const estateId of user.estates) {
+        const state = getTimarState(user, estateId);
+        const definition = TIMAR_DEFINITIONS[Number(estateId)];
+        if (!state || !definition) continue;
+
+        const incomePerMinute = getTimarIncomePerMinute(state, isThroneOwner);
+        const treasuryCap = getTimarTreasuryCap(state);
+        totalTreasury += Number(state.treasury) || 0;
+        totalIncomePerMin += incomePerMinute;
+
+        const buildingCosts = {};
+        for (const buildingType of Object.keys(TIMAR_BUILDINGS)) {
+            buildingCosts[buildingType] = getTimarBuildingUpgradeCost(state, buildingType);
+        }
+
+        timars.push({
+            estateId: Number(estateId),
+            definition,
+            level: Number(state.level) || 1,
+            loyalty: Math.round((Number(state.loyalty) || 0) * 10) / 10,
+            taxPolicy: state.taxPolicy || 'normal',
+            treasury: Math.floor(Number(state.treasury) || 0),
+            treasuryCap,
+            incomePerMinute,
+            buildings: {
+                farm: Number(state.buildings?.farm) || 0,
+                market: Number(state.buildings?.market) || 0,
+                guard: Number(state.buildings?.guard) || 0,
+                stable: Number(state.buildings?.stable) || 0
+            },
+            buildingCosts,
+            nextLevelCost: getTimarLevelUpgradeCost(state),
+            event: {
+                active: Boolean(state.event?.active),
+                type: state.event?.type || '',
+                name: state.event?.name || '',
+                penaltyPercent: Number(state.event?.penaltyPercent) || 0,
+                createdAt: Number(state.event?.createdAt) || 0
+            }
+        });
+    }
+
+    return {
+        userData: user,
+        definitions: Object.values(TIMAR_DEFINITIONS),
+        taxPolicies: TIMAR_TAX_POLICIES,
+        buildingDefinitions: TIMAR_BUILDINGS,
+        timars,
+        totalTreasury: Math.floor(totalTreasury),
+        totalIncomePerMin,
+        throneBonusPercent: isThroneOwner ? Math.round(TIMAR_THRONE_BONUS * 100) : 0,
+        cavalryDiscountPercent: Math.round(getTimarCavalryDiscount(user) * 100)
+    };
+}
+
+async function getTimarStatusForUser(user, shouldAccrue = true) {
+    const castle = await getOrCreateCastle();
+    const isThroneOwner = Boolean(
+        castle?.ownerId && String(castle.ownerId) === String(user?._id)
+    );
+
+    if (shouldAccrue) {
+        accrueTimarIncome(user, Date.now(), isThroneOwner);
+    }
+
+    return buildTimarStatusPayload(user, isThroneOwner);
+}
+
+async function calculateOfflineGold(user) {
+    normalizeTimarState(user);
+    const before = (user.timarStates || []).reduce(
+        (sum, state) => sum + (Number(state?.treasury) || 0),
+        0
+    );
+
+    const status = await getTimarStatusForUser(user, true);
+    const after = status.totalTreasury || 0;
+    return Math.max(0, Math.floor(after - before));
 }
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
@@ -676,6 +1177,32 @@ const userSchema = new mongoose.Schema({
     seferLimiti: { type: Number, default: 20 },
     seferNextRefill: { type: Number, default: null },
     estates: { type: [Number], default: [] },
+
+    timarStates: {
+        type: [{
+            estateId: { type: Number, required: true },
+            level: { type: Number, default: 1 },
+            loyalty: { type: Number, default: 75 },
+            taxPolicy: { type: String, default: 'normal' },
+            treasury: { type: Number, default: 0 },
+            lastAccruedAt: { type: Number, default: Date.now },
+            buildings: {
+                farm: { type: Number, default: 0 },
+                market: { type: Number, default: 0 },
+                guard: { type: Number, default: 0 },
+                stable: { type: Number, default: 0 }
+            },
+            event: {
+                active: { type: Boolean, default: false },
+                type: { type: String, default: '' },
+                name: { type: String, default: '' },
+                penaltyPercent: { type: Number, default: 0 },
+                createdAt: { type: Number, default: 0 }
+            }
+        }],
+        default: []
+    },
+
     army: {
         archer: { type: Number, default: 0 },
         warrior: { type: Number, default: 0 },
@@ -901,7 +1428,7 @@ io.on('connection', (socket) => {
             const token = crypto.randomBytes(16).toString('hex');
             dbUser.token = token;
             
-            const offlineGold = calculateOfflineGold(dbUser);
+            const offlineGold = await calculateOfflineGold(dbUser);
             checkSeferRefill(dbUser);
             checkArenaReset(dbUser);
             checkDungeonDailyReset(dbUser);
@@ -911,6 +1438,7 @@ io.on('connection', (socket) => {
             normalizeSiegeMarketState(dbUser);
             normalizeBankState(dbUser);
             normalizeBlacksmithState(dbUser);
+            normalizeTimarState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -931,7 +1459,7 @@ io.on('connection', (socket) => {
                 return socket.emit('authResult', { success: false, message: "Oturum süresi doldu.", clearToken: true });
             }
             
-            const offlineGold = calculateOfflineGold(dbUser);
+            const offlineGold = await calculateOfflineGold(dbUser);
             checkSeferRefill(dbUser);
             checkArenaReset(dbUser);
             checkDungeonDailyReset(dbUser);
@@ -941,6 +1469,7 @@ io.on('connection', (socket) => {
             normalizeSiegeMarketState(dbUser);
             normalizeBankState(dbUser);
             normalizeBlacksmithState(dbUser);
+            normalizeTimarState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -1306,31 +1835,55 @@ io.on('connection', (socket) => {
 
 
     // --- KIŞLA / KALE / TAHT SAVAŞI SİSTEMİ ---
+    async function getBarracksStatusPayload(user) {
+        normalizeArmy(user);
+        normalizeTimarState(user);
+
+        const castle = await getCastleStatusForUser(user);
+        const troopPower = getArmyPower(user.army);
+        const commanderStr = getTotalStr(user);
+        const armyPower = troopPower + commanderStr;
+        const cavalryDiscount = getTimarCavalryDiscount(user);
+
+        const troops = {
+            archer: { ...TROOP_TYPES.archer },
+            warrior: { ...TROOP_TYPES.warrior },
+            cavalry: {
+                ...TROOP_TYPES.cavalry,
+                baseCost: TROOP_TYPES.cavalry.cost,
+                cost: Math.max(1, Math.floor(TROOP_TYPES.cavalry.cost * (1 - cavalryDiscount))),
+                discountPercent: Math.round(cavalryDiscount * 100)
+            }
+        };
+
+        return {
+            userData: user,
+            troops,
+            castle,
+            troopPower,
+            commanderStr,
+            armyPower,
+            armyCount: getArmyCount(user.army),
+            cavalryDiscountPercent: Math.round(cavalryDiscount * 100)
+        };
+    }
+
     socket.on('getBarracksStatus', async () => {
+        if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (!user) return;
 
         try {
-            normalizeArmy(user);
+            const payload = await getBarracksStatusPayload(user);
             await user.save();
-
-            const castle = await getCastleStatusForUser(user);
-
-            const troopPower = getArmyPower(user.army);
-            const commanderStr = getTotalStr(user);
-            const armyPower = troopPower + commanderStr;
-
-            socket.emit('barracksStatus', {
-                userData: user,
-                troops: TROOP_TYPES,
-                castle,
-                troopPower,
-                commanderStr,
-                armyPower,
-                armyCount: getArmyCount(user.army)
-            });
+            socket.emit('barracksStatus', payload);
         } catch (err) {
-            console.error('Kışla durum hatası:', err);
+            console.error('Kışla durumu hatası:', err);
+            socket.emit('barracksResult', {
+                success: false,
+                userData: user,
+                message: 'Kışla bilgileri yüklenemedi.'
+            });
         }
     });
 
@@ -1363,7 +1916,19 @@ io.on('connection', (socket) => {
                 });
             }
 
-            const totalCost = troop.cost * quantity;
+            normalizeTimarState(user);
+
+            const cavalryDiscount =
+                troopType === 'cavalry'
+                    ? getTimarCavalryDiscount(user)
+                    : 0;
+
+            const effectiveUnitCost = Math.max(
+                1,
+                Math.floor(troop.cost * (1 - cavalryDiscount))
+            );
+
+            const totalCost = effectiveUnitCost * quantity;
 
             if ((user.balance || 0) < totalCost) {
                 return socket.emit('barracksResult', {
@@ -1398,6 +1963,9 @@ io.on('connection', (socket) => {
                 message:
                     `${troop.icon} ${quantity} ${troop.name} yetiştirildi! ` +
                     `🪙 ${totalCost.toLocaleString('tr-TR')} Altın harcandı. ` +
+                    `${troopType === 'cavalry' && cavalryDiscount > 0
+                        ? `🐎 Ahır indirimi: %${Math.round(cavalryDiscount * 100)}. `
+                        : ''}` +
                     `⚔️ Toplam Ordu Gücü: ${armyPower.toLocaleString('tr-TR')} ` +
                     `(Birlik ${troopPower.toLocaleString('tr-TR')} + Komutan STR ${commanderStr.toLocaleString('tr-TR')}).`
             });
@@ -3202,16 +3770,342 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on('getTimarStatus', async () => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            const status = await getTimarStatusForUser(user, true);
+            await user.save();
+            socket.emit('timarStatus', status);
+        } catch (err) {
+            console.error('Tımar durumu hatası:', err);
+            socket.emit('timarResult', {
+                success: false,
+                userData: user,
+                message: 'Tımar bilgileri yüklenemedi.'
+            });
+        }
+    });
+
     socket.on('buyEstate', async (data) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (!user) return;
-        const costs = { 1: 500, 2: 2000, 3: 7500 };
-        const cost = costs[data.estateId];
-        if (user.estates.includes(data.estateId) || user.balance < cost) return socket.emit('marketResult', { success: false, userData: user, message: "İşlem başarısız (Yetersiz altın veya zaten sahipsiniz)." });
-        user.balance -= cost; user.estates.push(data.estateId);
-        await user.save();
-        socket.emit('marketResult', { success: true, userData: user, message: "Tımar başarıyla satın alındı!" });
+
+        try {
+            normalizeTimarState(user);
+            const estateId = Number.parseInt(data?.estateId, 10);
+            const definition = TIMAR_DEFINITIONS[estateId];
+
+            if (!definition) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Geçersiz Tımar seçimi.'
+                });
+            }
+
+            if (user.estates.includes(estateId)) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Bu Tımara zaten sahipsin.'
+                });
+            }
+
+            if ((user.balance || 0) < definition.purchaseCost) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: `🪙 ${definition.name} için ${definition.purchaseCost.toLocaleString('tr-TR')} Altın gerekiyor.`
+                });
+            }
+
+            user.balance -= definition.purchaseCost;
+            user.estates.push(estateId);
+            user.timarStates.push(createDefaultTimarState(estateId, user, Date.now()));
+            user.markModified('estates');
+            user.markModified('timarStates');
+            await user.save();
+
+            const status = await getTimarStatusForUser(user, false);
+            socket.emit('timarResult', {
+                success: true,
+                userData: user,
+                status,
+                action: { type: 'purchase', estateId },
+                message: `${definition.icon} ${definition.name} artık senin! Gelir doğrudan Tımar Hazinesinde birikecek.`
+            });
+        } catch (err) {
+            console.error('Tımar satın alma hatası:', err);
+            socket.emit('timarResult', {
+                success: false,
+                userData: user,
+                message: 'Tımar satın alınamadı.'
+            });
+        }
+    });
+
+    socket.on('upgradeTimarEstate', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            const statusBefore = await getTimarStatusForUser(user, true);
+            const estateId = Number.parseInt(data?.estateId, 10);
+            const state = getTimarState(user, estateId);
+            const definition = TIMAR_DEFINITIONS[estateId];
+
+            if (!state || !definition) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    status: statusBefore,
+                    message: 'Bu Tımara sahip değilsin.'
+                });
+            }
+
+            if (Number(state.level) >= TIMAR_MAX_LEVEL) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    status: statusBefore,
+                    message: `🏰 ${definition.name} zaten maksimum Seviye ${TIMAR_MAX_LEVEL}.`
+                });
+            }
+
+            const cost = getTimarLevelUpgradeCost(state);
+            if ((user.balance || 0) < cost) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    status: statusBefore,
+                    message: `🪙 Tımar yükseltmesi için ${cost.toLocaleString('tr-TR')} Altın gerekiyor.`
+                });
+            }
+
+            user.balance -= cost;
+            state.level += 1;
+            user.markModified('timarStates');
+            await user.save();
+
+            const status = await getTimarStatusForUser(user, false);
+            socket.emit('timarResult', {
+                success: true,
+                userData: user,
+                status,
+                action: { type: 'upgrade', estateId },
+                message: `🏰 ${definition.name} Seviye ${state.level} oldu! Gelir ve hazine kapasitesi arttı.`
+            });
+        } catch (err) {
+            console.error('Tımar yükseltme hatası:', err);
+            socket.emit('timarResult', { success: false, userData: user, message: 'Tımar yükseltilemedi.' });
+        }
+    });
+
+    socket.on('setTimarTaxPolicy', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            await getTimarStatusForUser(user, true);
+            const estateId = Number.parseInt(data?.estateId, 10);
+            const policy = String(data?.policy || '');
+            const state = getTimarState(user, estateId);
+            const policyDef = TIMAR_TAX_POLICIES[policy];
+
+            if (!state || !policyDef) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Vergi politikası değiştirilemedi.'
+                });
+            }
+
+            state.taxPolicy = policy;
+            user.markModified('timarStates');
+            await user.save();
+
+            const status = await getTimarStatusForUser(user, false);
+            socket.emit('timarResult', {
+                success: true,
+                userData: user,
+                status,
+                action: { type: 'tax', estateId },
+                message: `📜 ${TIMAR_DEFINITIONS[estateId].name}: ${policyDef.name} uygulanmaya başladı.`
+            });
+        } catch (err) {
+            console.error('Tımar vergi hatası:', err);
+            socket.emit('timarResult', { success: false, userData: user, message: 'Vergi politikası değiştirilemedi.' });
+        }
+    });
+
+    socket.on('upgradeTimarBuilding', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            await getTimarStatusForUser(user, true);
+            const estateId = Number.parseInt(data?.estateId, 10);
+            const buildingType = String(data?.buildingType || '');
+            const state = getTimarState(user, estateId);
+            const building = TIMAR_BUILDINGS[buildingType];
+
+            if (!state || !building) {
+                return socket.emit('timarResult', { success: false, userData: user, message: 'Bina geliştirilemedi.' });
+            }
+
+            const currentLevel = Number(state.buildings[buildingType]) || 0;
+            if (currentLevel >= TIMAR_BUILDING_MAX_LEVEL) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: `${building.icon} ${building.name} zaten maksimum seviyede.`
+                });
+            }
+
+            const cost = getTimarBuildingUpgradeCost(state, buildingType);
+            if ((user.balance || 0) < cost) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: `🪙 ${building.name} geliştirmesi için ${cost.toLocaleString('tr-TR')} Altın gerekiyor.`
+                });
+            }
+
+            user.balance -= cost;
+            state.buildings[buildingType] = currentLevel + 1;
+            user.markModified('timarStates');
+            await user.save();
+
+            const status = await getTimarStatusForUser(user, false);
+            socket.emit('timarResult', {
+                success: true,
+                userData: user,
+                status,
+                action: { type: 'building', estateId, buildingType },
+                message: `${building.icon} ${building.name} Seviye ${currentLevel + 1} oldu!`
+            });
+        } catch (err) {
+            console.error('Tımar bina geliştirme hatası:', err);
+            socket.emit('timarResult', { success: false, userData: user, message: 'Bina geliştirilemedi.' });
+        }
+    });
+
+    socket.on('collectTimarTreasury', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            await getTimarStatusForUser(user, true);
+            const estateId = data?.estateId !== undefined && data?.estateId !== null
+                ? Number.parseInt(data.estateId, 10)
+                : null;
+
+            let collected = 0;
+            const collectedEstates = [];
+
+            for (const ownedEstateId of user.estates) {
+                if (estateId !== null && Number(ownedEstateId) !== estateId) continue;
+                const state = getTimarState(user, ownedEstateId);
+                if (!state) continue;
+
+                const amount = Math.max(0, Math.floor(Number(state.treasury) || 0));
+                if (amount <= 0) continue;
+
+                collected += amount;
+                collectedEstates.push({ estateId: Number(ownedEstateId), amount });
+                state.treasury = 0;
+            }
+
+            if (collected <= 0) {
+                const status = await getTimarStatusForUser(user, false);
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    status,
+                    message: '📦 Tımar hazinelerinde toplanacak Altın yok.'
+                });
+            }
+
+            user.balance = (user.balance || 0) + collected;
+            user.markModified('timarStates');
+            await user.save();
+
+            const status = await getTimarStatusForUser(user, false);
+            socket.emit('timarResult', {
+                success: true,
+                userData: user,
+                status,
+                action: { type: 'collect', amount: collected, estates: collectedEstates },
+                message: `💰 Tımar vergileri toplandı: +${collected.toLocaleString('tr-TR')} Altın!`
+            });
+        } catch (err) {
+            console.error('Tımar vergi toplama hatası:', err);
+            socket.emit('timarResult', { success: false, userData: user, message: 'Vergiler toplanamadı.' });
+        }
+    });
+
+    socket.on('resolveTimarEvent', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            await getTimarStatusForUser(user, true);
+            checkSeferRefill(user);
+
+            const estateId = Number.parseInt(data?.estateId, 10);
+            const state = getTimarState(user, estateId);
+
+            if (!state || !state.event?.active) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Bu Tımarda çözülmesi gereken aktif bir olay yok.'
+                });
+            }
+
+            if ((user.seferLimiti || 0) <= 0) {
+                return socket.emit('timarResult', {
+                    success: false,
+                    userData: user,
+                    message: '🧭 Olayı bastırmak için 1 Sefer Hakkı gerekiyor.'
+                });
+            }
+
+            user.seferLimiti -= 1;
+            if (user.seferLimiti < MAX_SEFER_LIMITI && !user.seferNextRefill) {
+                user.seferNextRefill = Date.now() + REFILL_INTERVAL;
+            }
+
+            const reward = 250 + (estateId * 150) + ((Number(state.level) || 1) * 100);
+            user.balance = (user.balance || 0) + reward;
+            state.loyalty = Math.min(100, (Number(state.loyalty) || 0) + 8);
+
+            const eventName = state.event.name || 'Tımar Olayı';
+            state.event = { active: false, type: '', name: '', penaltyPercent: 0, createdAt: 0 };
+            user.markModified('timarStates');
+            await user.save();
+
+            const status = await getTimarStatusForUser(user, false);
+            socket.emit('timarResult', {
+                success: true,
+                userData: user,
+                status,
+                action: { type: 'event', estateId },
+                message: `⚔️ ${eventName} bastırıldı! 👥 Sadakat +8 | 🪙 +${reward.toLocaleString('tr-TR')} Altın | 🧭 -1 Sefer.`
+            });
+        } catch (err) {
+            console.error('Tımar olay çözme hatası:', err);
+            socket.emit('timarResult', { success: false, userData: user, message: 'Tımar olayı çözülemedi.' });
+        }
     });
 
     socket.on('upgradeItem', async (data) => {
@@ -3708,15 +4602,17 @@ setInterval(async () => {
 setInterval(async () => {
     for (const id in users) {
         const u = users[id];
-        let inc = 0;
-        if (u.estates.includes(1)) inc += 10;
-        if (u.estates.includes(2)) inc += 15;
-        if (u.estates.includes(3)) inc += 20;
-        if (inc > 0) {
-            u.balance += inc;
-            u.lastCollected = Date.now();
-            await User.updateOne({ _id: u._id }, { $set: { balance: u.balance, lastCollected: u.lastCollected } });
-            io.to(id).emit('statUpdated', u);
+
+        if (!u || !Array.isArray(u.estates) || u.estates.length === 0) {
+            continue;
+        }
+
+        try {
+            const status = await getTimarStatusForUser(u, true);
+            await u.save();
+            io.to(id).emit('timarStatus', status);
+        } catch (err) {
+            console.error('Tımar otomatik gelir hatası:', err);
         }
     }
 }, 60000);
