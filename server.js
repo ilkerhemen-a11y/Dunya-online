@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-clan-war-rewards-honor-v2';
+const GAME_BUILD_ID = '2026-09-06-clan-economy-levels-v3';
 
 const app = express();
 const server = http.createServer(app);
@@ -19,7 +19,7 @@ const MAX_LEVEL = 99;
 
 // --- ONUR ÖDÜL SİSTEMİ ---
 const HONOR_RUBY_STEP = 100;
-const HONOR_RUBY_REWARD = 100;
+const HONOR_RUBY_REWARD = 10;
 
 const BANK_MAX_DEPOSIT = 100000;
 const BANK_INTEREST_RATE = 0.50;
@@ -1458,11 +1458,21 @@ const CLAN_CREATE_COST = 10000;
 const CLAN_BASE_MAX_MEMBERS = 15;
 const CLAN_CHAT_HISTORY_LIMIT = 50;
 
+// --- KLAN SEVİYESİ / GELİŞTİRME ---
+const CLAN_MAX_LEVEL = 5;
+
+const CLAN_LEVEL_DEFINITIONS = {
+    1: { title: 'Oba', maxMembers: 15, castleDamageBonusPercent: 0, nextUpgradeCost: 25000, nextBenefit: 'Üye kapasitesi 20 olur.' },
+    2: { title: 'Sancak', maxMembers: 20, castleDamageBonusPercent: 0, nextUpgradeCost: 50000, nextBenefit: 'Klan Kale Savaşı hasarı +%2 olur.' },
+    3: { title: 'Beylik', maxMembers: 20, castleDamageBonusPercent: 2, nextUpgradeCost: 75000, nextBenefit: 'Üye kapasitesi 25 olur.' },
+    4: { title: 'Hanedan', maxMembers: 25, castleDamageBonusPercent: 2, nextUpgradeCost: 100000, nextBenefit: 'Klan Büyük Hanedan unvanına ulaşır.' },
+    5: { title: 'Büyük Hanedan', maxMembers: 25, castleDamageBonusPercent: 2, nextUpgradeCost: 0, nextBenefit: 'Maksimum klan seviyesi.' }
+};
+
 // --- KLAN KALE SAVAŞI V1 ---
-// Türkiye saatiyle her 6 saatte bir savaş açılır:
-// 00:00, 06:00, 12:00, 18:00
+// Türkiye saatiyle günde iki kez: 15:00 ve 21:00
 // Her savaş penceresi 30 dakika sürer.
-const CLAN_CASTLE_WAR_INTERVAL_HOURS = 6;
+const CLAN_CASTLE_WAR_HOURS = [15, 21];
 const CLAN_CASTLE_WAR_DURATION_MINUTES = 30;
 const CLAN_CASTLE_WAR_ATTACK_LIMIT = 5;
 const CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS = 10 * 1000;
@@ -1697,6 +1707,22 @@ function isValidClanTag(tag) {
     return /^[A-Z0-9ÇĞİÖŞÜ]{2,5}$/u.test(tag);
 }
 
+function getClanLevelState(clan) {
+    const rawLevel = Math.max(1, Math.min(CLAN_MAX_LEVEL, Number.parseInt(clan?.level, 10) || 1));
+    const definition = CLAN_LEVEL_DEFINITIONS[rawLevel] || CLAN_LEVEL_DEFINITIONS[1];
+
+    return {
+        level: rawLevel,
+        maxLevel: CLAN_MAX_LEVEL,
+        title: definition.title,
+        maxMembers: definition.maxMembers,
+        castleDamageBonusPercent: definition.castleDamageBonusPercent,
+        nextUpgradeCost: rawLevel >= CLAN_MAX_LEVEL ? 0 : definition.nextUpgradeCost,
+        nextBenefit: definition.nextBenefit,
+        isMaxLevel: rawLevel >= CLAN_MAX_LEVEL
+    };
+}
+
 function getClanMemberPower(user) {
     if (!user) {
         return { totalStr: 5, totalVit: 5, power: 15 };
@@ -1817,18 +1843,23 @@ async function buildClanPayload(clan, requestingUser) {
         return b.power - a.power;
     });
 
+    const clanLevelState = getClanLevelState(clan);
+
     return {
         _id: String(clan._id),
         name: clan.name,
         tag: clan.tag,
         leaderId: String(clan.leaderId),
         treasury: Math.max(0, Number(clan.treasury) || 0),
-        level: Math.max(1, Number(clan.level) || 1),
+        level: clanLevelState.level,
+        maxLevel: clanLevelState.maxLevel,
+        rankTitle: clanLevelState.title,
+        castleDamageBonusPercent: clanLevelState.castleDamageBonusPercent,
+        nextUpgradeCost: clanLevelState.nextUpgradeCost,
+        nextLevelBenefit: clanLevelState.nextBenefit,
+        isMaxLevel: clanLevelState.isMaxLevel,
         exp: Math.max(0, Number(clan.exp) || 0),
-        maxMembers: Math.max(
-            CLAN_BASE_MAX_MEMBERS,
-            Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
-        ),
+        maxMembers: clanLevelState.maxMembers,
         memberCount: members.length,
         wins: Math.max(0, Number(clan.wins) || 0),
         losses: Math.max(0, Number(clan.losses) || 0),
@@ -1900,63 +1931,44 @@ async function sendClanData(socket, user) {
 const TURKEY_OFFSET_MS = 3 * 60 * 60 * 1000;
 
 function getClanCastleWarWindow(now = Date.now()) {
-    // Türkiye UTC+3. Savaş saatlerini 00/06/12/18 olarak sabitliyoruz.
+    // Türkiye UTC+3. Savaşlar 15:00 ve 21:00'de açılır.
     const shifted = new Date(now + TURKEY_OFFSET_MS);
-
     const year = shifted.getUTCFullYear();
     const month = shifted.getUTCMonth();
     const day = shifted.getUTCDate();
-    const hour = shifted.getUTCHours();
 
-    const slotHour =
-        Math.floor(hour / CLAN_CASTLE_WAR_INTERVAL_HOURS) *
-        CLAN_CASTLE_WAR_INTERVAL_HOURS;
-
-    const localSlotAsUtc = Date.UTC(
-        year,
-        month,
-        day,
-        slotHour,
-        0,
-        0,
-        0
-    );
-
-    const startAt = localSlotAsUtc - TURKEY_OFFSET_MS;
-    const endAt =
-        startAt +
-        (CLAN_CASTLE_WAR_DURATION_MINUTES * 60 * 1000);
-
-    const active =
-        now >= startAt &&
-        now < endAt;
-
-    const nextStartAt =
-        active
-            ? startAt
-            : (
-                now < startAt
-                    ? startAt
-                    : startAt +
-                      (CLAN_CASTLE_WAR_INTERVAL_HOURS * 60 * 60 * 1000)
-            );
-
-    const localStart = new Date(startAt + TURKEY_OFFSET_MS);
-
-    const warKey = [
-        localStart.getUTCFullYear(),
-        String(localStart.getUTCMonth() + 1).padStart(2, '0'),
-        String(localStart.getUTCDate()).padStart(2, '0'),
-        String(localStart.getUTCHours()).padStart(2, '0')
-    ].join('-');
-
-    return {
-        warKey,
-        startAt,
-        endAt,
-        active,
-        nextStartAt
+    const makeSlot = (slotYear, slotMonth, slotDay, slotHour) => {
+        const startAt = Date.UTC(slotYear, slotMonth, slotDay, slotHour, 0, 0, 0) - TURKEY_OFFSET_MS;
+        const endAt = startAt + (CLAN_CASTLE_WAR_DURATION_MINUTES * 60 * 1000);
+        const localStart = new Date(startAt + TURKEY_OFFSET_MS);
+        const warKey = [
+            localStart.getUTCFullYear(),
+            String(localStart.getUTCMonth() + 1).padStart(2, '0'),
+            String(localStart.getUTCDate()).padStart(2, '0'),
+            String(localStart.getUTCHours()).padStart(2, '0')
+        ].join('-');
+        return { warKey, startAt, endAt };
     };
+
+    const todaySlots = CLAN_CASTLE_WAR_HOURS.map(hour => makeSlot(year, month, day, hour));
+    const activeSlot = todaySlots.find(slot => now >= slot.startAt && now < slot.endAt) || null;
+
+    if (activeSlot) {
+        return { ...activeSlot, active: true, nextStartAt: activeSlot.startAt };
+    }
+
+    let nextSlot = todaySlots.find(slot => slot.startAt > now) || null;
+    if (!nextSlot) {
+        const tomorrow = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
+        nextSlot = makeSlot(
+            tomorrow.getUTCFullYear(),
+            tomorrow.getUTCMonth(),
+            tomorrow.getUTCDate(),
+            CLAN_CASTLE_WAR_HOURS[0]
+        );
+    }
+
+    return { ...nextSlot, active: false, nextStartAt: nextSlot.startAt };
 }
 
 function sortClanCastleWarEntries(entries = []) {
@@ -2271,6 +2283,13 @@ async function buildClanCastleWarStatus(user) {
             ? getHukumdarSetBonusState(user)
             : { castleAttackPercent: 0 };
 
+    const warClan =
+        user?.clanId
+            ? await Clan.findById(user.clanId).select('level').lean()
+            : null;
+
+    const clanLevelState = getClanLevelState(warClan);
+
     return {
         castleName: CLAN_CASTLE_NAME,
         active: Boolean(windowInfo.active),
@@ -2280,7 +2299,7 @@ async function buildClanCastleWarStatus(user) {
         nextStartAt: windowInfo.active
             ? windowInfo.endAt
             : windowInfo.nextStartAt,
-        intervalHours: CLAN_CASTLE_WAR_INTERVAL_HOURS,
+        scheduleHours: CLAN_CASTLE_WAR_HOURS,
         durationMinutes: CLAN_CASTLE_WAR_DURATION_MINUTES,
         attackLimit: CLAN_CASTLE_WAR_ATTACK_LIMIT,
         attackCooldownMs: CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS,
@@ -2305,6 +2324,8 @@ async function buildClanCastleWarStatus(user) {
         armyPower,
         castleAttackBonusPercent:
             Number(setBonus.castleAttackPercent) || 0,
+        clanCastleDamageBonusPercent:
+            clanLevelState.castleDamageBonusPercent,
         rewards: {
             winnerTreasuryGold: CLAN_CASTLE_WIN_TREASURY_REWARD,
             participantHonor: CLAN_CASTLE_WIN_PARTICIPANT_HONOR,
@@ -2464,20 +2485,21 @@ app.get('/api/clan-list', async (req, res) => {
 
         return res.json({
             ok: true,
-            clans: clans.map(clan => ({
-                _id: String(clan._id),
-                name: clan.name,
-                tag: clan.tag,
-                level: Math.max(1, Number(clan.level) || 1),
-                treasury: Math.max(0, Number(clan.treasury) || 0),
-                memberCount: Array.isArray(clan.members) ? clan.members.length : 0,
-                maxMembers: Math.max(
-                    CLAN_BASE_MAX_MEMBERS,
-                    Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
-                ),
-                wins: Math.max(0, Number(clan.wins) || 0),
-                losses: Math.max(0, Number(clan.losses) || 0)
-            }))
+            clans: clans.map(clan => {
+                const levelState = getClanLevelState(clan);
+                return {
+                    _id: String(clan._id),
+                    name: clan.name,
+                    tag: clan.tag,
+                    level: levelState.level,
+                    rankTitle: levelState.title,
+                    treasury: Math.max(0, Number(clan.treasury) || 0),
+                    memberCount: Array.isArray(clan.members) ? clan.members.length : 0,
+                    maxMembers: levelState.maxMembers,
+                    wins: Math.max(0, Number(clan.wins) || 0),
+                    losses: Math.max(0, Number(clan.losses) || 0)
+                };
+            })
         });
     } catch (err) {
         console.error('GET /api/clan-list hatası:', err);
@@ -5891,20 +5913,21 @@ io.on('connection', (socket) => {
                 .limit(50)
                 .lean();
 
-            socket.emit('clanList', clans.map(clan => ({
-                _id: String(clan._id),
-                name: clan.name,
-                tag: clan.tag,
-                level: Math.max(1, Number(clan.level) || 1),
-                treasury: Math.max(0, Number(clan.treasury) || 0),
-                memberCount: Array.isArray(clan.members) ? clan.members.length : 0,
-                maxMembers: Math.max(
-                    CLAN_BASE_MAX_MEMBERS,
-                    Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
-                ),
-                wins: Math.max(0, Number(clan.wins) || 0),
-                losses: Math.max(0, Number(clan.losses) || 0)
-            })));
+            socket.emit('clanList', clans.map(clan => {
+                const levelState = getClanLevelState(clan);
+                return {
+                    _id: String(clan._id),
+                    name: clan.name,
+                    tag: clan.tag,
+                    level: levelState.level,
+                    rankTitle: levelState.title,
+                    treasury: Math.max(0, Number(clan.treasury) || 0),
+                    memberCount: Array.isArray(clan.members) ? clan.members.length : 0,
+                    maxMembers: levelState.maxMembers,
+                    wins: Math.max(0, Number(clan.wins) || 0),
+                    losses: Math.max(0, Number(clan.losses) || 0)
+                };
+            }));
         } catch (err) {
             console.error('getClanList hatası:', err);
 
@@ -6139,6 +6162,10 @@ io.on('connection', (socket) => {
                     ) / 100
                 );
 
+            const clanLevelState = getClanLevelState(clan);
+            const clanDamageMultiplier =
+                1 + (clanLevelState.castleDamageBonusPercent / 100);
+
             const randomMultiplier =
                 0.90 +
                 (Math.random() * 0.20);
@@ -6156,6 +6183,7 @@ io.on('connection', (socket) => {
                     Math.floor(
                         totalAttackPower *
                         siegeBonusMultiplier *
+                        clanDamageMultiplier *
                         randomMultiplier
                     )
                 );
@@ -6199,6 +6227,9 @@ io.on('connection', (socket) => {
                     `Klanına +${damage.toLocaleString('tr-TR')} hasar yazıldı. ` +
                     `⚔️ Karakter Gücü: ${characterPower.toLocaleString('tr-TR')} | ` +
                     `🪖 Ordu Gücü: ${armyPower.toLocaleString('tr-TR')} | ` +
+                    (clanLevelState.castleDamageBonusPercent > 0
+                        ? `🛡️ Klan Bonusu: +%${clanLevelState.castleDamageBonusPercent} | `
+                        : '') +
                     `🎯 Kalan saldırı: ${status.myAttacksRemaining}/${CLAN_CASTLE_WAR_ATTACK_LIMIT}`
             });
 
@@ -6690,6 +6721,80 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('upgradeClan', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user?.clanId || user.clanRole !== 'leader') {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klan geliştirmesini yalnızca Klan Lideri yapabilir.'
+            });
+        }
+
+        try {
+            const clan = await Clan.findById(user.clanId);
+            if (!clan) {
+                return socket.emit('clanResult', { success: false, userData: user, message: 'Klan bulunamadı.' });
+            }
+
+            const currentState = getClanLevelState(clan);
+            if (currentState.isMaxLevel) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: '🏛️ Klan zaten maksimum seviye olan 5. seviyede.'
+                });
+            }
+
+            const cost = currentState.nextUpgradeCost;
+            if ((Number(clan.treasury) || 0) < cost) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: `💰 Klan Seviye ${currentState.level + 1} için ${cost.toLocaleString('tr-TR')} Altın hazine gerekiyor.`
+                });
+            }
+
+            const nextLevel = currentState.level + 1;
+            const nextState = getClanLevelState({ level: nextLevel });
+
+            const updatedClan = await Clan.findOneAndUpdate(
+                { _id: clan._id, level: currentState.level, treasury: { $gte: cost } },
+                { $inc: { treasury: -cost }, $set: { level: nextLevel, maxMembers: nextState.maxMembers } },
+                { new: true }
+            );
+
+            if (!updatedClan) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Klan geliştirmesi tamamlanamadı. Hazine veya seviye değişmiş olabilir.'
+                });
+            }
+
+            socket.emit('clanResult', {
+                success: true,
+                userData: user,
+                message:
+                    `🏛️ Klan Seviye ${nextLevel} oldu! Unvan: ${nextState.title}. ` +
+                    (nextState.castleDamageBonusPercent > 0 ? `🏰 Kale Hasarı +%${nextState.castleDamageBonusPercent}. ` : '') +
+                    `👥 Kapasite: ${nextState.maxMembers}.`
+            });
+
+            broadcastClanRefresh(updatedClan._id, `🏛️ ${updatedClan.name} Klan Seviye ${nextLevel} oldu!`);
+            await sendClanData(socket, user);
+        } catch (err) {
+            console.error('upgradeClan hatası:', err);
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klan geliştirmesi sırasında bir hata oluştu.'
+            });
+        }
+    });
+
     socket.on('setClanRole', async (data) => {
         if (!checkRateLimit(socket.id)) return;
 
@@ -7084,5 +7189,5 @@ setInterval(async () => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Sunucu aktif: ${PORT}`);
-    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Klan V1: AKTİF | Klan Kale Savaşı: AKTİF | Mancınık: AKTİF`);
+    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Klan Seviyeleri: AKTİF | Klan Kale: 15:00/21:00 | 100 Onur = ${HONOR_RUBY_REWARD} Yakut | Mancınık: AKTİF`);
 });
