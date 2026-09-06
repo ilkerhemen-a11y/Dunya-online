@@ -891,6 +891,9 @@
             line-height: 1.5;
         }
 
+
+
+
         .login-torch {
             position: fixed;
             z-index: 101;
@@ -4047,6 +4050,22 @@
         <div class="world-tint"></div>
     </div>
 
+    <div
+        id="gameMusicStreamHost"
+        aria-hidden="true"
+        style="
+            position:fixed;
+            left:-20px;
+            bottom:-20px;
+            width:2px;
+            height:2px;
+            overflow:hidden;
+            opacity:.01;
+            pointer-events:none;
+            z-index:-1;
+        "
+    ></div>
+
     <div id="loginModal" class="modal-overlay">
         <div class="login-torch-glow left"></div>
         <div class="login-torch-glow right"></div>
@@ -4164,6 +4183,7 @@
                 <div class="login-security-note">
                     ⚔️ Taht Savaşları • İmparatorluğun kaldığı yerden devam eder.
                 </div>
+
             </div>
         </div>
     </div>
@@ -4180,8 +4200,8 @@
                 type="button"
                 data-no-click-sfx="1"
                 onclick="toggleGameAudio()"
-                title="Oyun seslerini aç / kapat"
-                aria-label="Oyun seslerini aç veya kapat"
+                title="Oyun seslerini ve arka plan müziğini aç / kapat"
+                aria-label="Oyun seslerini ve arka plan müziğini aç veya kapat"
             >🔊</button>
         </div>
         <div class="header-section">
@@ -4290,6 +4310,20 @@
         );
 
         let gameAudioContext = null;
+
+        // OYUN İÇİ ARKA PLAN MÜZİĞİ
+        // Medieval Kingdom — Ebunny
+        // Yerel MP3 gerektirmez; resmi YouTube Topic kaynağından stream edilir.
+        const GAME_MUSIC_VIDEO_ID = '4lIm3oWzL5w';
+        const GAME_MUSIC_VOLUME = 18;
+
+        let gameMusicEnabled =
+            localStorage.getItem('throne_game_music_enabled') !== '0';
+
+        let gameMusicPlayerReady = false;
+        let gameMusicShouldPlay = false;
+        let gameMusicInitTimer = null;
+
         let legendaryTrackingReady = false;
         let knownLegendaryItemIds = new Set();
 
@@ -4303,6 +4337,223 @@
         function escapeHTML(str) {
             if (!str) return "";
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        function getGameMusicIframe() {
+            return document.getElementById(
+                'gameMusicPlayer'
+            );
+        }
+
+        function isGameSessionVisible() {
+            const app =
+                document.getElementById(
+                    'mainApp'
+                );
+
+            return Boolean(
+                currentUserData &&
+                app &&
+                app.style.display !== 'none'
+            );
+        }
+
+        function sendGameMusicCommand(
+            func,
+            args = []
+        ) {
+            const iframe =
+                getGameMusicIframe();
+
+            if (
+                !iframe ||
+                !iframe.contentWindow
+            ) {
+                return;
+            }
+
+            iframe.contentWindow.postMessage(
+                JSON.stringify({
+                    event:'command',
+                    func,
+                    args
+                }),
+                '*'
+            );
+        }
+
+        function buildGameMusicStreamUrl() {
+            const origin =
+                encodeURIComponent(
+                    window.location.origin
+                );
+
+            return (
+                `https://www.youtube-nocookie.com/embed/${GAME_MUSIC_VIDEO_ID}` +
+                `?enablejsapi=1` +
+                `&autoplay=1` +
+                `&loop=1` +
+                `&playlist=${GAME_MUSIC_VIDEO_ID}` +
+                `&controls=0` +
+                `&disablekb=1` +
+                `&fs=0` +
+                `&playsinline=1` +
+                `&rel=0` +
+                `&modestbranding=1` +
+                `&origin=${origin}`
+            );
+        }
+
+        function ensureGameMusicPlayer() {
+            if (getGameMusicIframe()) {
+                return;
+            }
+
+            const host =
+                document.getElementById(
+                    'gameMusicStreamHost'
+                );
+
+            if (!host) return;
+
+            const iframe =
+                document.createElement(
+                    'iframe'
+                );
+
+            iframe.id =
+                'gameMusicPlayer';
+
+            iframe.width = '2';
+            iframe.height = '2';
+
+            iframe.allow =
+                'autoplay; encrypted-media';
+
+            iframe.referrerPolicy =
+                'strict-origin-when-cross-origin';
+
+            iframe.setAttribute(
+                'title',
+                'Medieval Kingdom — Ebunny'
+            );
+
+            iframe.src =
+                buildGameMusicStreamUrl();
+
+            iframe.onload = () => {
+                gameMusicPlayerReady =
+                    true;
+
+                setTimeout(
+                    () => {
+                        sendGameMusicCommand(
+                            'setVolume',
+                            [GAME_MUSIC_VOLUME]
+                        );
+
+                        if (
+                            gameMusicShouldPlay &&
+                            gameAudioEnabled &&
+                            gameMusicEnabled &&
+                            isGameSessionVisible()
+                        ) {
+                            sendGameMusicCommand(
+                                'playVideo'
+                            );
+                        }
+                    },
+                    350
+                );
+            };
+
+            host.appendChild(
+                iframe
+            );
+        }
+
+        function startGameBackgroundMusic() {
+            gameMusicShouldPlay = true;
+
+            if (
+                !gameAudioEnabled ||
+                !gameMusicEnabled ||
+                !isGameSessionVisible()
+            ) {
+                return;
+            }
+
+            ensureGameMusicPlayer();
+
+            if (gameMusicPlayerReady) {
+                sendGameMusicCommand(
+                    'setVolume',
+                    [GAME_MUSIC_VOLUME]
+                );
+
+                sendGameMusicCommand(
+                    'playVideo'
+                );
+            } else {
+                if (gameMusicInitTimer) {
+                    clearTimeout(
+                        gameMusicInitTimer
+                    );
+                }
+
+                gameMusicInitTimer =
+                    setTimeout(
+                        () => {
+                            if (
+                                gameMusicShouldPlay &&
+                                gameAudioEnabled &&
+                                gameMusicEnabled &&
+                                isGameSessionVisible()
+                            ) {
+                                sendGameMusicCommand(
+                                    'setVolume',
+                                    [GAME_MUSIC_VOLUME]
+                                );
+
+                                sendGameMusicCommand(
+                                    'playVideo'
+                                );
+                            }
+                        },
+                        900
+                    );
+            }
+        }
+
+        function pauseGameBackgroundMusic() {
+            gameMusicShouldPlay = false;
+
+            if (gameMusicInitTimer) {
+                clearTimeout(
+                    gameMusicInitTimer
+                );
+
+                gameMusicInitTimer =
+                    null;
+            }
+
+            sendGameMusicCommand(
+                'pauseVideo'
+            );
+        }
+
+        function destroyGameBackgroundMusic() {
+            pauseGameBackgroundMusic();
+
+            const iframe =
+                getGameMusicIframe();
+
+            if (iframe) {
+                iframe.remove();
+            }
+
+            gameMusicPlayerReady =
+                false;
         }
 
         function updateGameAudioButton() {
@@ -4795,6 +5046,12 @@
             if (gameAudioEnabled) {
                 ensureGameAudioContext();
                 playGameSfx('ruby');
+
+                if (currentUserData) {
+                    startGameBackgroundMusic();
+                }
+            } else {
+                pauseGameBackgroundMusic();
             }
         }
 
@@ -5754,6 +6011,13 @@
             () => {
                 if (gameAudioEnabled) {
                     ensureGameAudioContext();
+
+                    if (
+                        currentUserData &&
+                        gameMusicEnabled
+                    ) {
+                        startGameBackgroundMusic();
+                    }
                 }
             },
             { passive:true }
@@ -5780,7 +6044,9 @@
         );
 
         setTimeout(
-            updateGameAudioButton,
+            () => {
+                updateGameAudioButton();
+            },
             0
         );
 
@@ -6117,6 +6383,14 @@
             currentUserData = data;
             updateHeader(data);
             switchTab('overview');
+
+            // Müzik yalnızca başarılı girişten sonra başlar.
+            setTimeout(
+                () => {
+                    startGameBackgroundMusic();
+                },
+                180
+            );
         });
 
         function updateHeader(data) {
@@ -16668,10 +16942,13 @@
             socket.emit('logout'); 
         }
 
-        socket.on('logoutSuccess', () => { 
+        socket.on('logoutSuccess', () => {
+            destroyGameBackgroundMusic();
+
             document.getElementById('mainApp').style.display = 'none'; 
             document.getElementById('loginModal').style.display = 'flex';
             document.body.classList.add('auth-open');
+
             applyWorldTheme('overview');
             currentUserData = null;
             currentClanData = null;
