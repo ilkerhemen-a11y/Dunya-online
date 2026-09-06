@@ -5650,6 +5650,7 @@
                 const userDungeonFloor = Math.max(1, u.dungeonFloor || 1);
                 const dungeonCharacterStats = getClientTotalStats(u);
                 const dungeonTotalStr = dungeonCharacterStats.totalStr;
+                const dungeonBonusStr = dungeonCharacterStats.bonusStr;
 
                 const dungeonDailyAttempts = Array.isArray(u.dungeonDailyAttempts)
                     ? u.dungeonDailyAttempts
@@ -5684,7 +5685,7 @@
                         <p style="color:#9c8e7b;font-size:11px;margin-top:5px;">
                             Açık Kat: <strong style="color:#22c55e;">${userDungeonFloor}</strong> |
                             Toplam Gücün: <strong style="color:#f97316;">${dungeonTotalStr} STR</strong>
-                            ${dungeonBonusStr > 0 ? `(ekipmandan +${dungeonBonusStr})` : ''}
+                            ${Number(dungeonBonusStr || 0) > 0 ? `(ekipmandan +${Number(dungeonBonusStr || 0)})` : ''}
                         </p>
                         <p style="color:#9c8e7b;font-size:11px;margin-top:4px;">
                             Minimum STR'de %55 • 1.5x STR'de %72.5 • 2x STR'de %90 • maksimum %95
