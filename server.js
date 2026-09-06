@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-clan-war-daily-19-v2';
+const GAME_BUILD_ID = '2026-09-06-blessing-stack-v1';
 
 const app = express();
 const server = http.createServer(app);
@@ -685,7 +685,54 @@ function normalizeMetinState(user) {
     return changed;
 }
 
-function createBlessingPaper() {
+function isBlessingPaper(item) {
+    return Boolean(
+        item &&
+        (
+            item.baseId === 'blessing_scroll' ||
+            (
+                item.type === 'material' &&
+                item.name === 'Kutsama Kağıdı'
+            )
+        )
+    );
+}
+
+function getBlessingPaperQuantity(item) {
+    if (!isBlessingPaper(item)) return 0;
+
+    const quantity =
+        Number.parseInt(
+            item.quantity,
+            10
+        );
+
+    return Number.isInteger(quantity) &&
+        quantity > 0
+            ? quantity
+            : 1;
+}
+
+function getBlessingPaperCount(user) {
+    if (!Array.isArray(user?.inventory)) {
+        return 0;
+    }
+
+    return user.inventory.reduce(
+        (total, item) =>
+            total +
+            getBlessingPaperQuantity(item),
+        0
+    );
+}
+
+function createBlessingPaper(quantity = 1) {
+    const safeQuantity =
+        Math.max(
+            1,
+            Number.parseInt(quantity, 10) || 1
+        );
+
     return {
         id: `blessing_scroll_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
         baseId: 'blessing_scroll',
@@ -696,8 +743,176 @@ function createBlessingPaper() {
         level: 0,
         strBonus: 0,
         vitBonus: 0,
+        quantity: safeQuantity,
+        stackable: true,
         description: 'Özel geliştirme malzemesi. Demirhane sistemi için saklanabilir.'
     };
+}
+
+function normalizeBlessingPaperStacks(user) {
+    if (!user || !Array.isArray(user.inventory)) {
+        return false;
+    }
+
+    let totalQuantity = 0;
+    let firstStack = null;
+    let changed = false;
+
+    const nextInventory = [];
+
+    for (const item of user.inventory) {
+        if (!isBlessingPaper(item)) {
+            nextInventory.push(item);
+            continue;
+        }
+
+        totalQuantity +=
+            getBlessingPaperQuantity(item);
+
+        if (!firstStack) {
+            firstStack = item;
+            nextInventory.push(firstStack);
+        } else {
+            changed = true;
+        }
+    }
+
+    if (!firstStack) {
+        return changed;
+    }
+
+    if (
+        Number(firstStack.quantity) !==
+        totalQuantity
+    ) {
+        firstStack.quantity =
+            totalQuantity;
+
+        changed = true;
+    }
+
+    if (firstStack.baseId !== 'blessing_scroll') {
+        firstStack.baseId =
+            'blessing_scroll';
+
+        changed = true;
+    }
+
+    if (firstStack.stackable !== true) {
+        firstStack.stackable = true;
+        changed = true;
+    }
+
+    if (nextInventory.length !== user.inventory.length) {
+        changed = true;
+    }
+
+    if (changed) {
+        user.inventory =
+            nextInventory;
+
+        user.markModified(
+            'inventory'
+        );
+    }
+
+    return changed;
+}
+
+function addBlessingPapers(user, amount = 1) {
+    if (!user) return 0;
+
+    const safeAmount =
+        Math.max(
+            0,
+            Number.parseInt(amount, 10) || 0
+        );
+
+    if (safeAmount <= 0) {
+        return getBlessingPaperCount(user);
+    }
+
+    normalizeBlessingPaperStacks(user);
+
+    const stack =
+        Array.isArray(user.inventory)
+            ? user.inventory.find(
+                isBlessingPaper
+            )
+            : null;
+
+    if (stack) {
+        stack.quantity =
+            getBlessingPaperQuantity(stack) +
+            safeAmount;
+    } else {
+        user.inventory.push(
+            createBlessingPaper(
+                safeAmount
+            )
+        );
+    }
+
+    user.markModified(
+        'inventory'
+    );
+
+    return getBlessingPaperCount(user);
+}
+
+function consumeBlessingPapers(user, amount = 1) {
+    if (!user || !Array.isArray(user.inventory)) {
+        return false;
+    }
+
+    const safeAmount =
+        Math.max(
+            1,
+            Number.parseInt(amount, 10) || 1
+        );
+
+    normalizeBlessingPaperStacks(user);
+
+    const stackIndex =
+        user.inventory.findIndex(
+            isBlessingPaper
+        );
+
+    if (stackIndex < 0) {
+        return false;
+    }
+
+    const stack =
+        user.inventory[stackIndex];
+
+    const currentQuantity =
+        getBlessingPaperQuantity(
+            stack
+        );
+
+    if (currentQuantity < safeAmount) {
+        return false;
+    }
+
+    const remaining =
+        currentQuantity -
+        safeAmount;
+
+    if (remaining <= 0) {
+        user.inventory.splice(
+            stackIndex,
+            1
+        );
+    } else {
+        stack.quantity =
+            remaining;
+    }
+
+    user.markModified(
+        'inventory'
+    );
+
+    return true;
 }
 
 function checkSeferRefill(user) {
@@ -4422,6 +4637,7 @@ io.on('connection', (socket) => {
             normalizeBankState(dbUser);
             normalizeBlacksmithState(dbUser);
             normalizeTimarState(dbUser);
+            normalizeBlessingPaperStacks(dbUser);
             ensureAdventureState(dbUser);
 
             const loginReward =
@@ -4465,6 +4681,7 @@ io.on('connection', (socket) => {
             normalizeBankState(dbUser);
             normalizeBlacksmithState(dbUser);
             normalizeTimarState(dbUser);
+            normalizeBlessingPaperStacks(dbUser);
             ensureAdventureState(dbUser);
 
             const loginReward =
@@ -6701,9 +6918,10 @@ io.on('connection', (socket) => {
             if (stoneId === 4 && Math.random() < 0.40) papersDropped += 1;
             if (stoneId === 5 && Math.random() < 0.50) papersDropped += 1;
 
-            for (let i = 0; i < papersDropped; i++) {
-                user.inventory.push(createBlessingPaper());
-            }
+            addBlessingPapers(
+                user,
+                papersDropped
+            );
 
             user.metinKills = (user.metinKills || 0) + 1;
 
@@ -6864,6 +7082,7 @@ io.on('connection', (socket) => {
 
             const soldObj = stall.inventory.splice(stallItemIndex, 1)[0];
             user.inventory.push(soldObj.item);
+            normalizeBlessingPaperStacks(user);
             user.markModified('inventory');
             await user.save();
             await stall.save();
@@ -6945,6 +7164,7 @@ io.on('connection', (socket) => {
 
             stall.inventory.splice(safeIndex, 1);
             buyer.inventory.push(targetObj.item);
+            normalizeBlessingPaperStacks(buyer);
 
             buyer.markModified('inventory');
             stall.markModified('inventory');
@@ -8420,48 +8640,35 @@ io.on('connection', (socket) => {
                 });
             }
 
-            const blessingPaperIndices = [];
+            const blessingPaperCount =
+                getBlessingPaperCount(user);
 
-            user.inventory.forEach((invItem, index) => {
-                if (
-                    invItem &&
-                    (
-                        invItem.baseId === 'blessing_scroll' ||
-                        (invItem.type === 'material' && invItem.name === 'Kutsama Kağıdı')
-                    )
-                ) {
-                    blessingPaperIndices.push(index);
-                }
-            });
-
-            if (blessingPaperIndices.length < blessingCount) {
+            if (blessingPaperCount < blessingCount) {
                 return socket.emit('forgeResult', {
                     success: false,
                     userData: user,
                     message:
                         `📜 Yeterli Kutsama Kağıdın yok! ` +
-                        `Seçilen: ${blessingCount}, Envanterde: ${blessingPaperIndices.length}.`
+                        `Seçilen: ${blessingCount}, Envanterde: ${blessingPaperCount}.`
                 });
             }
 
             user.balance -= goldCost;
             user.rubies -= rubyCost;
 
-            let remainingToRemove = blessingCount;
-            user.inventory = user.inventory.filter(invItem => {
-                if (
-                    remainingToRemove > 0 &&
-                    invItem &&
-                    (
-                        invItem.baseId === 'blessing_scroll' ||
-                        (invItem.type === 'material' && invItem.name === 'Kutsama Kağıdı')
-                    )
-                ) {
-                    remainingToRemove -= 1;
-                    return false;
-                }
-                return true;
-            });
+            if (
+                !consumeBlessingPapers(
+                    user,
+                    blessingCount
+                )
+            ) {
+                return socket.emit('forgeResult', {
+                    success: false,
+                    userData: user,
+                    message:
+                        '📜 Kutsama Kağıdı kullanılırken envanter senkronizasyon hatası oluştu.'
+                });
+            }
 
             const successChance = blessingCount * 25;
             const roll = Math.random() * 100;
@@ -8799,8 +9006,45 @@ io.on('connection', (socket) => {
 
     socket.on('deleteItem', async (data) => {
         const user = users[socket.id];
-        if (!user || data.itemIndex === undefined) return;
-        user.inventory.splice(data.itemIndex, 1);
+
+        if (
+            !user ||
+            data.itemIndex === undefined
+        ) {
+            return;
+        }
+
+        const itemIndex =
+            Number.parseInt(
+                data.itemIndex,
+                10
+            );
+
+        if (
+            !Number.isInteger(itemIndex) ||
+            itemIndex < 0 ||
+            !user.inventory?.[itemIndex]
+        ) {
+            return;
+        }
+
+        const item =
+            user.inventory[itemIndex];
+
+        if (
+            isBlessingPaper(item) &&
+            getBlessingPaperQuantity(item) > 1
+        ) {
+            item.quantity =
+                getBlessingPaperQuantity(item) -
+                1;
+        } else {
+            user.inventory.splice(
+                itemIndex,
+                1
+            );
+        }
+
         user.markModified('inventory');
         await user.save();
         socket.emit('statUpdated', user);
