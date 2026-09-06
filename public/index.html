@@ -579,22 +579,84 @@
                     <div id="marketLogResult" class="quest-log" style="margin-top: 15px;">Tımar işlemleri burada görünecektir...</div>
                 `;
             } else if(activeTab === 'blacksmith') {
+                const blessingPaperCount = Array.isArray(u.inventory)
+                    ? u.inventory.filter(item =>
+                        item &&
+                        (
+                            item.baseId === 'blessing_scroll' ||
+                            (item.type === 'material' && item.name === 'Kutsama Kağıdı')
+                        )
+                    ).length
+                    : 0;
+
                 body.innerHTML = `
-                    <div style="display: flex; align-items: center; background-color: #1c1510; border: 1px solid #d4af37; border-radius: 8px; padding: 10px 15px; margin-bottom: 15px; gap: 12px;">
-                        <div style="width: 42px; height: 42px; border: 2px solid #d4af37; border-radius: 6px; overflow: hidden; flex-shrink: 0; background-color: #000;">
-                            <img src="https://i.hizliresim.com/wyd96lik.jpg" alt="Usta Demirci Örsü" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div style="display:flex; align-items:center; background-color:#1c1510; border:1px solid #d4af37; border-radius:8px; padding:10px 15px; margin-bottom:10px; gap:12px;">
+                        <div style="width:42px; height:42px; border:2px solid #d4af37; border-radius:6px; overflow:hidden; flex-shrink:0; background-color:#000;">
+                            <img src="https://i.hizliresim.com/wyd96lik.jpg" alt="Usta Demirci Örsü" style="width:100%; height:100%; object-fit:cover;">
                         </div>
-                        <span style="color: #f0e6d2; font-size: 16px; font-weight: bold;">Usta Demirci Örsü</span>
+                        <div>
+                            <div style="color:#f0e6d2; font-size:16px; font-weight:bold;">Usta Demirci Örsü</div>
+                            <div style="color:#60a5fa; font-size:11px; margin-top:3px;">
+                                📜 Kutsama Kağıdı: <strong>${blessingPaperCount}</strong>
+                            </div>
+                        </div>
                     </div>
+
+                    <div style="background:#120e0c; border:1px solid #433222; border-radius:6px; padding:10px; margin-bottom:15px; font-size:11px; line-height:1.55;">
+                        <div style="color:#f3cf7a; font-weight:bold;">📜 +10 Kutsama Sistemi</div>
+                        <div style="color:#9c8e7b; margin-top:3px;">
+                            +10, +20, +30 ve sonraki her 10'luk geliştirmede Kutsama Kağıdı gerekir.
+                            1 kağıt = %25, 2 = %50, 3 = %75, 4 = %100 başarı.
+                            Başarısız olursa eşya <strong style="color:#22c55e;">yanmaz</strong> ve mevcut + seviyesinde kalır;
+                            kullanılan kağıtlar, Altın ve Yakut tüketilir.
+                        </div>
+                    </div>
+
                     <div class="forge-list">
                         ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
                             if (item.type === 'key' || item.type === 'material') return '';
-                            const currentLvl = item.level || 0;
+
+                            const currentLvl = Number(item.level) || 0;
                             const nextLvl = currentLvl + 1;
                             const goldCost = nextLvl * 150;
-                            const rubyCost = nextLvl * 1;
+                            const rubyCost = nextLvl;
                             const cleanName = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
                             const rarityClass = item.rarity ? `rarity-${item.rarity}` : 'rarity-Sıradan';
+                            const isBlessingMilestone = nextLvl % 10 === 0;
+
+                            let blessingHTML = '';
+
+                            if (isBlessingMilestone) {
+                                const maxSelectable = Math.min(4, blessingPaperCount);
+
+                                const options = maxSelectable > 0
+                                    ? Array.from({ length: maxSelectable }, (_, i) => {
+                                        const count = i + 1;
+                                        return `<option value="${count}">${count} Kağıt — %${count * 25} Başarı</option>`;
+                                    }).join('')
+                                    : `<option value="">Kutsama Kağıdı yok</option>`;
+
+                                blessingHTML = `
+                                    <div style="margin-top:7px; padding:7px; background:rgba(59,130,246,.08); border:1px solid #1d4ed8; border-radius:5px;">
+                                        <div style="font-size:10px; color:#93c5fd; font-weight:bold; margin-bottom:5px;">
+                                            📜 +${nextLvl} için Kutsama Kağıdı gerekli
+                                        </div>
+
+                                        <select
+                                            id="blessingSelect_${index}"
+                                            style="width:100%; background:#0b0908; color:#f0e6d2; border:1px solid #433222; border-radius:4px; padding:5px; font-size:11px;"
+                                            ${maxSelectable <= 0 ? 'disabled' : ''}
+                                        >
+                                            ${options}
+                                        </select>
+
+                                        <div id="blessingChance_${index}" style="font-size:10px; color:#fbbf24; margin-top:5px;">
+                                            ${maxSelectable > 0 ? 'Başarı ihtimali: %25' : 'Metin Taşı Kes bölümünden Kutsama Kağıdı kazanmalısın.'}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+
                             return `
                                 <div class="forge-card">
                                     <div class="item-info-area">
@@ -602,16 +664,50 @@
                                         <div class="forge-info">
                                             <h4 class="${rarityClass}">${cleanName} +${currentLvl}</h4>
                                             <p>${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}</p>
-                                            <span class="forge-cost" style="color: #f3cf7a;">Maliyet: ${goldCost} Altın 🪙 | ${rubyCost} Yakut 💎</span>
+                                            <span class="forge-cost" style="color:#f3cf7a;">
+                                                Maliyet: ${goldCost} Altın 🪙 | ${rubyCost} Yakut 💎
+                                            </span>
+
+                                            ${blessingHTML}
                                         </div>
                                     </div>
-                                    <button class="btn-quest" onclick="socket.emit('upgradeItem', { itemIndex: ${index} })">+${nextLvl} Bas</button>
+
+                                    ${
+                                        isBlessingMilestone
+                                            ? `<button
+                                                id="forgeBtn_${index}"
+                                                class="btn-quest"
+                                                ${blessingPaperCount <= 0 ? 'disabled' : ''}
+                                                onclick="upgradeWithBlessing(${index}, ${nextLvl}, 'forgeBtn_${index}')"
+                                               >📜 +${nextLvl} Kutsama</button>`
+                                            : `<button
+                                                id="forgeBtn_${index}"
+                                                class="btn-quest"
+                                                onclick="doAction('upgradeItem', { itemIndex: ${index} }, 'forgeBtn_${index}')"
+                                               >+${nextLvl} Bas</button>`
+                                    }
                                 </div>
                             `;
                         }).join('') : '<p style="color:#9c8e7b; font-size:12px; text-align:center;">Geliştirilecek eşya yok.</p>'}
                     </div>
-                    <div id="forgeLogResult" class="quest-log" style="margin-top: 15px;">Demirci işlemleri burada görünecektir...</div>
+
+                    <div id="forgeLogResult" class="quest-log" style="margin-top:15px;">
+                        Demirci işlemleri burada görünecektir...
+                    </div>
                 `;
+
+                document.querySelectorAll('[id^="blessingSelect_"]').forEach(select => {
+                    select.addEventListener('change', () => {
+                        const index = select.id.replace('blessingSelect_', '');
+                        const count = Number(select.value) || 0;
+                        const chanceEl = document.getElementById(`blessingChance_${index}`);
+
+                        if (chanceEl && count > 0) {
+                            chanceEl.innerText = `Başarı ihtimali: %${count * 25}`;
+                            chanceEl.style.color = count === 4 ? '#22c55e' : '#fbbf24';
+                        }
+                    });
+                });
             } else if(activeTab === 'arena') {
                 const arenaLimit = u.arenaLimit !== undefined ? u.arenaLimit : 5;
                 body.innerHTML = `
@@ -998,6 +1094,31 @@
             socket.emit(event, payload);
         }
 
+        function upgradeWithBlessing(itemIndex, nextLevel, btnId) {
+            const select = document.getElementById(`blessingSelect_${itemIndex}`);
+
+            if (!select || !select.value) {
+                const logEl = document.getElementById('forgeLogResult');
+                if (logEl) {
+                    logEl.innerText = `📜 +${nextLevel} için en az 1 Kutsama Kağıdı seçmelisin.`;
+                }
+                return;
+            }
+
+            const blessingCount = Number(select.value);
+
+            if (![1, 2, 3, 4].includes(blessingCount)) {
+                return;
+            }
+
+            cooldownButton(btnId, 1000);
+
+            socket.emit('upgradeItem', {
+                itemIndex,
+                blessingCount
+            });
+        }
+
         function sendChat() {
             const input = document.getElementById('chatInputMsg');
             if(!input || !input.value.trim()) return;
@@ -1014,7 +1135,24 @@
         socket.on('questResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('questLogResult').innerText = res.message; });
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
         socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
-        socket.on('forgeResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('forgeLogResult').innerText = res.message; if(activeTab === 'blacksmith') renderPanelContent(); });
+        socket.on('forgeResult', (res) => {
+            if (res.userData) updateHeader(res.userData);
+
+            if (activeTab === 'blacksmith') {
+                renderPanelContent();
+            }
+
+            const logEl = document.getElementById('forgeLogResult');
+            if (logEl) {
+                logEl.innerText = res.message || 'Demirhane işlemi tamamlandı.';
+                logEl.style.fontWeight = 'bold';
+                logEl.style.borderColor = res.success ? '#22c55e' : '#ef4444';
+                logEl.style.color = res.success ? '#86efac' : '#fca5a5';
+                logEl.style.background = res.success
+                    ? 'rgba(34,197,94,0.08)'
+                    : 'rgba(239,68,68,0.08)';
+            }
+        });
         socket.on('metinStatus', (res) => {
             if (res.userData) updateHeader(res.userData);
             if (activeTab === 'metin') renderPanelContent();
