@@ -3087,6 +3087,107 @@
         .special-drop-flair.rarity-Epik { color:#c084fc; }
         .special-drop-flair.rarity-Efsanevi { color:#facc15; }
 
+        .rarity-orbit {
+            position:absolute;
+            inset:-8px;
+            pointer-events:none;
+            z-index:1;
+        }
+
+        .rarity-orbit .star {
+            position:absolute;
+            left:50%;
+            top:50%;
+            width:12px;
+            height:12px;
+            margin:-6px 0 0 -6px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:12px;
+            line-height:1;
+            filter:drop-shadow(0 0 8px rgba(255,255,255,.22));
+        }
+
+        .rarity-orbit.epic .star {
+            color:#d8b4fe;
+            text-shadow:0 0 10px rgba(168,85,247,.55);
+        }
+
+        .rarity-orbit.legendary .star {
+            color:#fde68a;
+            text-shadow:0 0 12px rgba(250,204,21,.62);
+        }
+
+        .rarity-orbit .star.s1 { animation:orbitSpinA 4.2s linear infinite; }
+        .rarity-orbit .star.s2 { animation:orbitSpinB 5s linear infinite; font-size:10px; }
+        .rarity-orbit .star.s3 { animation:orbitSpinC 6s linear infinite; font-size:9px; }
+
+        .loot-beam {
+            position:absolute;
+            left:50%;
+            bottom:-18px;
+            transform:translateX(-50%);
+            width:58px;
+            height:160px;
+            opacity:.92;
+            pointer-events:none;
+            filter:blur(.4px);
+            clip-path:polygon(50% 0, 100% 100%, 0 100%);
+        }
+
+        .loot-beam.rarity-Nadir {
+            background:linear-gradient(to bottom, rgba(191,219,254,.92), rgba(96,165,250,.28), rgba(59,130,246,0));
+            box-shadow:0 0 22px rgba(59,130,246,.24);
+            animation:lootBeamPulse 1.8s ease-in-out infinite;
+        }
+
+        .loot-beam.rarity-Epik {
+            background:linear-gradient(to bottom, rgba(233,213,255,.94), rgba(192,132,252,.30), rgba(168,85,247,0));
+            box-shadow:0 0 24px rgba(168,85,247,.28);
+            animation:lootBeamPulse 1.5s ease-in-out infinite;
+        }
+
+        .loot-beam.rarity-Efsanevi {
+            background:linear-gradient(to bottom, rgba(254,240,138,.96), rgba(250,204,21,.34), rgba(249,115,22,0));
+            box-shadow:0 0 26px rgba(250,204,21,.30);
+            animation:lootBeamPulse 1.25s ease-in-out infinite;
+        }
+
+        .legendary-drop-icon,
+        .special-drop-icon {
+            overflow:visible;
+        }
+
+        .legendary-drop-icon > *,
+        .special-drop-icon > * {
+            position:relative;
+            z-index:2;
+        }
+
+        .legendary-drop-icon .loot-beam,
+        .special-drop-icon .loot-beam {
+            z-index:1;
+        }
+
+        .showcase-eq-slot .rarity-orbit,
+        .overview-inventory-card .rarity-orbit {
+            z-index:0;
+        }
+
+        .worldboss-dragon-actor.realistic-boss {
+            right:5%;
+            width:300px;
+            height:230px;
+        }
+
+        .worldboss-dragon-actor.realistic-boss svg {
+            width:100%;
+            height:100%;
+            display:block;
+            filter:drop-shadow(0 10px 18px rgba(0,0,0,.50)) drop-shadow(0 0 16px rgba(239,68,68,.16));
+        }
+
         .overview-inventory-card.rarity-Nadir::after,
         .overview-inventory-card.rarity-Epik::after,
         .overview-inventory-card.rarity-Efsanevi::after {
@@ -3222,6 +3323,29 @@
         @keyframes specialSweep {
             0%{transform:translateX(-28%) rotate(8deg)}
             100%{transform:translateX(28%) rotate(8deg)}
+        }
+
+        @keyframes orbitSpinA {
+            0%{transform:rotate(0deg) translateX(34px) rotate(0deg) scale(.82); opacity:.55}
+            50%{opacity:1}
+            100%{transform:rotate(360deg) translateX(34px) rotate(-360deg) scale(1.08); opacity:.55}
+        }
+
+        @keyframes orbitSpinB {
+            0%{transform:rotate(0deg) translateX(26px) rotate(0deg) scale(.72); opacity:.45}
+            50%{opacity:.95}
+            100%{transform:rotate(-360deg) translateX(26px) rotate(360deg) scale(1); opacity:.45}
+        }
+
+        @keyframes orbitSpinC {
+            0%{transform:rotate(120deg) translateX(42px) rotate(-120deg) scale(.8); opacity:.35}
+            50%{opacity:.85}
+            100%{transform:rotate(480deg) translateX(42px) rotate(-480deg) scale(1.02); opacity:.35}
+        }
+
+        @keyframes lootBeamPulse {
+            0%,100%{opacity:.62; transform:translateX(-50%) scaleY(.92)}
+            50%{opacity:1; transform:translateX(-50%) scaleY(1.08)}
         }
 
         .worldboss-cinematic-overlay {
@@ -3538,6 +3662,7 @@
             .worldboss-cinematic-stage{height:340px}
             .worldboss-hero-actor{left:3%; bottom:13%; transform:scale(.82); transform-origin:bottom left}
             .worldboss-dragon-actor{right:0; bottom:11%; transform:scale(.74); transform-origin:bottom right}
+            .worldboss-dragon-actor.realistic-boss{width:255px;height:195px}
             .worldboss-impact-slash{left:38%; bottom:32%; width:150px}
             .worldboss-damage-number{right:10%; top:28%; font-size:24px}
             .worldboss-defeat-banner{font-size:18px; width:min(86vw,340px); text-align:center}
@@ -4779,6 +4904,8 @@
                         </div>
 
                         <div class="legendary-drop-icon">
+                            <div class="loot-beam rarity-Efsanevi"></div>
+                            ${renderRarityOrbit('Efsanevi')}
                             ${visual}
                         </div>
 
@@ -4824,6 +4951,8 @@
                     </div>
 
                     <div class="special-drop-icon rarity-${rarity}">
+                        <div class="loot-beam rarity-${rarity}"></div>
+                        ${renderRarityOrbit(rarity)}
                         ${visual}
                     </div>
 
@@ -4982,12 +5111,8 @@
 
                     <div class="worldboss-impact-slash"></div>
 
-                    <div class="worldboss-dragon-actor">
-                        <div class="dragon-wing"></div>
-                        <div class="dragon-tail"></div>
-                        <div class="dragon-body"></div>
-                        <div class="dragon-head"></div>
-                        <div class="dragon-eye"></div>
+                    <div class="worldboss-dragon-actor realistic-boss">
+                        ${renderWorldBossCreatureSvg(290)}
                     </div>
 
                     <div class="worldboss-impact-burst"></div>
@@ -5534,6 +5659,89 @@
             `;
         }
 
+        function renderRarityOrbit(rarity) {
+            if (rarity !== 'Epik' && rarity !== 'Efsanevi') {
+                return '';
+            }
+
+            const orbitClass =
+                rarity === 'Efsanevi'
+                    ? 'legendary'
+                    : 'epic';
+
+            return `
+                <div class="rarity-orbit ${orbitClass}">
+                    <span class="star s1">✦</span>
+                    <span class="star s2">✧</span>
+                    <span class="star s3">✦</span>
+                </div>
+            `;
+        }
+
+        function renderWorldBossCreatureSvg(size = 290) {
+            const safeSize = Math.max(220, Math.min(360, Number(size) || 290));
+
+            return `
+                <svg
+                    width="${safeSize}"
+                    height="${Math.round(safeSize * 0.77)}"
+                    viewBox="0 0 320 245"
+                    role="img"
+                    aria-label="Kadim Ejder"
+                    style="display:block;margin:0 auto;"
+                >
+                    <defs>
+                        <linearGradient id="bossWingFill" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#6d1010"/>
+                            <stop offset="100%" stop-color="#220505"/>
+                        </linearGradient>
+                        <linearGradient id="bossBodyFill" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#a11d1d"/>
+                            <stop offset="55%" stop-color="#611010"/>
+                            <stop offset="100%" stop-color="#2f0909"/>
+                        </linearGradient>
+                        <linearGradient id="bossBellyFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#d6a56c"/>
+                            <stop offset="100%" stop-color="#7a4f2a"/>
+                        </linearGradient>
+                        <radialGradient id="bossEyeGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#fde68a"/>
+                            <stop offset="100%" stop-color="#f59e0b"/>
+                        </radialGradient>
+                    </defs>
+
+                    <path d="M72 167 C28 152, 18 119, 45 90 C70 64, 100 68, 129 95 C149 113, 159 128, 170 138" fill="none" stroke="#4a0f0f" stroke-width="15" stroke-linecap="round"/>
+                    <path d="M52 88 C76 42, 136 16, 184 56 C149 78, 122 98, 91 136 Z" fill="url(#bossWingFill)" stroke="#8f1d1d" stroke-width="3.5" opacity=".96"/>
+                    <path d="M138 76 C173 25, 254 27, 288 102 C242 103, 212 112, 173 140 Z" fill="url(#bossWingFill)" stroke="#8f1d1d" stroke-width="3.5" opacity=".96"/>
+
+                    <path d="M79 180 C95 148, 136 121, 183 116 C215 112, 258 122, 285 148 C292 173, 280 192, 257 201 C212 219, 126 216, 93 198 C82 193, 74 188, 79 180 Z"
+                          fill="url(#bossBodyFill)" stroke="#cf3030" stroke-width="4"/>
+
+                    <path d="M137 135 C164 132, 203 139, 229 153 C226 184, 168 191, 122 181 C112 155, 122 141, 137 135 Z"
+                          fill="url(#bossBellyFill)" opacity=".94"/>
+
+                    <path d="M219 93 C242 73, 275 75, 299 94 C310 107, 309 126, 296 137 C283 148, 254 151, 233 142 C221 137, 212 126, 214 111 C215 104, 216 98, 219 93 Z"
+                          fill="url(#bossBodyFill)" stroke="#e54848" stroke-width="4"/>
+
+                    <path d="M293 110 C305 113, 313 117, 319 122 C311 126, 302 131, 290 134" fill="none" stroke="#2f0909" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M235 88 L225 62 L244 78" fill="none" stroke="#f1c27d" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M262 82 L266 52 L278 79" fill="none" stroke="#f1c27d" stroke-width="4" stroke-linecap="round"/>
+
+                    <circle cx="272" cy="108" r="6.5" fill="url(#bossEyeGlow)" stroke="#facc15" stroke-width="1.5"/>
+                    <circle cx="272" cy="108" r="2.2" fill="#2a0808"/>
+
+                    <path d="M288 127 L300 137 L283 138 Z" fill="#f1c27d"/>
+                    <path d="M254 126 L267 137 L249 137 Z" fill="#f1c27d"/>
+
+                    <path d="M82 182 C65 197, 55 211, 53 227" fill="none" stroke="#2f0909" stroke-width="10" stroke-linecap="round"/>
+                    <path d="M121 197 C109 214, 104 228, 104 240" fill="none" stroke="#2f0909" stroke-width="10" stroke-linecap="round"/>
+                    <path d="M199 197 C197 214, 202 227, 211 238" fill="none" stroke="#2f0909" stroke-width="10" stroke-linecap="round"/>
+
+                    <path d="M296 130 C311 137, 318 145, 319 151 C310 151, 302 147, 294 141" fill="#ef4444" opacity=".45"/>
+                </svg>
+            `;
+        }
+
         function getEnhancementVisualClass(level) {
             const safeLevel = Math.max(0, Number(level) || 0);
             if (safeLevel >= 40) return 'enhance-tier-4';
@@ -5670,6 +5878,7 @@
             return `
                 <div class="showcase-eq-slot rarity-${rarity} ${getEnhancementVisualClass(level)}"
                      onclick="socket.emit('unequipItem', { slot: '${slot}' })">
+                    ${renderRarityOrbit(rarity)}
                     <div class="showcase-slot-icon">${renderOverviewItemIcon(item)}</div>
                     <div>
                         <div class="showcase-slot-name rarity-${rarity}">${escapeHTML(cleanName)} ${level > 0 ? '+' + level : ''}</div>
@@ -6364,6 +6573,7 @@
                                     const equipable=['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(item.type);
                                     return `
                                         <div class="overview-inventory-card rarity-${rarity} ${getEnhancementVisualClass(level)}">
+                                            ${renderRarityOrbit(rarity)}
                                             <div class="item-info-area">
                                                 <div class="item-icon-box">${renderOverviewItemIcon(item)}</div>
                                                 <div class="item-details">
@@ -11769,6 +11979,7 @@
                                 <div class="howto-mini-card">
                                     <b>🗺️ Hazine</b>
                                     5 Hazine Parçası = 1 sandık. Altın, Yakut ve nadir binek/yoldaş çıkabilir.
+                                    Epik ve Efsanevi eşyalarda yıldız parçacıkları ve loot beam efekti görünür.
                                 </div>
 
                                 <div class="howto-mini-card">
