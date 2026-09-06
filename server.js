@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-live-stat-ui-fix-v4';
+const GAME_BUILD_ID = '2026-09-06-adventure-pack-v1';
 
 const app = express();
 const server = http.createServer(app);
@@ -560,6 +560,18 @@ function getCharacterCombatPower(user) {
 
     if (setBonus.combatPowerPercent > 0) {
         power = Math.floor(power * (1 + (setBonus.combatPowerPercent / 100)));
+    }
+
+    const adventureBonusPercent =
+        typeof getAdventureCombatBonusPercent === 'function'
+            ? getAdventureCombatBonusPercent(user)
+            : 0;
+
+    if (adventureBonusPercent > 0) {
+        power = Math.floor(
+            power *
+            (1 + (adventureBonusPercent / 100))
+        );
     }
 
     return Math.max(1, power);
@@ -1435,7 +1447,51 @@ const userSchema = new mongoose.Schema({
         gloves: { type: Object, default: null }, 
         boots: { type: Object, default: null } 
     },
-    inventory: { type: Array, default: [] }
+    inventory: { type: Array, default: [] },
+
+    // ========================================================
+    // MACERA / GÜNLÜK / SEZON / KOLEKSİYON PAKETİ V1
+    // ========================================================
+    adventureDailyKey: { type: String, default: '' },
+    adventureDailyProgress: { type: Object, default: {} },
+    adventureDailyClaims: { type: [String], default: [] },
+
+    adventureWeeklyKey: { type: String, default: '' },
+    adventureWeeklyProgress: { type: Object, default: {} },
+    adventureWeeklyClaims: { type: [String], default: [] },
+
+    achievementClaims: { type: [String], default: [] },
+
+    treasureFragments: { type: Number, default: 0 },
+    treasureChestsOpened: { type: Number, default: 0 },
+
+    ownedMounts: { type: [String], default: [] },
+    activeMount: { type: String, default: '' },
+    ownedCompanions: { type: [String], default: [] },
+    activeCompanion: { type: String, default: '' },
+
+    peacefulResetDate: { type: String, default: '' },
+    fishingAttemptsUsed: { type: Number, default: 0 },
+    miningAttemptsUsed: { type: Number, default: 0 },
+    fishCaught: { type: Number, default: 0 },
+    oreMined: { type: Number, default: 0 },
+
+    storyChapter: { type: Number, default: 1 },
+    storyClaims: { type: [Number], default: [] },
+
+    loginStreak: { type: Number, default: 0 },
+    lastLoginDay: { type: String, default: '' },
+    totalLoginDays: { type: Number, default: 0 },
+
+    seasonKey: { type: String, default: '' },
+    seasonPoints: { type: Number, default: 0 },
+    seasonStats: { type: Object, default: {} },
+
+    worldEventClaimKey: { type: String, default: '' },
+
+    worldBossDayKey: { type: String, default: '' },
+    worldBossAttackCount: { type: Number, default: 0 },
+    worldBossLastAttackAt: { type: Number, default: 0 }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -2391,6 +2447,9 @@ app.get('/api/build', (req, res) => {
         honorRubyRewards: true,
         catapult: true,
         onlineCounter: true,
+        adventurePackV1: true,
+        worldBossV1: true,
+        seasonV1: true,
         mongoReadyState: mongoose.connection.readyState
     });
 });
@@ -2526,6 +2585,1778 @@ const getDefaultInventory = () => [
     { id: 'item_2', name: 'Deri Zırh', icon: '🛡️', type: 'armor', strBonus: 0, vitBonus: 5, level: 0, rarity: 'Sıradan' }
 ];
 
+
+// ============================================================================
+// MACERA PAKETİ V1
+// Günlük/Haftalık Görevler • Başarımlar • Koleksiyon • Dünya Bossu
+// Dünya Olayları • Hazine Haritası • Binek/Yoldaş • Balık/Maden
+// Hikâye Zinciri • Sezon • Giriş Serisi • Dünya Akışı
+// ============================================================================
+
+const ADVENTURE_DAILY_TASKS = [
+    {
+        id: 'daily_quest',
+        icon: '⚔️',
+        name: 'Sefer Ustası',
+        description: '3 İş / Sefer görevi tamamla.',
+        action: 'quest',
+        target: 3,
+        reward: { gold: 300 }
+    },
+    {
+        id: 'daily_dungeon',
+        icon: '🌋',
+        name: 'Zindan Nöbeti',
+        description: '3 gerçek Zindan saldırısı yap.',
+        action: 'dungeon_attack',
+        target: 3,
+        reward: { gold: 350 }
+    },
+    {
+        id: 'daily_metin',
+        icon: '🪨',
+        name: 'Taş Kıran',
+        description: '1 Metin Taşı parçala.',
+        action: 'metin_kill',
+        target: 1,
+        reward: { fragments: 1 }
+    },
+    {
+        id: 'daily_arena',
+        icon: '🏟️',
+        name: 'Arena Galibi',
+        description: '1 Arena zaferi kazan.',
+        action: 'arena_win',
+        target: 1,
+        reward: { honor: 5 }
+    },
+    {
+        id: 'daily_army',
+        icon: '🪖',
+        name: 'Ordu Hazırlığı',
+        description: 'Toplam 20 birlik üret veya Mancınık inşa et.',
+        action: 'train_troop',
+        target: 20,
+        reward: { gold: 450 }
+    }
+];
+
+const ADVENTURE_WEEKLY_TASKS = [
+    {
+        id: 'weekly_quest',
+        icon: '📜',
+        name: 'Haftalık Sefer',
+        description: '20 görev tamamla.',
+        action: 'quest',
+        target: 20,
+        reward: { gold: 2000 }
+    },
+    {
+        id: 'weekly_metin',
+        icon: '🪨',
+        name: 'Metin Avcısı',
+        description: '10 Metin Taşı parçala.',
+        action: 'metin_kill',
+        target: 10,
+        reward: { fragments: 2 }
+    },
+    {
+        id: 'weekly_arena',
+        icon: '⚔️',
+        name: 'Kolosseum Şampiyonu',
+        description: '10 Arena zaferi kazan.',
+        action: 'arena_win',
+        target: 10,
+        reward: { honor: 20 }
+    },
+    {
+        id: 'weekly_dungeon',
+        icon: '🐉',
+        name: 'Zindan Temizliği',
+        description: '15 gerçek Zindan saldırısı yap.',
+        action: 'dungeon_attack',
+        target: 15,
+        reward: { rubies: 3 }
+    },
+    {
+        id: 'weekly_clanwar',
+        icon: '🏰',
+        name: 'Hisar Akıncısı',
+        description: 'Klan Kale Savaşında 10 saldırı yap.',
+        action: 'clan_war_attack',
+        target: 10,
+        reward: { honor: 15, fragments: 1 }
+    }
+];
+
+const ADVENTURE_MOUNTS = {
+    steppe_horse: {
+        key: 'steppe_horse',
+        icon: '🐎',
+        name: 'Bozkır Atı',
+        description: 'Hikâyenin ilk bölümünden kazanılır.',
+        combatBonusPercent: 1
+    },
+    war_horse: {
+        key: 'war_horse',
+        icon: '🏇',
+        name: 'Savaş Atı',
+        description: 'Başarımlardan veya Hazine Sandığından çıkabilir.',
+        combatBonusPercent: 2
+    },
+    black_stallion: {
+        key: 'black_stallion',
+        icon: '♞',
+        name: 'Kara Aygır',
+        description: 'İleri hikâye ödülüdür.',
+        combatBonusPercent: 3
+    }
+};
+
+const ADVENTURE_COMPANIONS = {
+    falcon: {
+        key: 'falcon',
+        icon: '🦅',
+        name: 'Saray Şahini',
+        description: 'Hikâye zincirinde kazanılır.',
+        combatBonusPercent: 1
+    },
+    wolf: {
+        key: 'wolf',
+        icon: '🐺',
+        name: 'Bozkurt',
+        description: 'Hazine Sandığından nadiren çıkabilir.',
+        combatBonusPercent: 2
+    },
+    lion: {
+        key: 'lion',
+        icon: '🦁',
+        name: 'Aslan Yoldaş',
+        description: 'İleri başarım ödülüdür.',
+        combatBonusPercent: 3
+    }
+};
+
+const ADVENTURE_ACHIEVEMENTS = [
+    {
+        id: 'ach_first_metin',
+        icon: '🪨',
+        name: 'İlk Metin',
+        description: 'İlk Metin Taşını parçala.',
+        targetText: '1 Metin',
+        unlocked: user => (Number(user.metinKills) || 0) >= 1,
+        progress: user => `${Math.min(1, Number(user.metinKills) || 0)}/1`,
+        reward: { gold: 500 }
+    },
+    {
+        id: 'ach_metin_25',
+        icon: '💥',
+        name: 'Metin Celladı',
+        description: '25 Metin Taşı parçala.',
+        targetText: '25 Metin',
+        unlocked: user => (Number(user.metinKills) || 0) >= 25,
+        progress: user => `${Math.min(25, Number(user.metinKills) || 0)}/25`,
+        reward: { fragments: 2 }
+    },
+    {
+        id: 'ach_arena_25',
+        icon: '🏟️',
+        name: 'Arena Kumandanı',
+        description: '25 Arena zaferi kazan.',
+        targetText: '25 Arena Zaferi',
+        unlocked: user => (Number(user.arenaWins) || 0) >= 25,
+        progress: user => `${Math.min(25, Number(user.arenaWins) || 0)}/25`,
+        reward: { honor: 25 }
+    },
+    {
+        id: 'ach_dungeon_boss',
+        icon: '🐉',
+        name: 'Boss Avcısı',
+        description: '10. Kat Zindan Bossunu yen.',
+        targetText: '1 Final Boss',
+        unlocked: user => (Number(user.dungeonBossWins) || 0) >= 1,
+        progress: user => `${Math.min(1, Number(user.dungeonBossWins) || 0)}/1`,
+        reward: { fragments: 2 }
+    },
+    {
+        id: 'ach_castle',
+        icon: '👑',
+        name: 'Taht Fatihi',
+        description: 'Bireysel Taht Kalesini en az bir kez ele geçir.',
+        targetText: '1 Fetih',
+        unlocked: user => (Number(user.castleVictories) || 0) >= 1,
+        progress: user => `${Math.min(1, Number(user.castleVictories) || 0)}/1`,
+        reward: { mount: 'war_horse' }
+    },
+    {
+        id: 'ach_catapult_100',
+        icon: '🪵',
+        name: 'Kuşatma Ustası',
+        description: 'Orduda 100 Mancınığa ulaş.',
+        targetText: '100 Mancınık',
+        unlocked: user => (Number(user.army?.catapult) || 0) >= 100,
+        progress: user => `${Math.min(100, Number(user.army?.catapult) || 0)}/100`,
+        reward: { fragments: 3 }
+    },
+    {
+        id: 'ach_honor_500',
+        icon: '🌟',
+        name: 'Şerefli Kumandan',
+        description: '500 Onura ulaş.',
+        targetText: '500 Onur',
+        unlocked: user => (Number(user.honor) || 0) >= 500,
+        progress: user => `${Math.min(500, Number(user.honor) || 0)}/500`,
+        reward: { companion: 'lion' }
+    },
+    {
+        id: 'ach_hukumdar_8',
+        icon: '✨',
+        name: 'Hükümdarın Kudreti',
+        description: '8 Hükümdar Seti parçasını aynı anda kuşan.',
+        targetText: '8 Parça',
+        unlocked: user => getHukumdarSetEquippedCount(user) >= 8,
+        progress: user => `${Math.min(8, getHukumdarSetEquippedCount(user))}/8`,
+        reward: { honor: 50, rubies: 5 }
+    }
+];
+
+const ADVENTURE_COLLECTION = [
+    {
+        id: 'col_first_quest', icon: '📜', name: 'İlk Sefer',
+        description: 'İlk görevini tamamla.',
+        unlocked: user => (Number(user.seasonStats?.quest) || 0) >= 1 || (Number(user.level) || 1) > 1
+    },
+    {
+        id: 'col_metin', icon: '🪨', name: 'Metin Taşları',
+        description: 'Bir Metin Taşı parçala.',
+        unlocked: user => (Number(user.metinKills) || 0) >= 1
+    },
+    {
+        id: 'col_dungeon', icon: '🌋', name: 'Zindan Adası',
+        description: 'Zindan sisteminde ilerle.',
+        unlocked: user => (Number(user.dungeonFloor) || 1) >= 2
+    },
+    {
+        id: 'col_final_boss', icon: '🐉', name: 'Final Boss',
+        description: '10. Kat Bossunu yen.',
+        unlocked: user => (Number(user.dungeonBossWins) || 0) >= 1
+    },
+    {
+        id: 'col_arena', icon: '🏟️', name: 'Kolosseum',
+        description: 'Arena zaferi kazan.',
+        unlocked: user => (Number(user.arenaWins) || 0) >= 1
+    },
+    {
+        id: 'col_timar', icon: '🌾', name: 'Tımar Sahibi',
+        description: 'En az bir Tımar satın al.',
+        unlocked: user => Array.isArray(user.estates) && user.estates.length >= 1
+    },
+    {
+        id: 'col_catapult', icon: '🪵', name: 'Mancınık',
+        description: 'İlk Mancınığını inşa et.',
+        unlocked: user => (Number(user.army?.catapult) || 0) >= 1
+    },
+    {
+        id: 'col_clan', icon: '🛡️', name: 'Klan Sancağı',
+        description: 'Bir klana katıl.',
+        unlocked: user => Boolean(user.clanId)
+    },
+    {
+        id: 'col_castle', icon: '👑', name: 'Taht Kalesi',
+        description: 'Kaleyi bir kez fethet.',
+        unlocked: user => (Number(user.castleVictories) || 0) >= 1
+    },
+    {
+        id: 'col_hukumdar_2', icon: '✨', name: 'Hükümdar Seti II',
+        description: '2 Hükümdar Seti parçası kuşan.',
+        unlocked: user => getHukumdarSetEquippedCount(user) >= 2
+    },
+    {
+        id: 'col_hukumdar_4', icon: '🌟', name: 'Hükümdar Seti IV',
+        description: '4 Hükümdar Seti parçası kuşan.',
+        unlocked: user => getHukumdarSetEquippedCount(user) >= 4
+    },
+    {
+        id: 'col_hukumdar_8', icon: '👑', name: 'Tam Hükümdar Seti',
+        description: '8 parçayı aynı anda kuşan.',
+        unlocked: user => getHukumdarSetEquippedCount(user) >= 8
+    },
+    {
+        id: 'col_fisher', icon: '🎣', name: 'Balıkçı',
+        description: '10 kez balık tut.',
+        unlocked: user => (Number(user.fishCaught) || 0) >= 10
+    },
+    {
+        id: 'col_miner', icon: '⛏️', name: 'Madenci',
+        description: '20 cevher çıkar.',
+        unlocked: user => (Number(user.oreMined) || 0) >= 20
+    },
+    {
+        id: 'col_treasure', icon: '🗺️', name: 'Hazine Avcısı',
+        description: 'İlk Hazine Sandığını aç.',
+        unlocked: user => (Number(user.treasureChestsOpened) || 0) >= 1
+    },
+    {
+        id: 'col_worldboss', icon: '👹', name: 'Dünya Bossu',
+        description: 'Dünya Bossuna en az bir saldırı yap.',
+        unlocked: user => (Number(user.seasonStats?.world_boss_attack) || 0) >= 1
+    }
+];
+
+const ADVENTURE_STORY = [
+    {
+        chapter: 1,
+        title: 'Sancağın Doğuşu',
+        description: 'Seviye 5 ol ve saraydan ilk resmi görevini al.',
+        requirementText: 'Seviye 5',
+        ready: user => (Number(user.level) || 1) >= 5,
+        reward: { gold: 750, mount: 'steppe_horse' }
+    },
+    {
+        chapter: 2,
+        title: 'Karanlık Taşlar',
+        description: 'Metinlerin kaynağını araştırmak için 3 Metin parçala.',
+        requirementText: '3 Metin parçala',
+        ready: user => (Number(user.metinKills) || 0) >= 3,
+        reward: { fragments: 2 }
+    },
+    {
+        chapter: 3,
+        title: 'Zindan Fısıltıları',
+        description: 'Zindan Adasında en az 3. kata ulaş.',
+        requirementText: 'Zindan Katı 3',
+        ready: user => (Number(user.dungeonFloor) || 1) >= 3,
+        reward: { companion: 'falcon', gold: 1000 }
+    },
+    {
+        chapter: 4,
+        title: 'Kolosseum Kanı',
+        description: 'Arena’da 5 zafer kazan ve adını duyur.',
+        requirementText: '5 Arena zaferi',
+        ready: user => (Number(user.arenaWins) || 0) >= 5,
+        reward: { honor: 15 }
+    },
+    {
+        chapter: 5,
+        title: 'Birlik Sancağı',
+        description: 'Bir klana katıl veya kendi klanını kur.',
+        requirementText: 'Bir klana üye ol',
+        ready: user => Boolean(user.clanId),
+        reward: { gold: 1500, fragments: 1 }
+    },
+    {
+        chapter: 6,
+        title: 'Tahtın Gölgesi',
+        description: '100 Onura ulaş ve gerçek bir kumandan olduğunu kanıtla.',
+        requirementText: '100 Onur',
+        ready: user => (Number(user.honor) || 0) >= 100,
+        reward: { mount: 'black_stallion', rubies: 3, honor: 10 }
+    }
+];
+
+const WORLD_EVENT_DEFINITIONS = [
+    {
+        key: 'caravan_festival',
+        icon: '🐫',
+        name: 'Kervan Şenliği',
+        description: 'Kervanlar şehre ulaştı. Katılanlara Altın dağıtılıyor.',
+        reward: { gold: 450 }
+    },
+    {
+        key: 'metin_storm',
+        icon: '🪨',
+        name: 'Metin Fırtınası',
+        description: 'Gökyüzü karardı. Metin avcılarına harita parçası veriliyor.',
+        reward: { fragments: 1 }
+    },
+    {
+        key: 'honor_call',
+        icon: '🌟',
+        name: 'Kumandan Çağrısı',
+        description: 'Saray meydanında savaşçılar onurlandırılıyor.',
+        reward: { honor: 5 }
+    },
+    {
+        key: 'mine_blessing',
+        icon: '⛏️',
+        name: 'Maden Bereketi',
+        description: 'Demirciler için ekstra Demir Cevheri dağıtılıyor.',
+        reward: { iron: 2, gold: 150 }
+    }
+];
+
+const WORLD_BOSS_NAME = 'Kadim Ejder — Zulkar';
+const WORLD_BOSS_MAX_HP = 750000;
+const WORLD_BOSS_ATTACK_LIMIT = 5;
+const WORLD_BOSS_ATTACK_COOLDOWN_MS = 12 * 1000;
+const WORLD_BOSS_START_HOUR = 18;
+const WORLD_BOSS_END_HOUR = 24;
+
+const worldBossContributionSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    username: { type: String, required: true },
+    damage: { type: Number, default: 0 },
+    attacks: { type: Number, default: 0 },
+    lastAttackAt: { type: Number, default: 0 }
+}, { _id: false });
+
+const worldBossStateSchema = new mongoose.Schema({
+    key: { type: String, unique: true, default: 'daily_world_boss' },
+    dayKey: { type: String, default: '' },
+    name: { type: String, default: WORLD_BOSS_NAME },
+    maxHp: { type: Number, default: WORLD_BOSS_MAX_HP },
+    hp: { type: Number, default: WORLD_BOSS_MAX_HP },
+    killed: { type: Boolean, default: false },
+    killedAt: { type: Number, default: 0 },
+    contributions: { type: [worldBossContributionSchema], default: [] }
+});
+
+const WorldBossState = mongoose.model('WorldBossState', worldBossStateSchema);
+
+const worldFeedSchema = new mongoose.Schema({
+    type: { type: String, default: 'world' },
+    icon: { type: String, default: '📢' },
+    message: { type: String, required: true, maxlength: 220 },
+    createdAt: { type: Date, default: Date.now, index: true }
+});
+
+const WorldFeedEvent = mongoose.model('WorldFeedEvent', worldFeedSchema);
+
+function getTurkeyDateParts(now = Date.now()) {
+    const formatter =
+        new Intl.DateTimeFormat(
+            'en-CA',
+            {
+                timeZone: 'Europe/Istanbul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23'
+            }
+        );
+
+    const parts =
+        Object.fromEntries(
+            formatter.formatToParts(
+                new Date(now)
+            )
+            .filter(part => part.type !== 'literal')
+            .map(part => [part.type, part.value])
+        );
+
+    return {
+        year: Number(parts.year),
+        month: Number(parts.month),
+        day: Number(parts.day),
+        hour: Number(parts.hour),
+        minute: Number(parts.minute)
+    };
+}
+
+function getAdventureDayKey(now = Date.now()) {
+    return getTurkeyDayKey();
+}
+
+function getAdventureWeekKey(now = Date.now()) {
+    const p = getTurkeyDateParts(now);
+
+    const base =
+        new Date(
+            Date.UTC(
+                p.year,
+                p.month - 1,
+                p.day
+            )
+        );
+
+    const weekday =
+        base.getUTCDay() || 7;
+
+    base.setUTCDate(
+        base.getUTCDate() -
+        (weekday - 1)
+    );
+
+    return [
+        base.getUTCFullYear(),
+        String(base.getUTCMonth() + 1).padStart(2, '0'),
+        String(base.getUTCDate()).padStart(2, '0')
+    ].join('-');
+}
+
+function getAdventureSeasonKey(now = Date.now()) {
+    const p = getTurkeyDateParts(now);
+
+    return (
+        `${p.year}-` +
+        `${String(p.month).padStart(2, '0')}`
+    );
+}
+
+function getPreviousTurkeyDayKey(now = Date.now()) {
+    const p = getTurkeyDateParts(now);
+
+    const utc =
+        Date.UTC(
+            p.year,
+            p.month - 1,
+            p.day - 1,
+            12,
+            0,
+            0
+        );
+
+    const prev =
+        new Date(utc);
+
+    return [
+        prev.getUTCFullYear(),
+        String(prev.getUTCMonth() + 1).padStart(2, '0'),
+        String(prev.getUTCDate()).padStart(2, '0')
+    ].join('-');
+}
+
+function ensureAdventureState(user) {
+    if (!user) return false;
+
+    let changed = false;
+
+    const dayKey =
+        getAdventureDayKey();
+
+    const weekKey =
+        getAdventureWeekKey();
+
+    const seasonKey =
+        getAdventureSeasonKey();
+
+    if (user.adventureDailyKey !== dayKey) {
+        user.adventureDailyKey = dayKey;
+        user.adventureDailyProgress = {};
+        user.adventureDailyClaims = [];
+        changed = true;
+    }
+
+    if (user.adventureWeeklyKey !== weekKey) {
+        user.adventureWeeklyKey = weekKey;
+        user.adventureWeeklyProgress = {};
+        user.adventureWeeklyClaims = [];
+        changed = true;
+    }
+
+    if (user.seasonKey !== seasonKey) {
+        user.seasonKey = seasonKey;
+        user.seasonPoints = 0;
+        user.seasonStats = {};
+        changed = true;
+    }
+
+    if (user.peacefulResetDate !== dayKey) {
+        user.peacefulResetDate = dayKey;
+        user.fishingAttemptsUsed = 0;
+        user.miningAttemptsUsed = 0;
+        changed = true;
+    }
+
+    if (user.worldBossDayKey !== dayKey) {
+        user.worldBossDayKey = dayKey;
+        user.worldBossAttackCount = 0;
+        user.worldBossLastAttackAt = 0;
+        changed = true;
+    }
+
+    if (!user.adventureDailyProgress) {
+        user.adventureDailyProgress = {};
+        changed = true;
+    }
+
+    if (!user.adventureWeeklyProgress) {
+        user.adventureWeeklyProgress = {};
+        changed = true;
+    }
+
+    if (!user.seasonStats) {
+        user.seasonStats = {};
+        changed = true;
+    }
+
+    if (!Array.isArray(user.adventureDailyClaims)) {
+        user.adventureDailyClaims = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(user.adventureWeeklyClaims)) {
+        user.adventureWeeklyClaims = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(user.achievementClaims)) {
+        user.achievementClaims = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(user.storyClaims)) {
+        user.storyClaims = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(user.ownedMounts)) {
+        user.ownedMounts = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(user.ownedCompanions)) {
+        user.ownedCompanions = [];
+        changed = true;
+    }
+
+    if (changed) {
+        user.markModified('adventureDailyProgress');
+        user.markModified('adventureWeeklyProgress');
+        user.markModified('seasonStats');
+    }
+
+    return changed;
+}
+
+function getAdventureCombatBonusPercent(user) {
+    let bonus = 0;
+
+    const mount =
+        ADVENTURE_MOUNTS[
+            String(user?.activeMount || '')
+        ];
+
+    const companion =
+        ADVENTURE_COMPANIONS[
+            String(user?.activeCompanion || '')
+        ];
+
+    bonus +=
+        Number(
+            mount?.combatBonusPercent
+        ) || 0;
+
+    bonus +=
+        Number(
+            companion?.combatBonusPercent
+        ) || 0;
+
+    return Math.min(6, Math.max(0, bonus));
+}
+
+function addSeasonPoints(
+    user,
+    amount,
+    action = 'other',
+    actionAmount = 1
+) {
+    ensureAdventureState(user);
+
+    const safePoints =
+        Math.max(
+            0,
+            Number.parseInt(amount, 10) || 0
+        );
+
+    user.seasonPoints =
+        (Number(user.seasonPoints) || 0) +
+        safePoints;
+
+    const stats =
+        user.seasonStats || {};
+
+    stats[action] =
+        (Number(stats[action]) || 0) +
+        Math.max(
+            0,
+            Number(actionAmount) || 0
+        );
+
+    user.seasonStats = stats;
+    user.markModified('seasonStats');
+}
+
+function recordAdventureProgress(
+    user,
+    action,
+    amount = 1,
+    seasonPoints = 0
+) {
+    if (!user) return;
+
+    ensureAdventureState(user);
+
+    const safeAmount =
+        Math.max(
+            0,
+            Number(amount) || 0
+        );
+
+    const daily =
+        user.adventureDailyProgress || {};
+
+    const weekly =
+        user.adventureWeeklyProgress || {};
+
+    for (
+        const task
+        of ADVENTURE_DAILY_TASKS
+    ) {
+        if (task.action !== action) continue;
+
+        daily[task.id] =
+            (Number(daily[task.id]) || 0) +
+            safeAmount;
+    }
+
+    for (
+        const task
+        of ADVENTURE_WEEKLY_TASKS
+    ) {
+        if (task.action !== action) continue;
+
+        weekly[task.id] =
+            (Number(weekly[task.id]) || 0) +
+            safeAmount;
+    }
+
+    user.adventureDailyProgress = daily;
+    user.adventureWeeklyProgress = weekly;
+
+    user.markModified('adventureDailyProgress');
+    user.markModified('adventureWeeklyProgress');
+
+    addSeasonPoints(
+        user,
+        seasonPoints,
+        action,
+        safeAmount
+    );
+}
+
+function grantAdventureReward(
+    user,
+    reward = {}
+) {
+    ensureAdventureState(user);
+
+    const details = [];
+
+    if ((Number(reward.gold) || 0) > 0) {
+        const amount =
+            Math.floor(
+                Number(reward.gold)
+            );
+
+        user.balance =
+            (Number(user.balance) || 0) +
+            amount;
+
+        details.push(
+            `🪙 +${amount.toLocaleString('tr-TR')} Altın`
+        );
+    }
+
+    if ((Number(reward.rubies) || 0) > 0) {
+        const amount =
+            Math.floor(
+                Number(reward.rubies)
+            );
+
+        user.rubies =
+            (Number(user.rubies) || 0) +
+            amount;
+
+        details.push(
+            `💎 +${amount} Yakut`
+        );
+    }
+
+    if ((Number(reward.honor) || 0) !== 0) {
+        const amount =
+            Math.floor(
+                Number(reward.honor)
+            );
+
+        const result =
+            applyHonorChange(
+                user,
+                amount
+            );
+
+        details.push(
+            `🌟 ${amount >= 0 ? '+' : ''}${amount} Onur`
+        );
+
+        if (
+            (Number(result.rubyReward) || 0) > 0
+        ) {
+            details.push(
+                `🎁 +${result.rubyReward} Yakut`
+            );
+        }
+    }
+
+    if ((Number(reward.fragments) || 0) > 0) {
+        const amount =
+            Math.floor(
+                Number(reward.fragments)
+            );
+
+        user.treasureFragments =
+            (Number(user.treasureFragments) || 0) +
+            amount;
+
+        details.push(
+            `🗺️ +${amount} Hazine Parçası`
+        );
+    }
+
+    if ((Number(reward.iron) || 0) > 0) {
+        normalizeBlacksmithState(user);
+
+        const amount =
+            Math.floor(
+                Number(reward.iron)
+            );
+
+        user.blacksmithMastery.ironOre =
+            (Number(user.blacksmithMastery.ironOre) || 0) +
+            amount;
+
+        user.markModified('blacksmithMastery');
+
+        details.push(
+            `⛏️ +${amount} Demir Cevheri`
+        );
+    }
+
+    if (reward.mount) {
+        const key =
+            String(reward.mount);
+
+        if (
+            ADVENTURE_MOUNTS[key] &&
+            !user.ownedMounts.includes(key)
+        ) {
+            user.ownedMounts.push(key);
+
+            if (!user.activeMount) {
+                user.activeMount = key;
+            }
+
+            details.push(
+                `${ADVENTURE_MOUNTS[key].icon} ${ADVENTURE_MOUNTS[key].name} açıldı`
+            );
+        }
+    }
+
+    if (reward.companion) {
+        const key =
+            String(reward.companion);
+
+        if (
+            ADVENTURE_COMPANIONS[key] &&
+            !user.ownedCompanions.includes(key)
+        ) {
+            user.ownedCompanions.push(key);
+
+            if (!user.activeCompanion) {
+                user.activeCompanion = key;
+            }
+
+            details.push(
+                `${ADVENTURE_COMPANIONS[key].icon} ${ADVENTURE_COMPANIONS[key].name} açıldı`
+            );
+        }
+    }
+
+    return details;
+}
+
+function getTaskStatusList(
+    user,
+    definitions,
+    progress,
+    claims
+) {
+    return definitions.map(task => {
+        const current =
+            Math.max(
+                0,
+                Number(progress?.[task.id]) || 0
+            );
+
+        const target =
+            Math.max(
+                1,
+                Number(task.target) || 1
+            );
+
+        const claimed =
+            Array.isArray(claims) &&
+            claims.includes(task.id);
+
+        return {
+            ...task,
+            current:
+                Math.min(
+                    current,
+                    target
+                ),
+            completed:
+                current >= target,
+            claimed
+        };
+    });
+}
+
+function getAchievementStatus(user) {
+    const claims =
+        Array.isArray(user.achievementClaims)
+            ? user.achievementClaims
+            : [];
+
+    return ADVENTURE_ACHIEVEMENTS.map(
+        achievement => ({
+            id: achievement.id,
+            icon: achievement.icon,
+            name: achievement.name,
+            description: achievement.description,
+            targetText: achievement.targetText,
+            unlocked:
+                Boolean(
+                    achievement.unlocked(user)
+                ),
+            progress:
+                achievement.progress(user),
+            claimed:
+                claims.includes(
+                    achievement.id
+                ),
+            reward:
+                achievement.reward
+        })
+    );
+}
+
+function getCollectionStatus(user) {
+    const entries =
+        ADVENTURE_COLLECTION.map(
+            entry => ({
+                id: entry.id,
+                icon: entry.icon,
+                name: entry.name,
+                description: entry.description,
+                unlocked:
+                    Boolean(
+                        entry.unlocked(user)
+                    )
+            })
+        );
+
+    return {
+        unlocked:
+            entries.filter(
+                entry => entry.unlocked
+            ).length,
+        total:
+            entries.length,
+        entries
+    };
+}
+
+function getStoryStatus(user) {
+    const currentChapter =
+        Math.max(
+            1,
+            Math.min(
+                ADVENTURE_STORY.length + 1,
+                Number.parseInt(
+                    user.storyChapter,
+                    10
+                ) || 1
+            )
+        );
+
+    const chapter =
+        ADVENTURE_STORY.find(
+            item =>
+                item.chapter ===
+                currentChapter
+        ) || null;
+
+    return {
+        currentChapter,
+        completed:
+            currentChapter >
+            ADVENTURE_STORY.length,
+        totalChapters:
+            ADVENTURE_STORY.length,
+        chapter:
+            chapter
+                ? {
+                    chapter:
+                        chapter.chapter,
+                    title:
+                        chapter.title,
+                    description:
+                        chapter.description,
+                    requirementText:
+                        chapter.requirementText,
+                    ready:
+                        Boolean(
+                            chapter.ready(user)
+                        ),
+                    reward:
+                        chapter.reward
+                }
+                : null
+    };
+}
+
+function getWorldEventWindow(now = Date.now()) {
+    const p =
+        getTurkeyDateParts(now);
+
+    const slotHour =
+        Math.floor(
+            p.hour / 2
+        ) * 2;
+
+    const turkeyOffset =
+        3 * 60 * 60 * 1000;
+
+    const startAt =
+        Date.UTC(
+            p.year,
+            p.month - 1,
+            p.day,
+            slotHour,
+            0,
+            0,
+            0
+        ) -
+        turkeyOffset;
+
+    const endAt =
+        startAt +
+        (30 * 60 * 1000);
+
+    const slotNumber =
+        Math.floor(
+            startAt /
+            (2 * 60 * 60 * 1000)
+        );
+
+    const definition =
+        WORLD_EVENT_DEFINITIONS[
+            Math.abs(slotNumber) %
+            WORLD_EVENT_DEFINITIONS.length
+        ];
+
+    const eventKey =
+        `${getAdventureDayKey()}-${String(slotHour).padStart(2, '0')}-${definition.key}`;
+
+    let nextStartAt;
+
+    if (now < startAt) {
+        nextStartAt = startAt;
+    } else if (now >= endAt) {
+        nextStartAt =
+            startAt +
+            (2 * 60 * 60 * 1000);
+    } else {
+        nextStartAt = startAt;
+    }
+
+    return {
+        eventKey,
+        active:
+            now >= startAt &&
+            now < endAt,
+        startAt,
+        endAt,
+        nextStartAt,
+        definition
+    };
+}
+
+function getWorldBossSchedule(now = Date.now()) {
+    const p =
+        getTurkeyDateParts(now);
+
+    const turkeyOffset =
+        3 * 60 * 60 * 1000;
+
+    const startAt =
+        Date.UTC(
+            p.year,
+            p.month - 1,
+            p.day,
+            WORLD_BOSS_START_HOUR,
+            0,
+            0,
+            0
+        ) -
+        turkeyOffset;
+
+    const endAt =
+        Date.UTC(
+            p.year,
+            p.month - 1,
+            p.day + 1,
+            0,
+            0,
+            0
+        ) -
+        turkeyOffset;
+
+    const active =
+        now >= startAt &&
+        now < endAt;
+
+    let nextStartAt =
+        startAt;
+
+    if (now >= endAt) {
+        nextStartAt =
+            startAt +
+            (24 * 60 * 60 * 1000);
+    } else if (now >= startAt) {
+        nextStartAt = startAt;
+    }
+
+    return {
+        startAt,
+        endAt,
+        active,
+        nextStartAt
+    };
+}
+
+async function getOrCreateWorldBoss() {
+    const dayKey =
+        getAdventureDayKey();
+
+    const boss =
+        await WorldBossState.findOneAndUpdate(
+            { key: 'daily_world_boss' },
+            {
+                $setOnInsert: {
+                    key: 'daily_world_boss',
+                    dayKey,
+                    name: WORLD_BOSS_NAME,
+                    maxHp: WORLD_BOSS_MAX_HP,
+                    hp: WORLD_BOSS_MAX_HP,
+                    killed: false,
+                    killedAt: 0,
+                    contributions: []
+                }
+            },
+            {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true
+            }
+        );
+
+    if (boss.dayKey !== dayKey) {
+        boss.dayKey = dayKey;
+        boss.name = WORLD_BOSS_NAME;
+        boss.maxHp = WORLD_BOSS_MAX_HP;
+        boss.hp = WORLD_BOSS_MAX_HP;
+        boss.killed = false;
+        boss.killedAt = 0;
+        boss.contributions = [];
+        await boss.save();
+    }
+
+    return boss;
+}
+
+async function pushWorldFeed(
+    message,
+    type = 'world',
+    icon = '📢'
+) {
+    try {
+        await WorldFeedEvent.create({
+            type,
+            icon,
+            message:
+                String(message || '')
+                    .slice(0, 220)
+        });
+
+        const oldEvents =
+            await WorldFeedEvent.find({})
+                .sort({ createdAt: -1 })
+                .skip(60)
+                .select('_id')
+                .lean();
+
+        if (oldEvents.length > 0) {
+            await WorldFeedEvent.deleteMany({
+                _id: {
+                    $in:
+                        oldEvents.map(
+                            item => item._id
+                        )
+                }
+            });
+        }
+
+        io.emit(
+            'worldFeedRefresh',
+            { message, type, icon }
+        );
+    } catch (err) {
+        console.error(
+            'Dünya akışı yazma hatası:',
+            err
+        );
+    }
+}
+
+async function getWorldFeedPayload() {
+    const feed =
+        await WorldFeedEvent.find({})
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean();
+
+    return feed.map(item => ({
+        id: String(item._id),
+        type: item.type,
+        icon: item.icon,
+        message: item.message,
+        createdAt:
+            item.createdAt
+                ? new Date(item.createdAt).getTime()
+                : Date.now()
+    }));
+}
+
+function syncOnlineAdventureUser(dbUser) {
+    if (!dbUser?._id) return;
+
+    for (
+        const socketId
+        of Object.keys(users)
+    ) {
+        const online =
+            users[socketId];
+
+        if (
+            online?._id &&
+            String(online._id) ===
+            String(dbUser._id)
+        ) {
+            users[socketId] =
+                dbUser;
+        }
+    }
+}
+
+async function processLoginStreak(user) {
+    ensureAdventureState(user);
+
+    const today =
+        getAdventureDayKey();
+
+    if (user.lastLoginDay === today) {
+        return {
+            granted: false,
+            streak:
+                Number(user.loginStreak) || 0,
+            message: ''
+        };
+    }
+
+    const yesterday =
+        getPreviousTurkeyDayKey();
+
+    if (user.lastLoginDay === yesterday) {
+        const previousStreak =
+            Math.max(
+                0,
+                Number(user.loginStreak) || 0
+            );
+
+        // 7 günlük seri tamamlandıktan sonra yeni döngü 1. günden başlar.
+        user.loginStreak =
+            previousStreak >= 7
+                ? 1
+                : previousStreak + 1;
+    } else {
+        user.loginStreak = 1;
+    }
+
+    user.lastLoginDay = today;
+    user.totalLoginDays =
+        (Number(user.totalLoginDays) || 0) +
+        1;
+
+    const day =
+        Math.max(
+            1,
+            Math.min(
+                7,
+                Number(user.loginStreak) || 1
+            )
+        );
+
+    const rewards = {
+        1: { gold: 250 },
+        2: { gold: 400 },
+        3: { fragments: 1 },
+        4: { gold: 750 },
+        5: { honor: 5 },
+        6: { gold: 1000 },
+        7: { rubies: 2, fragments: 1 }
+    };
+
+    const rewardDetails =
+        grantAdventureReward(
+            user,
+            rewards[day]
+        );
+
+    addSeasonPoints(
+        user,
+        3,
+        'login',
+        1
+    );
+
+    return {
+        granted: true,
+        streak: day,
+        message:
+            `🎁 Günlük giriş serisi ${day}/7: ` +
+            rewardDetails.join(' • ')
+    };
+}
+
+async function getSeasonLeaderboard(user) {
+    ensureAdventureState(user);
+
+    const leaders =
+        await User.find({
+            seasonKey:
+                user.seasonKey
+        })
+        .sort({
+            seasonPoints: -1,
+            level: -1
+        })
+        .limit(10)
+        .select(
+            'username level seasonPoints'
+        )
+        .lean();
+
+    return leaders.map(
+        (entry, index) => ({
+            rank: index + 1,
+            username:
+                entry.username,
+            level:
+                Number(entry.level) || 1,
+            points:
+                Number(
+                    entry.seasonPoints
+                ) || 0,
+            isMe:
+                String(entry._id) ===
+                String(user._id)
+        })
+    );
+}
+
+async function getWorldBossPayload(user) {
+    ensureAdventureState(user);
+
+    const boss =
+        await getOrCreateWorldBoss();
+
+    const schedule =
+        getWorldBossSchedule();
+
+    const leaderboard =
+        [...(boss.contributions || [])]
+        .sort(
+            (a, b) =>
+                (Number(b.damage) || 0) -
+                (Number(a.damage) || 0)
+        )
+        .slice(0, 10)
+        .map(
+            (entry, index) => ({
+                rank: index + 1,
+                userId:
+                    String(entry.userId),
+                username:
+                    entry.username,
+                damage:
+                    Number(entry.damage) || 0,
+                attacks:
+                    Number(entry.attacks) || 0,
+                isMe:
+                    String(entry.userId) ===
+                    String(user._id)
+            })
+        );
+
+    const myEntry =
+        (boss.contributions || [])
+        .find(
+            entry =>
+                String(entry.userId) ===
+                String(user._id)
+        );
+
+    const used =
+        Math.max(
+            Number(user.worldBossAttackCount) || 0,
+            Number(myEntry?.attacks) || 0
+        );
+
+    const cooldown =
+        Math.max(
+            0,
+            WORLD_BOSS_ATTACK_COOLDOWN_MS -
+            (
+                Date.now() -
+                Math.max(
+                    Number(user.worldBossLastAttackAt) || 0,
+                    Number(myEntry?.lastAttackAt) || 0
+                )
+            )
+        );
+
+    return {
+        name: boss.name,
+        dayKey: boss.dayKey,
+        maxHp: Number(boss.maxHp) || WORLD_BOSS_MAX_HP,
+        hp: Math.max(0, Number(boss.hp) || 0),
+        killed: Boolean(boss.killed),
+        killedAt: Number(boss.killedAt) || 0,
+        active:
+            Boolean(
+                schedule.active &&
+                !boss.killed
+            ),
+        schedule,
+        attackLimit:
+            WORLD_BOSS_ATTACK_LIMIT,
+        attacksUsed: used,
+        attacksRemaining:
+            Math.max(
+                0,
+                WORLD_BOSS_ATTACK_LIMIT -
+                used
+            ),
+        cooldownRemainingMs:
+            cooldown,
+        myDamage:
+            Number(myEntry?.damage) || 0,
+        leaderboard,
+        characterPower:
+            getCharacterCombatPower(user),
+        armyPower:
+            getArmyPower(user.army)
+    };
+}
+
+async function getAdventureHubPayload(user) {
+    ensureAdventureState(user);
+
+    const event =
+        getWorldEventWindow();
+
+    const leaderboard =
+        await getSeasonLeaderboard(user);
+
+    const feed =
+        await getWorldFeedPayload();
+
+    const loginDay =
+        Math.max(
+            0,
+            Math.min(
+                7,
+                Number(user.loginStreak) || 0
+            )
+        );
+
+    return {
+        userData: user,
+        dailyKey:
+            user.adventureDailyKey,
+        weeklyKey:
+            user.adventureWeeklyKey,
+        dailyTasks:
+            getTaskStatusList(
+                user,
+                ADVENTURE_DAILY_TASKS,
+                user.adventureDailyProgress,
+                user.adventureDailyClaims
+            ),
+        weeklyTasks:
+            getTaskStatusList(
+                user,
+                ADVENTURE_WEEKLY_TASKS,
+                user.adventureWeeklyProgress,
+                user.adventureWeeklyClaims
+            ),
+        achievements:
+            getAchievementStatus(user),
+        collection:
+            getCollectionStatus(user),
+        treasure: {
+            fragments:
+                Number(
+                    user.treasureFragments
+                ) || 0,
+            needed: 5,
+            chestsOpened:
+                Number(
+                    user.treasureChestsOpened
+                ) || 0
+        },
+        mounts: {
+            active:
+                user.activeMount || '',
+            owned:
+                Object.values(
+                    ADVENTURE_MOUNTS
+                ).map(item => ({
+                    ...item,
+                    owned:
+                        user.ownedMounts.includes(
+                            item.key
+                        ),
+                    active:
+                        user.activeMount ===
+                        item.key
+                }))
+        },
+        companions: {
+            active:
+                user.activeCompanion || '',
+            owned:
+                Object.values(
+                    ADVENTURE_COMPANIONS
+                ).map(item => ({
+                    ...item,
+                    owned:
+                        user.ownedCompanions.includes(
+                            item.key
+                        ),
+                    active:
+                        user.activeCompanion ===
+                        item.key
+                }))
+        },
+        peaceful: {
+            fishingUsed:
+                Number(
+                    user.fishingAttemptsUsed
+                ) || 0,
+            miningUsed:
+                Number(
+                    user.miningAttemptsUsed
+                ) || 0,
+            dailyLimit: 5,
+            fishCaught:
+                Number(
+                    user.fishCaught
+                ) || 0,
+            oreMined:
+                Number(
+                    user.oreMined
+                ) || 0
+        },
+        story:
+            getStoryStatus(user),
+        login: {
+            streak: loginDay,
+            totalDays:
+                Number(
+                    user.totalLoginDays
+                ) || 0,
+            todayClaimed:
+                user.lastLoginDay ===
+                getAdventureDayKey()
+        },
+        season: {
+            key:
+                user.seasonKey,
+            points:
+                Number(
+                    user.seasonPoints
+                ) || 0,
+            leaderboard
+        },
+        worldEvent: {
+            active:
+                event.active,
+            eventKey:
+                event.eventKey,
+            startAt:
+                event.startAt,
+            endAt:
+                event.endAt,
+            nextStartAt:
+                event.nextStartAt,
+            icon:
+                event.definition.icon,
+            name:
+                event.definition.name,
+            description:
+                event.definition.description,
+            reward:
+                event.definition.reward,
+            claimed:
+                user.worldEventClaimKey ===
+                event.eventKey
+        },
+        feed,
+        combatBonusPercent:
+            getAdventureCombatBonusPercent(
+                user
+            )
+    };
+}
+
+async function rewardWorldBossKill(
+    boss,
+    killerUserId = null
+) {
+    if (!boss?.killed) return;
+
+    const sorted =
+        [...(boss.contributions || [])]
+        .filter(
+            entry =>
+                (Number(entry.attacks) || 0) > 0
+        )
+        .sort(
+            (a, b) =>
+                (Number(b.damage) || 0) -
+                (Number(a.damage) || 0)
+        );
+
+    for (
+        let index = 0;
+        index < sorted.length;
+        index++
+    ) {
+        const entry =
+            sorted[index];
+
+        const rewardUser =
+            await User.findById(
+                entry.userId
+            );
+
+        if (!rewardUser) continue;
+
+        ensureAdventureState(
+            rewardUser
+        );
+
+        let gold =
+            Math.max(
+                250,
+                Math.floor(
+                    500 +
+                    (Number(entry.damage) || 0) /
+                    250
+                )
+            );
+
+        let honor = 5;
+
+        if (index === 0) {
+            gold += 3000;
+            honor += 15;
+        } else if (index < 3) {
+            gold += 1500;
+            honor += 8;
+        } else if (index < 10) {
+            gold += 600;
+            honor += 3;
+        }
+
+        const details =
+            grantAdventureReward(
+                rewardUser,
+                {
+                    gold,
+                    honor,
+                    fragments:
+                        index < 3
+                            ? 2
+                            : 1
+                }
+            );
+
+        addSeasonPoints(
+            rewardUser,
+            index === 0
+                ? 40
+                : (
+                    index < 3
+                        ? 25
+                        : 15
+                ),
+            'world_boss_kill',
+            1
+        );
+
+        await rewardUser.save();
+
+        syncOnlineAdventureUser(
+            rewardUser
+        );
+
+        emitToOnlineUser(
+            rewardUser._id,
+            'worldBossReward',
+            {
+                success: true,
+                userData:
+                    rewardUser,
+                message:
+                    `👹 ${WORLD_BOSS_NAME} yenildi! ` +
+                    `Sıralaman #${index + 1}. ` +
+                    details.join(' • ')
+            }
+        );
+    }
+
+    const winner =
+        sorted[0];
+
+    if (winner) {
+        await pushWorldFeed(
+            `👹 ${WORLD_BOSS_NAME} yenildi! Günün en yüksek hasarını ${winner.username} verdi (${Number(winner.damage || 0).toLocaleString('tr-TR')}).`,
+            'boss',
+            '👹'
+        );
+    }
+}
+
+// ============================================================================
+// MACERA PAKETİ V1 SONU
+// ============================================================================
+
 io.on('connection', (socket) => {
     socket.on('getGameBuildInfo', () => {
         socket.emit('gameBuildInfo', {
@@ -2534,7 +4365,10 @@ io.on('connection', (socket) => {
             clanCastleWarV1: true,
             honorRubyRewards: true,
             catapult: true,
-            onlineCounter: true
+            onlineCounter: true,
+            adventurePackV1: true,
+            worldBossV1: true,
+            seasonV1: true
         });
     });
 
@@ -2588,6 +4422,13 @@ io.on('connection', (socket) => {
             normalizeBankState(dbUser);
             normalizeBlacksmithState(dbUser);
             normalizeTimarState(dbUser);
+            ensureAdventureState(dbUser);
+
+            const loginReward =
+                await processLoginStreak(
+                    dbUser
+                );
+
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -2596,6 +4437,10 @@ io.on('connection', (socket) => {
             
             const userData = dbUser.toObject();
             userData.offlineGoldEarned = offlineGold;
+            userData.loginRewardMessage =
+                loginReward?.granted
+                    ? loginReward.message
+                    : '';
             socket.emit('userData', userData);
         } catch (err) { socket.emit('authResult', { success: false, message: "Giriş hatası." }); }
     });
@@ -2620,15 +4465,1045 @@ io.on('connection', (socket) => {
             normalizeBankState(dbUser);
             normalizeBlacksmithState(dbUser);
             normalizeTimarState(dbUser);
+            ensureAdventureState(dbUser);
+
+            const loginReward =
+                await processLoginStreak(
+                    dbUser
+                );
+
             await dbUser.save();
             
             users[socket.id] = dbUser;
             broadcastOnlinePlayerCount();
             const userData = dbUser.toObject();
             userData.offlineGoldEarned = offlineGold;
+            userData.loginRewardMessage =
+                loginReward?.granted
+                    ? loginReward.message
+                    : '';
             socket.emit('userData', userData);
         } catch (err) { 
             console.error(err);
+        }
+    });
+
+    // ========================================================
+    // MACERA MERKEZİ
+    // ========================================================
+    socket.on('getAdventureHubStatus', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+            await user.save();
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Macera Merkezi yükleme hatası:',
+                err
+            );
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: false,
+                    userData: user,
+                    message:
+                        'Macera Merkezi bilgileri yüklenemedi.'
+                }
+            );
+        }
+    });
+
+    socket.on('claimAdventureTask', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            const scope =
+                data?.scope === 'weekly'
+                    ? 'weekly'
+                    : 'daily';
+
+            const id =
+                String(data?.taskId || '');
+
+            const definitions =
+                scope === 'weekly'
+                    ? ADVENTURE_WEEKLY_TASKS
+                    : ADVENTURE_DAILY_TASKS;
+
+            const task =
+                definitions.find(
+                    item =>
+                        item.id === id
+                );
+
+            if (!task) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Görev ödülü bulunamadı.'
+                    }
+                );
+            }
+
+            const progress =
+                scope === 'weekly'
+                    ? user.adventureWeeklyProgress
+                    : user.adventureDailyProgress;
+
+            const claims =
+                scope === 'weekly'
+                    ? user.adventureWeeklyClaims
+                    : user.adventureDailyClaims;
+
+            if (
+                (Number(progress?.[task.id]) || 0) <
+                task.target
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Bu görev henüz tamamlanmadı.'
+                    }
+                );
+            }
+
+            if (
+                Array.isArray(claims) &&
+                claims.includes(task.id)
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Bu ödülü zaten aldın.'
+                    }
+                );
+            }
+
+            claims.push(task.id);
+
+            const details =
+                grantAdventureReward(
+                    user,
+                    task.reward
+                );
+
+            addSeasonPoints(
+                user,
+                scope === 'weekly'
+                    ? 12
+                    : 4,
+                `${scope}_claim`,
+                1
+            );
+
+            await user.save();
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: true,
+                    userData: user,
+                    message:
+                        `🎁 ${task.name}: ` +
+                        details.join(' • ')
+                }
+            );
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Macera görev ödülü hatası:',
+                err
+            );
+        }
+    });
+
+    socket.on('claimAchievementReward', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            const id =
+                String(
+                    data?.achievementId || ''
+                );
+
+            const achievement =
+                ADVENTURE_ACHIEVEMENTS.find(
+                    item =>
+                        item.id === id
+                );
+
+            if (
+                !achievement ||
+                !achievement.unlocked(user)
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Başarım henüz tamamlanmadı.'
+                    }
+                );
+            }
+
+            if (
+                user.achievementClaims.includes(
+                    id
+                )
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Bu başarım ödülü zaten alındı.'
+                    }
+                );
+            }
+
+            user.achievementClaims.push(id);
+
+            const details =
+                grantAdventureReward(
+                    user,
+                    achievement.reward
+                );
+
+            addSeasonPoints(
+                user,
+                10,
+                'achievement',
+                1
+            );
+
+            await user.save();
+
+            await pushWorldFeed(
+                `${user.username}, "${achievement.name}" başarımını tamamladı.`,
+                'achievement',
+                '🏆'
+            );
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: true,
+                    userData: user,
+                    message:
+                        `🏆 ${achievement.name}: ` +
+                        details.join(' • ')
+                }
+            );
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Başarım ödülü hatası:',
+                err
+            );
+        }
+    });
+
+    socket.on('openTreasureChest', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            if (
+                (Number(user.treasureFragments) || 0) <
+                5
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            '🗺️ Hazine Sandığı için 5 harita parçası gerekiyor.'
+                    }
+                );
+            }
+
+            user.treasureFragments -= 5;
+            user.treasureChestsOpened =
+                (Number(user.treasureChestsOpened) || 0) +
+                1;
+
+            const gold =
+                600 +
+                Math.floor(
+                    Math.random() * 2401
+                );
+
+            const reward = {
+                gold
+            };
+
+            if (Math.random() < 0.28) {
+                reward.rubies =
+                    1 +
+                    Math.floor(
+                        Math.random() * 3
+                    );
+            }
+
+            const rareRoll =
+                Math.random();
+
+            if (rareRoll < 0.06) {
+                reward.companion =
+                    'wolf';
+            } else if (rareRoll < 0.10) {
+                reward.mount =
+                    'war_horse';
+            }
+
+            const details =
+                grantAdventureReward(
+                    user,
+                    reward
+                );
+
+            addSeasonPoints(
+                user,
+                8,
+                'treasure',
+                1
+            );
+
+            await user.save();
+
+            if (
+                reward.companion ||
+                reward.mount ||
+                (Number(reward.rubies) || 0) >= 3
+            ) {
+                await pushWorldFeed(
+                    `${user.username} bir Hazine Sandığından nadir ödül buldu!`,
+                    'treasure',
+                    '🗺️'
+                );
+            }
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: true,
+                    userData: user,
+                    special:
+                        Boolean(
+                            reward.companion ||
+                            reward.mount
+                        ),
+                    message:
+                        `🗺️ Hazine Sandığı açıldı! ` +
+                        details.join(' • ')
+                }
+            );
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Hazine sandığı hatası:',
+                err
+            );
+        }
+    });
+
+    socket.on('selectAdventureMount', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        const key =
+            String(data?.key || '');
+
+        if (
+            !ADVENTURE_MOUNTS[key] ||
+            !user.ownedMounts.includes(key)
+        ) {
+            return;
+        }
+
+        user.activeMount = key;
+        await user.save();
+
+        socket.emit(
+            'adventureHubResult',
+            {
+                success: true,
+                userData: user,
+                message:
+                    `${ADVENTURE_MOUNTS[key].icon} ${ADVENTURE_MOUNTS[key].name} aktif binek oldu.`
+            }
+        );
+
+        socket.emit(
+            'adventureHubStatus',
+            await getAdventureHubPayload(user)
+        );
+    });
+
+    socket.on('selectAdventureCompanion', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        const key =
+            String(data?.key || '');
+
+        if (
+            !ADVENTURE_COMPANIONS[key] ||
+            !user.ownedCompanions.includes(key)
+        ) {
+            return;
+        }
+
+        user.activeCompanion = key;
+        await user.save();
+
+        socket.emit(
+            'adventureHubResult',
+            {
+                success: true,
+                userData: user,
+                message:
+                    `${ADVENTURE_COMPANIONS[key].icon} ${ADVENTURE_COMPANIONS[key].name} aktif yoldaş oldu.`
+            }
+        );
+
+        socket.emit(
+            'adventureHubStatus',
+            await getAdventureHubPayload(user)
+        );
+    });
+
+    socket.on('doPeacefulActivity', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            const type =
+                String(data?.type || '');
+
+            if (
+                !['fishing', 'mining'].includes(
+                    type
+                )
+            ) {
+                return;
+            }
+
+            const usedKey =
+                type === 'fishing'
+                    ? 'fishingAttemptsUsed'
+                    : 'miningAttemptsUsed';
+
+            const used =
+                Number(user[usedKey]) || 0;
+
+            if (used >= 5) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            `⏳ ${type === 'fishing' ? 'Balık tutma' : 'Maden kazma'} günlük 5/5 hakkın doldu.`
+                    }
+                );
+            }
+
+            user[usedKey] = used + 1;
+
+            let message = '';
+
+            if (type === 'fishing') {
+                const gold =
+                    70 +
+                    Math.floor(
+                        Math.random() * 181
+                    );
+
+                user.balance += gold;
+                user.fishCaught =
+                    (Number(user.fishCaught) || 0) +
+                    1;
+
+                let fragmentText = '';
+
+                if (Math.random() < 0.15) {
+                    user.treasureFragments =
+                        (Number(user.treasureFragments) || 0) +
+                        1;
+
+                    fragmentText =
+                        ' 🗺️ +1 Hazine Parçası!';
+                }
+
+                recordAdventureProgress(
+                    user,
+                    'fishing',
+                    1,
+                    1
+                );
+
+                message =
+                    `🎣 Balık tuttun! 🪙 +${gold} Altın.` +
+                    fragmentText;
+            } else {
+                normalizeBlacksmithState(user);
+
+                const iron =
+                    1 +
+                    Math.floor(
+                        Math.random() * 3
+                    );
+
+                const gold =
+                    40 +
+                    Math.floor(
+                        Math.random() * 91
+                    );
+
+                user.blacksmithMastery.ironOre =
+                    (Number(user.blacksmithMastery.ironOre) || 0) +
+                    iron;
+
+                user.balance += gold;
+                user.oreMined =
+                    (Number(user.oreMined) || 0) +
+                    iron;
+
+                user.markModified(
+                    'blacksmithMastery'
+                );
+
+                recordAdventureProgress(
+                    user,
+                    'mining',
+                    1,
+                    1
+                );
+
+                message =
+                    `⛏️ Maden kazdın! +${iron} Demir Cevheri • 🪙 +${gold} Altın.`;
+            }
+
+            await user.save();
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: true,
+                    userData: user,
+                    message
+                }
+            );
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Sakin aktivite hatası:',
+                err
+            );
+        }
+    });
+
+    socket.on('claimStoryChapter', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            const story =
+                getStoryStatus(user);
+
+            if (
+                story.completed ||
+                !story.chapter
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Hikâye zincirinin mevcut bölümleri tamamlandı.'
+                    }
+                );
+            }
+
+            const chapterDef =
+                ADVENTURE_STORY.find(
+                    item =>
+                        item.chapter ===
+                        story.chapter.chapter
+                );
+
+            if (
+                !chapterDef ||
+                !chapterDef.ready(user)
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            `📜 Önce şartı tamamla: ${story.chapter.requirementText}`
+                    }
+                );
+            }
+
+            if (
+                user.storyClaims.includes(
+                    chapterDef.chapter
+                )
+            ) {
+                return;
+            }
+
+            user.storyClaims.push(
+                chapterDef.chapter
+            );
+
+            user.storyChapter =
+                chapterDef.chapter + 1;
+
+            const details =
+                grantAdventureReward(
+                    user,
+                    chapterDef.reward
+                );
+
+            addSeasonPoints(
+                user,
+                20,
+                'story',
+                1
+            );
+
+            await user.save();
+
+            await pushWorldFeed(
+                `${user.username}, hikâyenin "${chapterDef.title}" bölümünü tamamladı.`,
+                'story',
+                '📜'
+            );
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: true,
+                    userData: user,
+                    message:
+                        `📜 ${chapterDef.title} tamamlandı! ` +
+                        details.join(' • ')
+                }
+            );
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Hikâye bölümü hatası:',
+                err
+            );
+        }
+    });
+
+    socket.on('claimWorldEvent', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            const event =
+                getWorldEventWindow();
+
+            if (!event.active) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            '🌍 Dünya Olayı şu anda aktif değil.'
+                    }
+                );
+            }
+
+            if (
+                user.worldEventClaimKey ===
+                event.eventKey
+            ) {
+                return socket.emit(
+                    'adventureHubResult',
+                    {
+                        success: false,
+                        userData: user,
+                        message:
+                            'Bu Dünya Olayına zaten katıldın.'
+                    }
+                );
+            }
+
+            user.worldEventClaimKey =
+                event.eventKey;
+
+            const details =
+                grantAdventureReward(
+                    user,
+                    event.definition.reward
+                );
+
+            addSeasonPoints(
+                user,
+                5,
+                'world_event',
+                1
+            );
+
+            await user.save();
+
+            socket.emit(
+                'adventureHubResult',
+                {
+                    success: true,
+                    userData: user,
+                    message:
+                        `${event.definition.icon} ${event.definition.name}: ` +
+                        details.join(' • ')
+                }
+            );
+
+            socket.emit(
+                'adventureHubStatus',
+                await getAdventureHubPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Dünya Olayı katılım hatası:',
+                err
+            );
+        }
+    });
+
+    // ========================================================
+    // DÜNYA BOSSU
+    // ========================================================
+    socket.on('getWorldBossStatus', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+            await user.save();
+
+            socket.emit(
+                'worldBossStatus',
+                await getWorldBossPayload(user)
+            );
+        } catch (err) {
+            console.error(
+                'Dünya Bossu yükleme hatası:',
+                err
+            );
+        }
+    });
+
+    socket.on('attackWorldBoss', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            ensureAdventureState(user);
+
+            const schedule =
+                getWorldBossSchedule();
+
+            if (!schedule.active) {
+                return socket.emit(
+                    'worldBossResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await getWorldBossPayload(user),
+                        message:
+                            '👹 Dünya Bossu her gün Türkiye saatiyle 18:00–23:59 arasında saldırıya açıktır.'
+                    }
+                );
+            }
+
+            const boss =
+                await getOrCreateWorldBoss();
+
+            if (boss.killed) {
+                return socket.emit(
+                    'worldBossResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await getWorldBossPayload(user),
+                        message:
+                            '🏆 Dünya Bossu bugün zaten yenildi.'
+                    }
+                );
+            }
+
+            if (
+                (Number(user.worldBossAttackCount) || 0) >=
+                WORLD_BOSS_ATTACK_LIMIT
+            ) {
+                return socket.emit(
+                    'worldBossResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await getWorldBossPayload(user),
+                        message:
+                            '⛔ Bugünkü 5 Dünya Bossu saldırı hakkını kullandın.'
+                    }
+                );
+            }
+
+            const cooldown =
+                Math.max(
+                    0,
+                    WORLD_BOSS_ATTACK_COOLDOWN_MS -
+                    (
+                        Date.now() -
+                        (Number(user.worldBossLastAttackAt) || 0)
+                    )
+                );
+
+            if (cooldown > 0) {
+                return socket.emit(
+                    'worldBossResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await getWorldBossPayload(user),
+                        message:
+                            `⏳ Yeni saldırı için ${Math.ceil(cooldown / 1000)} saniye bekle.`
+                    }
+                );
+            }
+
+            normalizeArmy(user);
+
+            const characterPower =
+                getCharacterCombatPower(user);
+
+            const armyPower =
+                getArmyPower(user.army);
+
+            const damage =
+                Math.max(
+                    1,
+                    Math.floor(
+                        (characterPower + armyPower) *
+                        (0.90 + Math.random() * 0.20)
+                    )
+                );
+
+            const actualDamage =
+                Math.min(
+                    damage,
+                    Math.max(
+                        0,
+                        Number(boss.hp) || 0
+                    )
+                );
+
+            boss.hp =
+                Math.max(
+                    0,
+                    (Number(boss.hp) || 0) -
+                    actualDamage
+                );
+
+            let entry =
+                (boss.contributions || [])
+                .find(
+                    item =>
+                        String(item.userId) ===
+                        String(user._id)
+                );
+
+            if (!entry) {
+                boss.contributions.push({
+                    userId: user._id,
+                    username: user.username,
+                    damage: 0,
+                    attacks: 0,
+                    lastAttackAt: 0
+                });
+
+                entry =
+                    boss.contributions[
+                        boss.contributions.length - 1
+                    ];
+            }
+
+            entry.damage =
+                (Number(entry.damage) || 0) +
+                actualDamage;
+
+            entry.attacks =
+                (Number(entry.attacks) || 0) +
+                1;
+
+            entry.lastAttackAt =
+                Date.now();
+
+            user.worldBossAttackCount =
+                (Number(user.worldBossAttackCount) || 0) +
+                1;
+
+            user.worldBossLastAttackAt =
+                Date.now();
+
+            recordAdventureProgress(
+                user,
+                'world_boss_attack',
+                1,
+                10
+            );
+
+            let killedNow = false;
+
+            if (boss.hp <= 0) {
+                boss.killed = true;
+                boss.killedAt =
+                    Date.now();
+
+                killedNow = true;
+            }
+
+            boss.markModified(
+                'contributions'
+            );
+
+            await Promise.all([
+                boss.save(),
+                user.save()
+            ]);
+
+            const status =
+                await getWorldBossPayload(user);
+
+            socket.emit(
+                'worldBossResult',
+                {
+                    success: true,
+                    killed: killedNow,
+                    damage: actualDamage,
+                    userData: user,
+                    status,
+                    message:
+                        `👹 ${WORLD_BOSS_NAME}'a ${actualDamage.toLocaleString('tr-TR')} hasar verdin! ` +
+                        `Boss HP: ${status.hp.toLocaleString('tr-TR')}/${status.maxHp.toLocaleString('tr-TR')} • ` +
+                        `Kalan saldırı: ${status.attacksRemaining}/${WORLD_BOSS_ATTACK_LIMIT}`
+                }
+            );
+
+            io.emit(
+                'worldBossRefresh',
+                {
+                    dayKey: boss.dayKey,
+                    killed: boss.killed
+                }
+            );
+
+            if (killedNow) {
+                await rewardWorldBossKill(
+                    boss,
+                    user._id
+                );
+            }
+        } catch (err) {
+            console.error(
+                'Dünya Bossu saldırı hatası:',
+                err
+            );
+
+            socket.emit(
+                'worldBossResult',
+                {
+                    success: false,
+                    userData: user,
+                    message:
+                        'Dünya Bossuna saldırı sırasında hata oluştu.'
+                }
+            );
         }
     });
 
@@ -2894,6 +5769,13 @@ io.on('connection', (socket) => {
 
         const progression = processLevelUps(user);
 
+        recordAdventureProgress(
+            user,
+            'quest',
+            1,
+            2
+        );
+
         let questMessage =
             `✅ ${quest.name} başarıyla tamamlandı! ` +
             `🪙 +${quest.gold.toLocaleString('tr-TR')} Altın | ` +
@@ -3027,6 +5909,13 @@ io.on('connection', (socket) => {
         const won = roll <= successChance;
 
         user.hp = Math.max(0, user.hp - f.hp);
+
+        recordAdventureProgress(
+            user,
+            'dungeon_attack',
+            1,
+            3
+        );
 
         if (!won) {
             await user.save();
@@ -3218,6 +6107,16 @@ io.on('connection', (socket) => {
             user.balance -= totalCost;
             user.army[troopType] = (Number(user.army[troopType]) || 0) + quantity;
             user.markModified('army');
+
+            recordAdventureProgress(
+                user,
+                'train_troop',
+                quantity,
+                Math.max(
+                    1,
+                    Math.floor(quantity / 10)
+                )
+            );
 
             await user.save();
 
@@ -3803,6 +6702,13 @@ io.on('connection', (socket) => {
             }
 
             user.metinKills = (user.metinKills || 0) + 1;
+
+            recordAdventureProgress(
+                user,
+                'metin_kill',
+                1,
+                5
+            );
 
             let legendaryDrop = null;
 
@@ -4465,6 +7371,22 @@ io.on('connection', (socket) => {
                 resultMessage =
                     `💀 MAĞLUBİYET! ${defender.username} arena savaşını kazandı. ` +
                     `5 Onur kaybettin.`;
+            }
+
+            recordAdventureProgress(
+                attacker,
+                'arena_battle',
+                1,
+                attackerWon ? 4 : 1
+            );
+
+            if (attackerWon) {
+                recordAdventureProgress(
+                    attacker,
+                    'arena_win',
+                    1,
+                    4
+                );
             }
 
             await attacker.save();
@@ -5415,6 +8337,14 @@ io.on('connection', (socket) => {
             const eventName = state.event.name || 'Tımar Olayı';
             state.event = { active: false, type: '', name: '', penaltyPercent: 0, createdAt: 0 };
             user.markModified('timarStates');
+
+            recordAdventureProgress(
+                user,
+                'timar_event',
+                1,
+                4
+            );
+
             await user.save();
 
             const status = await getTimarStatusForUser(user, false);
@@ -6211,8 +9141,18 @@ io.on('connection', (socket) => {
 
             memberEntry.lastAttackAt = now;
 
+            recordAdventureProgress(
+                user,
+                'clan_war_attack',
+                1,
+                8
+            );
+
             war.markModified('entries');
-            await war.save();
+            await Promise.all([
+                war.save(),
+                user.save()
+            ]);
 
             const status =
                 await buildClanCastleWarStatus(user);
@@ -7189,5 +10129,5 @@ setInterval(async () => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Sunucu aktif: ${PORT}`);
-    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Klan Seviyeleri: AKTİF | Klan Kale: 15:00/21:00 | 100 Onur = ${HONOR_RUBY_REWARD} Yakut | Mancınık: AKTİF`);
+    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Macera Paketi: AKTİF | Dünya Bossu: AKTİF | Sezon: AKTİF | Klan Kale: 15:00/21:00 | 100 Onur = ${HONOR_RUBY_REWARD} Yakut`);
 });
