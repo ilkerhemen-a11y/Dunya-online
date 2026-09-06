@@ -12,7 +12,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static(__dirname + '/public'));
 
 const MAX_SEFER_LIMITI = 20;
-const REFILL_INTERVAL = 30 * 60 * 1000;
+const REFILL_INTERVAL = 3 * 60 * 1000;
 const MAX_LEVEL = 99;
 
 const TITLE_TIERS = [
@@ -300,12 +300,66 @@ function createBlessingPaper() {
 
 function checkSeferRefill(user) {
     const now = Date.now();
-    if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
-        user.seferLimiti = MAX_SEFER_LIMITI;
-        user.seferNextRefill = null;
+
+    let current = Number.parseInt(user.seferLimiti, 10);
+    if (!Number.isInteger(current)) current = MAX_SEFER_LIMITI;
+
+    current = Math.max(0, Math.min(MAX_SEFER_LIMITI, current));
+
+    let changed = user.seferLimiti !== current;
+    user.seferLimiti = current;
+
+    // Sefer zaten tam doluysa sayaç tutulmaz.
+    if (user.seferLimiti >= MAX_SEFER_LIMITI) {
+        if (user.seferNextRefill) {
+            user.seferNextRefill = null;
+            changed = true;
+        }
+        return changed;
+    }
+
+    let nextRefill = Number(user.seferNextRefill) || 0;
+
+    // Eski 30 dakikalık sistemden kalan çok uzak tarihleri
+    // yeni sisteme geçir: en geç 3 dakika sonra ilk hak gelsin.
+    if (nextRefill > now + REFILL_INTERVAL) {
+        nextRefill = now + REFILL_INTERVAL;
+        user.seferNextRefill = nextRefill;
+        changed = true;
+    }
+
+    // Eksik Sefer Hakkı var ama sayaç yoksa yeni 3 dk sayaç başlat.
+    if (!nextRefill) {
+        user.seferNextRefill = now + REFILL_INTERVAL;
         return true;
     }
-    return false;
+
+    if (now < nextRefill) {
+        return changed;
+    }
+
+    // Geçen süre kadar hakkı birer birer geri yükle.
+    // Örn. oyuncu 9 dk çevrimdışı kaldıysa 3 hak geri gelir.
+    const elapsedIntervals =
+        Math.floor((now - nextRefill) / REFILL_INTERVAL) + 1;
+
+    const missing = MAX_SEFER_LIMITI - user.seferLimiti;
+    const restored = Math.min(missing, elapsedIntervals);
+
+    if (restored > 0) {
+        user.seferLimiti += restored;
+        changed = true;
+    }
+
+    if (user.seferLimiti >= MAX_SEFER_LIMITI) {
+        user.seferLimiti = MAX_SEFER_LIMITI;
+        user.seferNextRefill = null;
+    } else {
+        user.seferNextRefill =
+            nextRefill + (restored * REFILL_INTERVAL);
+    }
+
+    return changed;
 }
 
 function checkArenaReset(user) {
@@ -790,7 +844,9 @@ io.on('connection', (socket) => {
         // Sefer hakkı sadece gerçekten başlatılan görevde harcanır.
         user.seferLimiti -= 1;
 
-        if (user.seferLimiti === 0) {
+        // İlk eksilen hak ile birlikte 3 dakikalık yenilenme sayacı başlar.
+        // Sayaç zaten çalışıyorsa tekrar sıfırlanmaz.
+        if (user.seferLimiti < MAX_SEFER_LIMITI && !user.seferNextRefill) {
             user.seferNextRefill = Date.now() + REFILL_INTERVAL;
         }
 
@@ -1912,7 +1968,7 @@ io.on('connection', (socket) => {
         if (!user || user.balance < 25000) return socket.emit('marketResult', { success: false, userData: user, message: "Yetersiz altın! Sefer İksiri için 25.000 Altın gerekiyor." });
         user.balance -= 25000; user.seferLimiti = MAX_SEFER_LIMITI; user.seferNextRefill = null;
         await user.save();
-        socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitiniz yenilendi!" });
+        socket.emit('marketResult', { success: true, userData: user, message: "Sefer limitin tamamen yenilendi! 20/20 🧭" });
     });
 
     socket.on('buyMysteryBox', async () => {
@@ -2251,6 +2307,35 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => delete users[socket.id]);
 });
+
+// Online oyuncuların Sefer Hakkını otomatik yenile.
+// Her eksik hak için sırayla 3 dakikada 1 hak geri gelir.
+setInterval(async () => {
+    for (const id in users) {
+        const u = users[id];
+        if (!u) continue;
+
+        try {
+            const changed = checkSeferRefill(u);
+
+            if (changed) {
+                await User.updateOne(
+                    { _id: u._id },
+                    {
+                        $set: {
+                            seferLimiti: u.seferLimiti,
+                            seferNextRefill: u.seferNextRefill
+                        }
+                    }
+                );
+
+                io.to(id).emit('statUpdated', u);
+            }
+        } catch (err) {
+            console.error('Sefer otomatik yenileme hatası:', err);
+        }
+    }
+}, 10000);
 
 setInterval(async () => {
     for (const id in users) {
