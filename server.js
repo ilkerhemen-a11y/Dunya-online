@@ -136,13 +136,7 @@ function getTitleByLevel(level) {
 }
 
 function calculateMaxHpForProgression(user) {
-    let totalVit = Number(user.vit) || 5;
-    if (user.equipped) {
-        Object.values(user.equipped).forEach(item => {
-            if (item) totalVit += Number(item.vitBonus) || 0;
-        });
-    }
-    return Math.max(20, totalVit * 20);
+    return Math.max(20, getTotalVit(user) * 20);
 }
 
 function normalizePlayerLevel(user) {
@@ -212,6 +206,26 @@ const METIN_STONES = {
 };
 
 const EQUIP_SLOTS = ['helmet', 'necklace', 'armor', 'weapon', 'shield', 'ring', 'gloves', 'boots'];
+
+const HUKUMDAR_SET_ID = 'hukumdar_set';
+
+const HUKUMDAR_SET_ITEMS = {
+    helmet: { name: 'Tuğra Tacı', icon: '👑', type: 'helmet', strBonus: 14, vitBonus: 18 },
+    necklace: { name: 'Saray Kolyesi', icon: '📿', type: 'necklace', strBonus: 20, vitBonus: 12 },
+    armor: { name: 'Hümayun Zırhı', icon: '🛡️', type: 'armor', strBonus: 12, vitBonus: 32 },
+    weapon: { name: 'Hakan Kılıcı', icon: '⚔️', type: 'weapon', strBonus: 35, vitBonus: 8 },
+    shield: { name: 'Cihan Kalkanı', icon: '🛡', type: 'shield', strBonus: 10, vitBonus: 28 },
+    ring: { name: 'Fetih Yüzüğü', icon: '💍', type: 'ring', strBonus: 18, vitBonus: 14 },
+    gloves: { name: 'Serdar Eldiveni', icon: '🧤', type: 'gloves', strBonus: 22, vitBonus: 10 },
+    boots: { name: 'Akıncı Çizmesi', icon: '👢', type: 'boots', strBonus: 16, vitBonus: 16 }
+};
+
+const HUKUMDAR_SET_BONUSES = {
+    twoPieceStrPercent: 3,
+    fourPieceVitPercent: 5,
+    sixPieceCastleAttackPercent: 3,
+    eightPieceCombatPowerPercent: 5
+};
 
 const TROOP_TYPES = {
     archer:  { name: 'Okçu',    icon: '🏹', cost: 250,  power: 10 },
@@ -410,16 +424,123 @@ function normalizeBankState(user) {
 }
 
 
-function getTotalStr(user) {
-    let totalStr = Number(user.str) || 5;
+function getEquipmentStatTotals(user) {
+    let str = 0;
+    let vit = 0;
 
-    if (user.equipped) {
+    if (user?.equipped) {
         Object.values(user.equipped).forEach(item => {
-            if (item) totalStr += Number(item.strBonus) || 0;
+            if (!item) return;
+            str += Number(item.strBonus) || 0;
+            vit += Number(item.vitBonus) || 0;
         });
     }
 
-    return Math.max(1, totalStr);
+    return { str: Math.max(0, str), vit: Math.max(0, vit) };
+}
+
+function getHukumdarSetEquippedCount(user) {
+    if (!user?.equipped) return 0;
+    return Object.values(user.equipped).filter(item =>
+        item && item.setId === HUKUMDAR_SET_ID
+    ).length;
+}
+
+function getOwnedHukumdarSetSlots(user) {
+    const owned = new Set();
+
+    if (user?.equipped) {
+        for (const [slot, item] of Object.entries(user.equipped)) {
+            if (item && item.setId === HUKUMDAR_SET_ID) owned.add(slot);
+        }
+    }
+
+    if (Array.isArray(user?.inventory)) {
+        user.inventory.forEach(item => {
+            if (item && item.setId === HUKUMDAR_SET_ID && EQUIP_SLOTS.includes(item.type)) {
+                owned.add(item.type);
+            }
+        });
+    }
+
+    return Array.from(owned);
+}
+
+function getHukumdarSetBonusState(user) {
+    const pieceCount = getHukumdarSetEquippedCount(user);
+    return {
+        pieceCount,
+        strPercent: pieceCount >= 2 ? HUKUMDAR_SET_BONUSES.twoPieceStrPercent : 0,
+        vitPercent: pieceCount >= 4 ? HUKUMDAR_SET_BONUSES.fourPieceVitPercent : 0,
+        castleAttackPercent: pieceCount >= 6 ? HUKUMDAR_SET_BONUSES.sixPieceCastleAttackPercent : 0,
+        combatPowerPercent: pieceCount >= 8 ? HUKUMDAR_SET_BONUSES.eightPieceCombatPowerPercent : 0
+    };
+}
+
+function getTotalStr(user) {
+    const equipment = getEquipmentStatTotals(user);
+    const setBonus = getHukumdarSetBonusState(user);
+    const raw = (Number(user?.str) || 5) + equipment.str;
+    const total = setBonus.strPercent > 0
+        ? Math.floor(raw * (1 + (setBonus.strPercent / 100)))
+        : raw;
+    return Math.max(1, total);
+}
+
+function getTotalVit(user) {
+    const equipment = getEquipmentStatTotals(user);
+    const setBonus = getHukumdarSetBonusState(user);
+    const raw = (Number(user?.vit) || 5) + equipment.vit;
+    const total = setBonus.vitPercent > 0
+        ? Math.floor(raw * (1 + (setBonus.vitPercent / 100)))
+        : raw;
+    return Math.max(1, total);
+}
+
+function getCharacterCombatPower(user) {
+    const totalStr = getTotalStr(user);
+    const totalVit = getTotalVit(user);
+    const setBonus = getHukumdarSetBonusState(user);
+    let power = (totalStr * 2) + totalVit;
+
+    if (setBonus.combatPowerPercent > 0) {
+        power = Math.floor(power * (1 + (setBonus.combatPowerPercent / 100)));
+    }
+
+    return Math.max(1, power);
+}
+
+function createHukumdarSetItem(slot, source = 'Bilinmeyen Kaynak') {
+    const base = HUKUMDAR_SET_ITEMS[slot];
+    if (!base) return null;
+
+    return {
+        id: `hukumdar_${slot}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+        setId: HUKUMDAR_SET_ID,
+        setName: 'Hükümdar Seti',
+        source,
+        name: base.name,
+        icon: base.icon,
+        type: base.type,
+        level: 0,
+        rarity: 'Efsanevi',
+        strBonus: base.strBonus,
+        vitBonus: base.vitBonus,
+        description: 'Taht Savaşları’nın en nadir Hükümdar Seti parçalarından biri.'
+    };
+}
+
+function tryGrantHukumdarSetPiece(user, chance, source) {
+    if (!user || Math.random() >= chance) return null;
+
+    const slots = Object.keys(HUKUMDAR_SET_ITEMS);
+    const slot = slots[Math.floor(Math.random() * slots.length)];
+    const item = createHukumdarSetItem(slot, source);
+    if (!item) return null;
+
+    user.inventory.push(item);
+    user.markModified('inventory');
+    return item;
 }
 
 function normalizeMetinState(user) {
@@ -710,6 +831,7 @@ function getSmeltOreYield(item) {
     const level = Math.max(0, Number.parseInt(item?.level, 10) || 0);
     const rarity = item?.rarity || 'Sıradan';
 
+    if (rarity === 'Efsanevi') return 18 + Math.floor(level / 2);
     if (rarity === 'Epik') return 10 + Math.floor(level / 3);
     if (rarity === 'Nadir') return 5 + Math.floor(level / 4);
     return 2 + Math.floor(level / 5);
@@ -1172,6 +1294,9 @@ const userSchema = new mongoose.Schema({
     statPoints: { type: Number, default: 0 },
     hp: { type: Number, default: 100 },
     honor: { type: Number, default: 0 },
+    arenaWins: { type: Number, default: 0 },
+    dungeonBossWins: { type: Number, default: 0 },
+    metinKills: { type: Number, default: 0 },
     arenaLimit: { type: Number, default: 5 },
     arenaResetDate: { type: String, default: "" },
     seferLimiti: { type: Number, default: 20 },
@@ -1486,12 +1611,117 @@ io.on('connection', (socket) => {
         socket.emit('logoutSuccess'); 
     });
 
+    socket.on('getOverviewStatus', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            normalizeArmy(user);
+
+            const castle = await getOrCreateCastle();
+            const isThroneOwner = Boolean(
+                castle?.ownerId && String(castle.ownerId) === String(user._id)
+            );
+
+            const equipment = getEquipmentStatTotals(user);
+            const setBonuses = getHukumdarSetBonusState(user);
+            const totalStr = getTotalStr(user);
+            const totalVit = getTotalVit(user);
+            const combatPower = getCharacterCombatPower(user);
+            const armyPower = getArmyPower(user.army) + totalStr;
+
+            const achievements = [
+                {
+                    id: 'first_conquest', icon: '🏰', name: 'İlk Fetih',
+                    description: 'En az bir kez kaleyi fethet.',
+                    unlocked: (user.castleVictories || 0) >= 1,
+                    progress: `${user.castleVictories || 0}/1`
+                },
+                {
+                    id: 'arena_master', icon: '⚔️', name: 'Arena Ustası',
+                    description: '10 PvP Arena zaferi kazan.',
+                    unlocked: (user.arenaWins || 0) >= 10,
+                    progress: `${Math.min(10, user.arenaWins || 0)}/10`
+                },
+                {
+                    id: 'dungeon_conqueror', icon: '🐉', name: 'Zindan Fatihi',
+                    description: '10. kat final bossunu yen.',
+                    unlocked: (user.dungeonBossWins || 0) >= 1,
+                    progress: `${user.dungeonBossWins || 0}/1`
+                },
+                {
+                    id: 'metin_hunter', icon: '🪨', name: 'Metin Avcısı',
+                    description: '10 Metin Taşı parçala.',
+                    unlocked: (user.metinKills || 0) >= 10,
+                    progress: `${Math.min(10, user.metinKills || 0)}/10`
+                },
+                {
+                    id: 'throne_holder', icon: '👑', name: 'Taht Sahibi',
+                    description: 'Taht Kalesi’nin mevcut sahibi ol.',
+                    unlocked: isThroneOwner,
+                    progress: isThroneOwner ? 'AKTİF' : 'Kilitli'
+                },
+                {
+                    id: 'hukumdar_set', icon: '✨', name: 'Hükümdarın Kudreti',
+                    description: '8 Hükümdar Seti parçasını aynı anda kuşan.',
+                    unlocked: setBonuses.pieceCount >= 8,
+                    progress: `${setBonuses.pieceCount}/8`
+                }
+            ];
+
+            socket.emit('overviewStatus', {
+                userData: user,
+                isThroneOwner,
+                throneOwnerName: castle?.ownerName || 'Saray Muhafızları',
+                combat: {
+                    baseStr: Number(user.str) || 5,
+                    baseVit: Number(user.vit) || 5,
+                    equipmentStr: equipment.str,
+                    equipmentVit: equipment.vit,
+                    totalStr,
+                    totalVit,
+                    combatPower,
+                    armyPower,
+                    maxHp: calculateMaxHpForProgression(user)
+                },
+                set: {
+                    ...setBonuses,
+                    ownedSlots: getOwnedHukumdarSetSlots(user),
+                    definitions: HUKUMDAR_SET_ITEMS
+                },
+                prestige: {
+                    honor: user.honor || 0,
+                    arenaWins: user.arenaWins || 0,
+                    castleVictories: user.castleVictories || 0,
+                    dungeonBossWins: user.dungeonBossWins || 0,
+                    metinKills: user.metinKills || 0,
+                    dungeonFloor: user.dungeonFloor || 1
+                },
+                achievements
+            });
+        } catch (err) {
+            console.error('Genel durum yükleme hatası:', err);
+            socket.emit('overviewStatus', { userData: user, error: true });
+        }
+    });
+
     socket.on('distributeStat', async (statName) => {
         if (!checkRateLimit(socket.id)) return;
         const user = users[socket.id];
         if (user && user.statPoints > 0) {
-            if (statName === 'str') user.str += 1;
-            if (statName === 'vit') { user.vit += 1; user.hp += 20; }
+            if (statName === 'str') {
+                user.str += 1;
+            }
+
+            if (statName === 'vit') {
+                const oldMaxHp = calculateMaxHpForProgression(user);
+                user.vit += 1;
+                const newMaxHp = calculateMaxHpForProgression(user);
+                user.hp = Math.min(newMaxHp, (Number(user.hp) || 0) + (newMaxHp - oldMaxHp));
+            }
+
             user.statPoints -= 1;
             await user.save();
             socket.emit('statUpdated', user);
@@ -1740,12 +1970,7 @@ io.on('connection', (socket) => {
         };
         const f = floors[floor];
 
-        let totalStr = user.str || 5;
-        if (user.equipped) {
-            Object.values(user.equipped).forEach(item => {
-                if (item) totalStr += Number(item.strBonus) || 0;
-            });
-        }
+        const totalStr = getTotalStr(user);
 
         if (totalStr < f.requiredStr) {
             return socket.emit('dungeonResult', {
@@ -1804,12 +2029,34 @@ io.on('connection', (socket) => {
             ];
             const base = dungeonItems[Math.floor(Math.random() * dungeonItems.length)];
             const wonItem = {
-                id: `${base.id}_${Date.now()}`, name: base.name, icon: base.icon, type: base.type,
-                level: 1, rarity: 'Nadir', strBonus: base.baseStr * 2, vitBonus: base.baseVit * 2
+                id: `${base.id}_${Date.now()}`,
+                name: base.name,
+                icon: base.icon,
+                type: base.type,
+                source: `${floor}. Kat Zindan`,
+                level: 1,
+                rarity: 'Nadir',
+                strBonus: base.baseStr * 2,
+                vitBonus: base.baseVit * 2
             };
             user.inventory.push(wonItem);
             user.markModified('inventory');
             bonusMessage += ` 🎁 [Nadir] ${wonItem.name} +1 düştü!`;
+        }
+
+        if (floor === 10) {
+            user.dungeonBossWins = (user.dungeonBossWins || 0) + 1;
+
+            const legendaryDrop = tryGrantHukumdarSetPiece(
+                user,
+                0.03,
+                '10. Kat Zindan Final Boss'
+            );
+
+            if (legendaryDrop) {
+                bonusMessage +=
+                    ` 👑 EFSANEVİ GANİMET! [Hükümdar Seti] ${legendaryDrop.name} düştü!`;
+            }
         }
 
         const progression = processLevelUps(user);
@@ -2024,9 +2271,18 @@ io.on('connection', (socket) => {
                 attackerTroopPower + effectiveCommanderStr;
 
             // Savaş Davulu bir sonraki kuşatmada toplam saldırı gücüne %5 verir.
-            const attackerBasePower = preparationsUsed.warDrum
+            const setBonuses = getHukumdarSetBonusState(user);
+
+            const attackerPowerWithDrum = preparationsUsed.warDrum
                 ? Math.floor(attackerPowerBeforeDrum * 1.05)
                 : attackerPowerBeforeDrum;
+
+            const attackerBasePower = setBonuses.castleAttackPercent > 0
+                ? Math.floor(
+                    attackerPowerWithDrum *
+                    (1 + (setBonuses.castleAttackPercent / 100))
+                )
+                : attackerPowerWithDrum;
 
             if (
                 attackerTroopPower <= 0 ||
@@ -2227,9 +2483,18 @@ io.on('connection', (socket) => {
                     (user.rubies || 0) +
                     conquestRubyReward;
 
+                const legendaryDrop = tryGrantHukumdarSetPiece(
+                    user,
+                    0.05,
+                    'Kale Fethi'
+                );
+
                 message =
                     `👑 KALE FETHEDİLDİ! ${user.username} kaleyi ele geçirdi ve TAHTIN yeni sahibi oldu! ` +
                     `🎁 Fetih Ödülü: +${conquestGoldReward.toLocaleString('tr-TR')} Altın 🪙 ve +${conquestRubyReward} Yakut 💎. ` +
+                    (legendaryDrop
+                        ? `👑 EFSANEVİ GANİMET! [Hükümdar Seti] ${legendaryDrop.name} düştü! `
+                        : '') +
                     `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
                     `(Birlik ${attackerTroopPower.toLocaleString('tr-TR')} + STR ${effectiveCommanderStr.toLocaleString('tr-TR')}${preparationsUsed.warDrum ? ' + Davul %5' : ''}) ` +
                     `vs ${defenderBattlePower.toLocaleString('tr-TR')} (${oldOwnerName}). ` +
@@ -2323,6 +2588,7 @@ io.on('connection', (socket) => {
                         commanderStr: attackerCommanderStr,
                         effectiveCommanderStr,
                         basePower: attackerBasePower,
+                        setCastleBonusPercent: setBonuses.castleAttackPercent,
                         preparationsUsed,
                         battlePower: attackerBattlePower,
                         losses: attackerLossResult.lost,
@@ -2493,6 +2759,18 @@ io.on('connection', (socket) => {
                 user.inventory.push(createBlessingPaper());
             }
 
+            user.metinKills = (user.metinKills || 0) + 1;
+
+            let legendaryDrop = null;
+
+            if (stoneId === 5) {
+                legendaryDrop = tryGrantHukumdarSetPiece(
+                    user,
+                    0.04,
+                    'Taht Metini'
+                );
+            }
+
             user.markModified('inventory');
 
             const respawnHours = Math.ceil(stone.respawnMs / (60 * 60 * 1000));
@@ -2501,6 +2779,9 @@ io.on('connection', (socket) => {
                 `💥 ${stone.name} parçalandı! ` +
                 `❤️ -${playerHpCost} HP (Kalan: ${user.hp}/${maxPlayerHp}) | ` +
                 `📜 ${papersDropped} adet Kutsama Kağıdı envanterine eklendi. ` +
+                (legendaryDrop
+                    ? `👑 EFSANEVİ GANİMET! [Hükümdar Seti] ${legendaryDrop.name} düştü! `
+                    : '') +
                 `⏳ Metin yaklaşık ${respawnHours} saat sonra yeniden doğacak.`;
         }
 
@@ -2957,22 +3238,15 @@ io.on('connection', (socket) => {
             }
 
             const getArenaStats = (u) => {
-                let totalStr = Number(u.str) || 5;
-                let totalVit = Number(u.vit) || 5;
-
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (!item) return;
-                        totalStr += Number(item.strBonus) || 0;
-                        totalVit += Number(item.vitBonus) || 0;
-                    });
-                }
+                const totalStr = getTotalStr(u);
+                const totalVit = getTotalVit(u);
 
                 return {
-                    str: Math.max(1, totalStr),
-                    vit: Math.max(1, totalVit),
+                    str: totalStr,
+                    vit: totalVit,
                     maxHp: Math.max(100, totalVit * 20),
-                    power: Math.max(1, (totalStr * 2) + totalVit)
+                    power: getCharacterCombatPower(u),
+                    setPieces: getHukumdarSetEquippedCount(u)
                 };
             };
 
@@ -3126,6 +3400,7 @@ io.on('connection', (socket) => {
 
                 attacker.balance += goldReward;
                 attacker.honor = (attacker.honor || 0) + honorChange;
+                attacker.arenaWins = (attacker.arenaWins || 0) + 1;
 
                 resultMessage =
                     `🏆 ZAFER! ${defender.username} mağlup edildi. ` +
@@ -3202,14 +3477,7 @@ io.on('connection', (socket) => {
             });
         }
 
-        let totalVit = user.vit || 5;
-        if (user.equipped) {
-            Object.values(user.equipped).forEach(item => {
-                if (item) totalVit += Number(item.vitBonus) || 0;
-            });
-        }
-
-        const maxHp = totalVit * 20;
+        const maxHp = calculateMaxHpForProgression(user);
         user.balance -= 25000;
         user.hp = maxHp;
 
@@ -4235,9 +4503,11 @@ io.on('connection', (socket) => {
             item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
             item.level = nextLvl;
 
-            const statBoost = item.rarity === 'Epik'
-                ? 4
-                : (item.rarity === 'Nadir' ? 3 : 2);
+            const statBoost = item.rarity === 'Efsanevi'
+                ? 5
+                : (item.rarity === 'Epik'
+                    ? 4
+                    : (item.rarity === 'Nadir' ? 3 : 2));
 
             item.strBonus = (item.strBonus || 0) + statBoost;
             item.vitBonus = (item.vitBonus || 0) + statBoost;
@@ -4271,9 +4541,11 @@ io.on('connection', (socket) => {
         item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
         item.level = nextLvl;
 
-        const statBoost = item.rarity === 'Epik'
-            ? 4
-            : (item.rarity === 'Nadir' ? 3 : 2);
+        const statBoost = item.rarity === 'Efsanevi'
+                ? 5
+                : (item.rarity === 'Epik'
+                    ? 4
+                    : (item.rarity === 'Nadir' ? 3 : 2));
 
         item.strBonus = (item.strBonus || 0) + statBoost;
         item.vitBonus = (item.vitBonus || 0) + statBoost;
@@ -4477,15 +4749,7 @@ io.on('connection', (socket) => {
             return socket.emit('statUpdated', user);
         }
 
-        const calculateMaxHp = (u) => {
-            let totalVit = u.vit || 5;
-            if (u.equipped) {
-                Object.values(u.equipped).forEach(eq => {
-                    if (eq) totalVit += Number(eq.vitBonus) || 0;
-                });
-            }
-            return Math.max(20, totalVit * 20);
-        };
+        const calculateMaxHp = (u) => calculateMaxHpForProgression(u);
 
         // Ekipman değişmeden önce sağlık yüzdesini sakla.
         const oldMaxHp = calculateMaxHp(user);
@@ -4520,15 +4784,7 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user || !user.equipped[data.slot]) return;
 
-        const calculateMaxHp = (u) => {
-            let totalVit = u.vit || 5;
-            if (u.equipped) {
-                Object.values(u.equipped).forEach(eq => {
-                    if (eq) totalVit += Number(eq.vitBonus) || 0;
-                });
-            }
-            return Math.max(20, totalVit * 20);
-        };
+        const calculateMaxHp = (u) => calculateMaxHpForProgression(u);
 
         // Ekipman çıkmadan önce sağlık yüzdesini sakla.
         const oldMaxHp = calculateMaxHp(user);
