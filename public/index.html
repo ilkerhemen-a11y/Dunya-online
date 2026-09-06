@@ -7202,8 +7202,9 @@
 
                         <div class="howto-subtitle">
                             Bu bölüm oyundaki temel ilerlemeden ekonomiye,
-                            Demirhane'den Zindan Adası'na, Tımar yönetiminden
-                            Taht Savaşı'na kadar mevcut sistemlerin tamamını
+                            Demirhane'den Zindan Adası'na, Metinlerden Klan sistemine,
+                            Mancınıklı ordu yönetiminden bireysel Taht Savaşı ve
+                            Klan Kale Savaşı'na kadar güncel sistemlerin tamamını
                             tek yerde açıklar. Bir sistemi bulmak için aşağıdaki
                             arama kutusunu kullanabilirsin.
                         </div>
@@ -7238,6 +7239,16 @@
                                 Sefer
                                 <strong>${Number(u.seferLimiti ?? 20)}/20</strong>
                             </div>
+
+                            <div class="howto-player-stat">
+                                Onur
+                                <strong>${Number(u.honor || 0).toLocaleString('tr-TR')} 🌟</strong>
+                            </div>
+
+                            <div class="howto-player-stat">
+                                Yakut
+                                <strong>${Number(u.rubies || 0).toLocaleString('tr-TR')} 💎</strong>
+                            </div>
                         </div>
                     </div>
 
@@ -7246,7 +7257,7 @@
                             id="howtoSearch"
                             class="howto-search"
                             type="text"
-                            placeholder="🔎 Örn: Demirhane, Zindan, Tımar, Yakut, Kale..."
+                            placeholder="🔎 Örn: Klan, Mancınık, Onur, Demirhane, Zindan, Kale..."
                             oninput="filterHowToGuide()"
                         >
 
@@ -7268,6 +7279,7 @@
                     <div class="howto-nav">
                         <button onclick="scrollHowToSection('guide_start')">🚩 Başlangıç</button>
                         <button onclick="scrollHowToSection('guide_character')">👤 Karakter</button>
+                        <button onclick="scrollHowToSection('guide_equipment')">🛡️ Ekipman</button>
                         <button onclick="scrollHowToSection('guide_work')">⚔️ Görevler</button>
                         <button onclick="scrollHowToSection('guide_market')">🛒 Market</button>
                         <button onclick="scrollHowToSection('guide_timar')">🏰 Tımar</button>
@@ -7275,7 +7287,10 @@
                         <button onclick="scrollHowToSection('guide_dungeon')">🌋 Zindan</button>
                         <button onclick="scrollHowToSection('guide_metin')">🪨 Metin</button>
                         <button onclick="scrollHowToSection('guide_arena')">🏟️ Arena</button>
+                        <button onclick="scrollHowToSection('guide_clan')">🛡️ Klan</button>
+                        <button onclick="scrollHowToSection('guide_barracks')">🪖 Ordu</button>
                         <button onclick="scrollHowToSection('guide_castle')">👑 Taht</button>
+                        <button onclick="scrollHowToSection('guide_clanwar')">🏰 Klan Kale</button>
                         <button onclick="scrollHowToSection('guide_set')">✨ Hükümdar Seti</button>
                         <button onclick="scrollHowToSection('guide_limits')">⏱️ Limitler</button>
                     </div>
@@ -7310,8 +7325,24 @@
                             </div>
 
                             <div class="howto-step">
-                                Kışlada asker üret; gücün yeterli olduğunda
-                                Kale Kuşatmasına katıl ve Taht için savaş.
+                                Kışlada Okçu, Savaşçı, Süvari ve
+                                <strong>Mancınık</strong> üret; ordunu büyüt.
+                            </div>
+
+                            <div class="howto-step">
+                                Bir klana katıl veya 10.000 Altın ile kendi klanını kur.
+                                Klan hazinesine katkı yap ve klan arkadaşlarınla haberleş.
+                            </div>
+
+                            <div class="howto-step">
+                                Bireysel Kale Kuşatmasında Taht için savaş;
+                                ayrıca belirli saatlerde açılan
+                                <strong>Klan Kale Savaşı</strong>'nda klanınla toplam hasar yarışına gir.
+                            </div>
+
+                            <div class="howto-step">
+                                Arena ve Klan Kale Savaşı ile Onur kazan.
+                                Her yeni <strong>100 Onur eşiğinde +100 Yakut</strong> ödülünü hedefle.
                             </div>
 
                             <div class="howto-step">
@@ -7332,8 +7363,10 @@
                             <p>
                                 Taht Savaşları'nda amaç karakterini,
                                 ekonomini, Tımarlarını ve ordunu geliştirerek
-                                imparatorluk gücünü büyütmek ve sonunda
-                                <strong>Taht Kalesi'ni ele geçirip Hükümdar olmak</strong>.
+                                imparatorluk gücünü büyütmek; bireysel olarak
+                                <strong>Taht Kalesi'ni ele geçirip Hükümdar olmak</strong>
+                                ve klanınla birlikte <strong>Hisar-ı Hümayun</strong> için
+                                diğer klanlarla mücadele etmektir.
                             </p>
 
                             <div class="howto-grid">
@@ -7349,19 +7382,24 @@
 
                                 <div class="howto-mini-card">
                                     <b>⚔️ Savaş</b>
-                                    Görev, Zindan, Metin, Arena ve Kale savaşlarına katıl.
+                                    Görev, Zindan, Metin, Arena, Taht ve Klan Kale savaşlarına katıl.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🛡️ Klan</b>
+                                    Klan kur, üye ol, bağış yap, sohbet et ve toplu savaşa katıl.
                                 </div>
 
                                 <div class="howto-mini-card">
                                     <b>👑 End-game</b>
-                                    Hükümdar Seti topla ve Taht'ın sahibi ol.
+                                    Hükümdar Seti topla, Taht'ı ve Klan Kalesi'ni hedefle.
                                 </div>
                             </div>
 
                             <div class="howto-tip">
                                 💡 İlk hedefin: görev yap → seviye/stat kazan →
                                 Tımar al → ekipman güçlendir → Zindan/Metin →
-                                Ordu/Kale şeklinde ilerlemek olabilir.
+                                Ordu → Klan → Taht/Klan Kale Savaşı şeklinde ilerlemek olabilir.
                             </div>
                         </div>
                     </details>
@@ -7968,14 +8006,74 @@
                                 <strong>-5 Onur</strong> ve Onur 0'ın altına düşmez.
                             </p>
 
+                            <div class="howto-tip">
+                                🎁 <strong>Onur Ödül Sistemi:</strong>
+                                Her yeni 100 Onur eşiğine ulaştığında
+                                <strong>+100 Yakut 💎</strong> kazanırsın.
+                                Örneğin 95 → 110 Onur olduğunda 100 Onur ödülü verilir.
+                                Daha önce alınmış aynı eşik, Onurun düşüp tekrar yükselse bile
+                                ikinci kez ödül üretmez.
+                            </div>
+
                             <p>
                                 Genel Durum'da Arena Zaferi ve Onur değerlerini takip edebilirsin.
+                                Klan Kale Savaşı da Onur kazanabileceğin diğer önemli sistemdir.
                             </p>
                         </div>
                     </details>
 
+                    <details id="guide_clan" class="howto-section">
+                        <summary>🛡️ 13. Klan Sistemi</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Klan sistemi oyuncuların aynı çatı altında birleşmesini,
+                                ortak hazine oluşturmasını, özel sohbet kullanmasını ve
+                                Klan Kale Savaşına birlikte katılmasını sağlar.
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🛡️ Klan Kurma</b>
+                                    Kendi klanını kurmak 10.000 Altın kostetir.
+                                    Başlangıç kapasitesi 15 üyedir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>👑 Roller</b>
+                                    Klan Lideri, Komutan ve Üye rolleri vardır.
+                                    Lider üyelerin rollerini değiştirebilir ve üyeleri çıkarabilir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>💰 Klan Hazinesi</b>
+                                    Üyeler tek seferde 100 ile 1.000.000 Altın arasında
+                                    klan hazinesine bağış yapabilir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>💬 Klan Sohbeti</b>
+                                    Klan üyelerine özel sohbet alanı bulunur;
+                                    son mesajlar klan içinde saklanır.
+                                </div>
+                            </div>
+
+                            <p>
+                                Lider klandan ayrılırsa klan boş kalmıyorsa liderlik
+                                uygun başka bir üyeye devredilir. Klanda hiç üye kalmazsa
+                                klan dağılır.
+                            </p>
+
+                            <div class="howto-tip">
+                                💡 Klan hazinesi özellikle Klan Kale Savaşı ödüllerinin
+                                toplandığı ortak kasadır. Kale savaşı kazanıldığında
+                                ödül doğrudan kişisel Altına değil klan hazinesine eklenir.
+                            </div>
+                        </div>
+                    </details>
+
                     <details id="guide_barracks" class="howto-section">
-                        <summary>🛡️ 13. Kışla ve Ordu</summary>
+                        <summary>🛡️ 14. Kışla, Ordu ve Mancınık</summary>
 
                         <div class="howto-content">
                             <div class="howto-table-wrap">
@@ -7991,14 +8089,23 @@
                                         <tr><td>🏹 Okçu</td><td>250 Altın</td><td>10</td></tr>
                                         <tr><td>⚔️ Savaşçı</td><td>500 Altın</td><td>20</td></tr>
                                         <tr><td>🐎 Süvari</td><td>1.000 Altın</td><td>35</td></tr>
+                                        <tr><td>🪵 Mancınık</td><td>3.000 Altın</td><td>100</td></tr>
                                     </tbody>
                                 </table>
                             </div>
 
                             <p>
-                                Askerleri 1, 10, 50 veya 100 adetlik miktarlarda yetiştirebilirsin.
-                                Ordu Gücü birliklerin toplam gücüne karakter STR katkısının
-                                eklenmesiyle Kale savaşında kullanılır.
+                                Birlikleri tek seferde 1 ile 100 arasında üretebilirsin.
+                                Okçu, Savaşçı ve Süvari yetiştirilir; Mancınık ise
+                                <strong>inşa edilir</strong>. Mancınık 100 Güç ile
+                                tek birim başına en yüksek kuşatma gücüne sahip birliktir.
+                            </p>
+
+                            <p>
+                                Ordu Gücü bütün birliklerin toplam gücüdür.
+                                Bireysel Kale Kuşatmasında karakter STR katkısıyla,
+                                Klan Kale Savaşında ise karakter savaş gücüyle birlikte
+                                toplam hasar hesabına katılır.
                             </p>
 
                             <p>
@@ -8010,7 +8117,7 @@
                     </details>
 
                     <details id="guide_castle" class="howto-section">
-                        <summary>👑 14. Kale Kuşatması ve Taht Savaşı</summary>
+                        <summary>👑 15. Bireysel Kale Kuşatması ve Taht Savaşı</summary>
 
                         <div class="howto-content">
                             <p>
@@ -8067,8 +8174,102 @@
                         </div>
                     </details>
 
+                    <details id="guide_clanwar" class="howto-section">
+                        <summary>🏰 16. Klan Kale Savaşı — Hisar-ı Hümayun</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Klan Kale Savaşı bireysel Taht Savaşından ayrı bir sistemdir.
+                                Burada oyuncular tek tek kale sahibi olmaya değil,
+                                <strong>klanlarının toplam hasarını yükseltmeye</strong> çalışır.
+                                Süre sonunda en yüksek toplam hasarı veren klan
+                                <strong>Hisar-ı Hümayun</strong>'un sahibi olur.
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🕒 Savaş Saatleri</b>
+                                    Türkiye saatiyle 00:00, 06:00, 12:00 ve 18:00'de açılır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>⏱️ Savaş Süresi</b>
+                                    Her savaş penceresi 30 dakika sürer.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🎯 Saldırı Hakkı</b>
+                                    Her klan üyesi her savaşta en fazla 5 saldırı yapabilir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>⌛ Bekleme</b>
+                                    İki kale saldırısı arasında 10 saniye bekleme vardır.
+                                </div>
+                            </div>
+
+                            <h4>Hasar Nasıl Hesaplanır?</h4>
+
+                            <p>
+                                Her saldırının temeli:
+                                <strong>Karakter Savaş Gücü + Toplam Ordu Gücü</strong>.
+                                Okçu, Savaşçı, Süvari ve <strong>Mancınık</strong>ların tamamı
+                                ordu gücüne dahildir. 6 parça Hükümdar Seti kullanıyorsan
+                                kale saldırı bonusu da uygulanır. Savaş atışında küçük bir
+                                rastgelelik bulunduğu için aynı güçle iki saldırı tamamen aynı
+                                hasarı vermeyebilir.
+                            </p>
+
+                            <p>
+                                Klan üyelerinin bütün saldırıları aynı klanın
+                                <strong>Klan Hasarı</strong> hanesinde birleşir.
+                                Hasar sıralamasında en yüksek toplam hasara ulaşan klan
+                                savaş bittiğinde kaleyi kazanır.
+                            </p>
+
+                            <h4>🏆 Kazanan Klan Ödülleri</h4>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>💰 Klan Hazinesi</b>
+                                    Kazanan klanın ortak hazinesine +15.000 Altın.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🌟 Katılım Onuru</b>
+                                    Kazanan klanda savaşa gerçekten saldırı yaparak katılan
+                                    her üyeye +30 Onur.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🥇 En Yüksek Hasar</b>
+                                    Kazanan klanın en çok hasar veren üyesine ayrıca +20 Onur.
+                                    Böylece bu oyuncu toplam +50 Onur alabilir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>💎 Onur → Yakut</b>
+                                    Ödülle yeni bir 100 Onur eşiği geçilirse
+                                    her eşik için +100 Yakut da otomatik verilir.
+                                </div>
+                            </div>
+
+                            <div class="howto-warning">
+                                ⚠️ Onur ödülü sadece kazanan klanın savaşa saldırı yaparak
+                                katılmış üyelerine verilir. Sadece klanda bulunmak tek başına
+                                katılım ödülü için yeterli değildir.
+                            </div>
+
+                            <div class="howto-tip">
+                                💡 Klan savaşında tek bir güçlü oyuncu yerine çok sayıda
+                                aktif üyenin 5 saldırı hakkını kullanması toplam klan hasarını
+                                ciddi biçimde yükseltir.
+                            </div>
+                        </div>
+                    </details>
+
                     <details id="guide_set" class="howto-section">
-                        <summary>✨ 15. Efsanevi Hükümdar Seti</summary>
+                        <summary>✨ 17. Efsanevi Hükümdar Seti</summary>
 
                         <div class="howto-content">
                             <p>
@@ -8119,24 +8320,30 @@
                     </details>
 
                     <details id="guide_chat" class="howto-section">
-                        <summary>📜 16. Diyar Meclisi</summary>
+                        <summary>📜 18. Diyar Meclisi ve Klan Sohbeti</summary>
 
                         <div class="howto-content">
                             <p>
-                                Diyar Meclisi oyundaki genel sohbet alanıdır.
-                                Diğer oyuncularla konuşabilir, pazar/fetih/oyun hakkında
-                                haberleşebilirsin.
+                                Diyar Meclisi oyundaki <strong>genel sohbet</strong> alanıdır.
+                                Tüm çevrimiçi oyuncularla konuşabilir, pazar, fetih ve oyun
+                                hakkında haberleşebilirsin.
                             </p>
 
                             <p>
-                                Mesaj alanında Enter tuşu ile veya Gönder butonuyla
+                                Klan Merkezindeki <strong>Klan Sohbeti</strong> ise yalnızca
+                                aynı klanın üyeleri içindir. Klan Kale Savaşı sırasında
+                                saldırı planı ve üye koordinasyonu için kullanılabilir.
+                            </p>
+
+                            <p>
+                                Her iki sohbette de Enter tuşu veya Gönder butonu ile
                                 mesaj gönderebilirsin.
                             </p>
                         </div>
                     </details>
 
                     <details id="guide_limits" class="howto-section">
-                        <summary>⏱️ 17. Günlük Limitler, Yenilenmeler ve Zamanlar</summary>
+                        <summary>⏱️ 19. Günlük Limitler, Yenilenmeler ve Savaş Saatleri</summary>
 
                         <div class="howto-content">
                             <div class="howto-grid">
@@ -8169,12 +8376,25 @@
                                     <b>🏰 Tımar</b>
                                     Gelir çevrimdışı da hazinede birikebilir; kapasite dolunca artış durur.
                                 </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🏰 Klan Kale Savaşı</b>
+                                    00:00 / 06:00 / 12:00 / 18:00'de açılır,
+                                    30 dakika sürer; oyuncu başına 5 saldırı ve
+                                    saldırılar arasında 10 saniye bekleme vardır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🌟 Onur Ödülü</b>
+                                    Her yeni 100 Onur eşiğinde +100 Yakut.
+                                    Aynı eşik ikinci kez ödül vermez.
+                                </div>
                             </div>
                         </div>
                     </details>
 
                     <details id="guide_tips" class="howto-section">
-                        <summary>🧠 18. İlerleme İpuçları ve Sık Yapılan Hatalar</summary>
+                        <summary>🧠 20. İlerleme İpuçları ve Sık Yapılan Hatalar</summary>
 
                         <div class="howto-content">
                             <div class="howto-steps">
@@ -8211,6 +8431,24 @@
                                 </div>
 
                                 <div class="howto-step">
+                                    Klan Kale Savaşı açıldığında 5 saldırı hakkını
+                                    mümkün olduğunca kullan. Klanın toplam hasarı,
+                                    aktif üye sayısı arttıkça çok daha hızlı yükselir.
+                                </div>
+
+                                <div class="howto-step">
+                                    Mancınık pahalıdır ama 100 Güç ile kuşatma odaklı
+                                    orduda güçlü bir katkı sağlar. Büyük savaşlardan önce
+                                    Altın bütçeni hesaplayarak üret.
+                                </div>
+
+                                <div class="howto-step">
+                                    100 Onur eşiklerini takip et. Arena ve kazanan
+                                    Klan Kale Savaşı ödülleri yeni eşik geçirirse
+                                    Yakut ödülü otomatik gelir.
+                                </div>
+
+                                <div class="howto-step">
                                     Efsanevi Hükümdar Seti parçalarını yanlışlıkla
                                     eritmemeye veya silmemeye dikkat et.
                                 </div>
@@ -8219,7 +8457,7 @@
                     </details>
 
                     <details id="guide_dictionary" class="howto-section">
-                        <summary>📚 19. Kısa Oyun Sözlüğü</summary>
+                        <summary>📚 21. Kısa Oyun Sözlüğü</summary>
 
                         <div class="howto-content">
                             <div class="howto-grid">
@@ -8250,7 +8488,25 @@
 
                                 <div class="howto-mini-card">
                                     <b>🌟 Onur</b>
-                                    PvP Arena'daki prestij değeridir.
+                                    Arena ve Klan Kale Savaşı ile kazanılabilen prestij puanı.
+                                    Her yeni 100 Onur eşiği +100 Yakut verir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🛡️ Klan</b>
+                                    Oyuncuların ortak hazine, sohbet ve Klan Kale Savaşı için
+                                    oluşturduğu topluluktur.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🪵 Mancınık</b>
+                                    3.000 Altına inşa edilen, 100 Güç veren kuşatma birliğidir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🏰 Hisar-ı Hümayun</b>
+                                    Belirli saatlerde yapılan Klan Kale Savaşının hedef kalesidir.
+                                    En yüksek toplam hasarlı klan kalenin sahibi olur.
                                 </div>
 
                                 <div class="howto-mini-card">
@@ -8260,7 +8516,7 @@
 
                                 <div class="howto-mini-card">
                                     <b>👑 Taht</b>
-                                    Kale'nin mevcut sahibi oyunun Hükümdarıdır.
+                                    Bireysel Kale Kuşatmasının mevcut sahibi oyunun Hükümdarıdır.
                                 </div>
                             </div>
                         </div>
