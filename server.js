@@ -1868,16 +1868,38 @@ io.on('connection', (socket) => {
         await user.save();
 
         try {
-            const opponents = await User.find({
-                _id: { $ne: user._id }
-            })
-            .select('username level str vit equipped honor')
-            .limit(5);
+            // Her yenilemede rastgele 5 farklı rakip getir.
+            // find().limit(5) sürekli aynı kayıtları döndürebildiği için $sample kullanıyoruz.
+            const opponents = await User.aggregate([
+                {
+                    $match: {
+                        _id: { $ne: user._id }
+                    }
+                },
+                {
+                    $sample: {
+                        size: 5
+                    }
+                },
+                {
+                    $project: {
+                        username: 1,
+                        level: 1,
+                        str: 1,
+                        vit: 1,
+                        equipped: 1,
+                        honor: 1
+                    }
+                }
+            ]);
 
             socket.emit('arenaOpponentsList', opponents);
         } catch (err) {
+            console.error('Arena rakip yenileme hatası:', err);
+
             socket.emit('arenaResult', {
                 success: false,
+                userData: user,
                 message: "Rakipler yüklenemedi."
             });
         }
