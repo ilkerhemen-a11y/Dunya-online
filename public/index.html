@@ -3173,6 +3173,7 @@
             <button class="menu-btn" onclick="switchTab('arena')">🏟️ PvP Arena</button>
             <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
             <button class="menu-btn" onclick="switchTab('metin')">🪨 Metin Taşı Kes</button>
+            <button class="menu-btn" onclick="switchTab('clanWar')">🏰 Klan Kale Savaşı</button>
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('clan')">🛡️ Klan</button>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
@@ -3599,6 +3600,49 @@
             updateSeferCountdownOnly();
         }
 
+        function renderCatapultIconSvg(size = 58) {
+            const safeSize = Math.max(36, Math.min(90, Number(size) || 58));
+
+            return `
+                <svg
+                    width="${safeSize}"
+                    height="${safeSize}"
+                    viewBox="0 0 96 96"
+                    role="img"
+                    aria-label="Mancınık"
+                    style="display:block;margin:0 auto;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45));"
+                >
+                    <defs>
+                        <linearGradient id="catWood" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#9a6a35"/>
+                            <stop offset="1" stop-color="#4b2d16"/>
+                        </linearGradient>
+                        <linearGradient id="catMetal" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#9ca3af"/>
+                            <stop offset="1" stop-color="#374151"/>
+                        </linearGradient>
+                    </defs>
+
+                    <circle cx="27" cy="74" r="12" fill="#20140c" stroke="#a06d36" stroke-width="5"/>
+                    <circle cx="69" cy="74" r="12" fill="#20140c" stroke="#a06d36" stroke-width="5"/>
+                    <circle cx="27" cy="74" r="3" fill="#c08a4a"/>
+                    <circle cx="69" cy="74" r="3" fill="#c08a4a"/>
+
+                    <path d="M18 67 L76 67 L66 49 L32 49 Z" fill="url(#catWood)" stroke="#d09a59" stroke-width="2"/>
+                    <path d="M36 51 L48 24 L60 51" fill="none" stroke="url(#catWood)" stroke-width="7" stroke-linecap="round"/>
+                    <circle cx="48" cy="49" r="6" fill="url(#catMetal)" stroke="#cbd5e1" stroke-width="1.5"/>
+
+                    <path d="M48 48 L70 18" fill="none" stroke="#b07a3e" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M70 18 Q79 13 84 20" fill="none" stroke="#6b7280" stroke-width="2"/>
+                    <path d="M84 20 Q82 27 76 31" fill="none" stroke="#6b7280" stroke-width="2"/>
+                    <circle cx="78" cy="31" r="7" fill="#4b5563" stroke="#9ca3af" stroke-width="2"/>
+
+                    <path d="M31 49 L19 66 M65 49 L77 66" stroke="#6f431f" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M22 61 L74 61" stroke="#c08a4a" stroke-width="3"/>
+                </svg>
+            `;
+        }
+
         function getEnhancementVisualClass(level) {
             const safeLevel = Math.max(0, Number(level) || 0);
             if (safeLevel >= 40) return 'enhance-tier-4';
@@ -3765,6 +3809,7 @@
                 blacksmith: 'blacksmith',
                 arena: 'arena',
                 clan: 'barracks',
+                clanWar: 'barracks',
                 chat: 'chat',
                 howto: 'overview',
                 dungeon: 'dungeon',
@@ -3868,6 +3913,7 @@
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
                 'clan': 'Klan Merkezi',
+                'clanWar': 'Klan Kale Savaşı',
                 'chat': 'Diyar Meclisi (Sohbet)',
                 'howto': 'Nasıl Oynanır? — Taht Savaşları Rehberi',
                 'dungeon': 'Zindan Adası',
@@ -3875,7 +3921,7 @@
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
 
-            if (tab === 'clan') {
+            if (tab === 'clan' || tab === 'clanWar') {
                 requestClanData();
             }
 
@@ -3961,6 +4007,9 @@
                 const setDefinitions = setData.definitions || {};
                 const ownedSlots = new Set(setData.ownedSlots || []);
                 const equippedSetCount = Number(setData.pieceCount) || 0;
+                const currentHonor = Math.max(0, Number(prestige.honor) || 0);
+                const nextHonorRubyTarget = (Math.floor(currentHonor / 100) + 1) * 100;
+                const honorRubyProgress = currentHonor % 100;
 
                 body.innerHTML = `
                     <div class="overview-v2">
@@ -3982,6 +4031,12 @@
                                 <div class="overview-power-card">🪖 Ordu Gücü<strong>${Number(combat.armyPower || 0).toLocaleString('tr-TR')}</strong></div>
                                 <div class="overview-power-card">🌟 Onur<strong>${Number(prestige.honor || 0).toLocaleString('tr-TR')}</strong></div>
                                 <div class="overview-power-card">🏰 Fetih<strong>${Number(prestige.castleVictories || 0).toLocaleString('tr-TR')}</strong></div>
+                            </div>
+
+                            <div style="margin-top:9px;padding:7px 9px;border:1px solid #5b4720;border-radius:5px;background:rgba(212,175,55,.05);font-size:9px;color:#9c8e7b;text-align:center;">
+                                🎁 <strong style="color:#f3cf7a;">Onur Ödülü:</strong>
+                                Her 100 Onur puanında <strong style="color:#c4b5fd;">100 Yakut 💎</strong>.
+                                Şu an: <strong>${currentHonor}</strong> • Sonraki ödül: <strong>${nextHonorRubyTarget} Onur</strong> • İlerleme: <strong>${honorRubyProgress}/100</strong>
                             </div>
                         </div>
 
@@ -5465,7 +5520,7 @@
                     archer:  { name:'Okçu',     icon:'🏹', cost:250,  power:10 },
                     warrior: { name:'Savaşçı',  icon:'⚔️', cost:500,  power:20 },
                     cavalry: { name:'Süvari',   icon:'🐎', cost:1000, power:35 },
-                    catapult:{ name:'Mancınık', icon:'🏗️', cost:3000, power:100 }
+                    catapult:{ name:'Mancınık', icon:'🪵', cost:3000, power:100 }
                 };
 
                 const serverTroopDefs = barracksState?.troops || {};
@@ -5607,8 +5662,8 @@
                                     class="market-card"
                                     style="display:block; text-align:center;"
                                 >
-                                    <div style="font-size:30px;">
-                                        ${troop.icon}
+                                    <div style="font-size:30px; min-height:62px; display:flex; align-items:center; justify-content:center;">
+                                        ${type === 'catapult' ? renderCatapultIconSvg(62) : troop.icon}
                                     </div>
 
                                     <h4 style="
@@ -6431,6 +6486,11 @@
                             </span>
                             <span>🏅 ${getTitleByLevel(u.level || 1)}</span>
                         </div>
+
+                        <div style="margin-top:7px;font-size:10px;color:#c4b5fd;">
+                            🎁 Her <strong>100 Onur</strong> puanında otomatik olarak <strong>100 Yakut 💎</strong> kazanırsın.
+                            Sonraki eşik: <strong>${(Math.floor((Number(u.honor) || 0) / 100) + 1) * 100} Onur</strong>
+                        </div>
                     </div>
 
                     <div id="arenaBattleStage" class="arena-stage">
@@ -7033,310 +7093,7 @@
                                 </div>
                             </div>
 
-                            <div style="
-                                background:
-                                    linear-gradient(
-                                        145deg,
-                                        #15100d,
-                                        #0b0908
-                                    );
-                                border:1px solid #3b82f6;
-                                border-radius:7px;
-                                padding:12px;
-                            ">
-                                <div style="
-                                    display:flex;
-                                    justify-content:space-between;
-                                    align-items:center;
-                                    gap:8px;
-                                    flex-wrap:wrap;
-                                ">
-                                    <h3 style="
-                                        color:#60a5fa;
-                                        font-size:13px;
-                                    ">🏰 Klan Kale Savaşı</h3>
 
-                                    <span style="
-                                        color:${warStatusColor};
-                                        border:1px solid ${warStatusColor};
-                                        padding:2px 6px;
-                                        border-radius:4px;
-                                        font-size:9px;
-                                        font-weight:bold;
-                                    ">${warStatusText}</span>
-                                </div>
-
-                                ${
-                                    !war
-                                        ? `
-                                            <p style="
-                                                font-size:10px;
-                                                color:#9c8e7b;
-                                                margin-top:8px;
-                                            ">
-                                                Kale Savaşı bilgileri yükleniyor...
-                                            </p>
-                                        `
-                                        : `
-                                            <div style="
-                                                margin-top:8px;
-                                                font-size:10px;
-                                                color:#9c8e7b;
-                                                line-height:1.6;
-                                            ">
-                                                <div>
-                                                    🏰 Kale:
-                                                    <strong style="color:#f3cf7a;">
-                                                        ${escapeHTML(war.castleName || 'Hisar-ı Hümayun')}
-                                                    </strong>
-                                                </div>
-
-                                                <div>
-                                                    👑 Mevcut Sahip:
-                                                    <strong style="color:#f3cf7a;">
-                                                        ${warOwnerText}
-                                                    </strong>
-                                                </div>
-
-                                                <div>
-                                                    🕒 Savaş Saatleri:
-                                                    <strong style="color:#60a5fa;">
-                                                        00:00 • 06:00 • 12:00 • 18:00
-                                                    </strong>
-                                                </div>
-
-                                                <div>
-                                                    ⏱️ Süre:
-                                                    <strong>
-                                                        ${Number(war.durationMinutes || 30)} dakika
-                                                    </strong>
-                                                </div>
-
-                                                <div
-                                                    id="clanWarCountdown"
-                                                    style="
-                                                        margin-top:5px;
-                                                        color:${war.active ? '#fca5a5' : '#93c5fd'};
-                                                        font-weight:bold;
-                                                    "
-                                                >
-                                                    ${
-                                                        war.active
-                                                            ? `Savaş bitişi: ${formatClanWarTime(war.endAt)}`
-                                                            : `Sonraki savaş: ${formatClanWarTime(war.nextStartAt)}`
-                                                    }
-                                                </div>
-                                            </div>
-
-                                            <div style="
-                                                display:grid;
-                                                grid-template-columns:1fr 1fr;
-                                                gap:6px;
-                                                margin-top:9px;
-                                            ">
-                                                <div style="
-                                                    background:#080605;
-                                                    border:1px solid #33241b;
-                                                    padding:7px;
-                                                    border-radius:4px;
-                                                    font-size:9px;
-                                                    color:#9c8e7b;
-                                                ">
-                                                    🛡️ Klan Hasarı<br>
-                                                    <strong style="
-                                                        color:#22c55e;
-                                                        font-size:12px;
-                                                    ">
-                                                        ${Number(war.myClanDamage || 0).toLocaleString('tr-TR')}
-                                                    </strong>
-                                                </div>
-
-                                                <div style="
-                                                    background:#080605;
-                                                    border:1px solid #33241b;
-                                                    padding:7px;
-                                                    border-radius:4px;
-                                                    font-size:9px;
-                                                    color:#9c8e7b;
-                                                ">
-                                                    ⚔️ Senin Hasarın<br>
-                                                    <strong style="
-                                                        color:#f3cf7a;
-                                                        font-size:12px;
-                                                    ">
-                                                        ${Number(war.myDamage || 0).toLocaleString('tr-TR')}
-                                                    </strong>
-                                                </div>
-
-                                                <div style="
-                                                    background:#080605;
-                                                    border:1px solid #33241b;
-                                                    padding:7px;
-                                                    border-radius:4px;
-                                                    font-size:9px;
-                                                    color:#9c8e7b;
-                                                ">
-                                                    🎯 Saldırı Hakkı<br>
-                                                    <strong style="
-                                                        color:#60a5fa;
-                                                        font-size:12px;
-                                                    ">
-                                                        ${Number(war.myAttacksRemaining || 0)}/${Number(war.attackLimit || 5)}
-                                                    </strong>
-                                                </div>
-
-                                                <div style="
-                                                    background:#080605;
-                                                    border:1px solid #33241b;
-                                                    padding:7px;
-                                                    border-radius:4px;
-                                                    font-size:9px;
-                                                    color:#9c8e7b;
-                                                ">
-                                                    🏗️ Saldırı Gücü<br>
-                                                    <strong style="
-                                                        color:#f97316;
-                                                        font-size:12px;
-                                                    ">
-                                                        ${(Number(war.characterPower || 0) + Number(war.armyPower || 0)).toLocaleString('tr-TR')}
-                                                    </strong>
-                                                </div>
-                                            </div>
-
-                                            <p style="
-                                                font-size:9px;
-                                                color:#6b7280;
-                                                margin-top:7px;
-                                                line-height:1.45;
-                                            ">
-                                                Hasar; karakter savaş gücü + tüm ordunun
-                                                gücünden hesaplanır. Mancınıklar da ordu
-                                                gücüne dahildir. Her oyuncu savaş başına
-                                                en fazla ${Number(war.attackLimit || 5)}
-                                                kez saldırabilir.
-                                            </p>
-
-                                            <div
-                                                id="clanWarAttackCooldown"
-                                                style="
-                                                    font-size:9px;
-                                                    color:#9c8e7b;
-                                                    margin-top:6px;
-                                                "
-                                            >
-                                                ${
-                                                    Number(war.cooldownRemainingMs || 0) > 0
-                                                        ? `⏳ Saldırı bekleme: ${Math.ceil(Number(war.cooldownRemainingMs) / 1000)} sn`
-                                                        : '⚔️ Saldırı hazır'
-                                                }
-                                            </div>
-
-                                            <button
-                                                id="clanCastleAttackBtn"
-                                                class="btn-quest"
-                                                style="
-                                                    width:100%;
-                                                    margin-top:7px;
-                                                "
-                                                ${
-                                                    (
-                                                        !war.active ||
-                                                        Number(war.myAttacksRemaining || 0) <= 0 ||
-                                                        Number(war.cooldownRemainingMs || 0) > 0
-                                                    )
-                                                        ? 'disabled'
-                                                        : ''
-                                                }
-                                                onclick="attackClanCastleWarSubmit()"
-                                            >
-                                                ${
-                                                    !war.active
-                                                        ? '⏳ Savaş Kapalı'
-                                                        : (
-                                                            Number(war.myAttacksRemaining || 0) <= 0
-                                                                ? '⛔ Saldırı Hakkı Bitti'
-                                                                : '🏗️ Kaleye Saldır'
-                                                        )
-                                                }
-                                            </button>
-
-                                            <div style="
-                                                margin-top:10px;
-                                                border-top:1px solid #2d2017;
-                                                padding-top:8px;
-                                            ">
-                                                <div style="
-                                                    color:#f3cf7a;
-                                                    font-size:10px;
-                                                    font-weight:bold;
-                                                    margin-bottom:5px;
-                                                ">
-                                                    🏆 Hasar Sıralaması
-                                                </div>
-
-                                                ${
-                                                    warLeaderboard.length > 0
-                                                        ? warLeaderboard
-                                                            .slice(0, 5)
-                                                            .map(entry => `
-                                                                <div style="
-                                                                    display:flex;
-                                                                    justify-content:space-between;
-                                                                    gap:6px;
-                                                                    padding:4px 0;
-                                                                    border-bottom:1px dashed #221912;
-                                                                    font-size:9px;
-                                                                ">
-                                                                    <span style="color:#d4c5b9;">
-                                                                        #${entry.rank}
-                                                                        [${escapeHTML(entry.clanTag)}]
-                                                                        ${escapeHTML(entry.clanName)}
-                                                                    </span>
-
-                                                                    <strong style="color:#22c55e;">
-                                                                        ${Number(entry.totalDamage || 0).toLocaleString('tr-TR')}
-                                                                    </strong>
-                                                                </div>
-                                                            `).join('')
-                                                        : `
-                                                            <div style="
-                                                                font-size:9px;
-                                                                color:#6b7280;
-                                                            ">
-                                                                Henüz hiçbir klan hasar vermedi.
-                                                            </div>
-                                                        `
-                                                }
-                                            </div>
-
-                                            ${
-                                                !war.active &&
-                                                war.lastWar?.winnerClanName
-                                                    ? `
-                                                        <div style="
-                                                            margin-top:8px;
-                                                            padding:7px;
-                                                            background:rgba(212,175,55,.06);
-                                                            border:1px solid #5b4720;
-                                                            border-radius:4px;
-                                                            font-size:9px;
-                                                            color:#9c8e7b;
-                                                        ">
-                                                            🏆 Son Kazanan:
-                                                            <strong style="color:#f3cf7a;">
-                                                                [${escapeHTML(war.lastWar.winnerClanTag || '')}]
-                                                                ${escapeHTML(war.lastWar.winnerClanName)}
-                                                            </strong>
-                                                            —
-                                                            ${Number(war.lastWar.winningDamage || 0).toLocaleString('tr-TR')}
-                                                            Hasar
-                                                        </div>
-                                                    `
-                                                    : ''
-                                            }
-                                        `
-                                }
-                            </div>
                         </div>
                     </div>
 
@@ -7408,7 +7165,6 @@
                         clanChatBox.scrollHeight;
                 }
 
-                startClanCastleWarCountdown();
 
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
@@ -8601,6 +8357,138 @@
                     </div>
                     <div id="dungeonLogResult" class="quest-log" style="margin-top:15px;">Zindan savaş sonucu burada görünecek...</div>
                 `;
+            } else if(activeTab === 'clanWar') {
+                const war = clanCastleWarState;
+                const hasClan = !!currentClanData;
+                const clanNameText = currentClanData
+                    ? `[${escapeHTML(currentClanData.tag)}] ${escapeHTML(currentClanData.name)}`
+                    : 'Klan üyeliği yok';
+
+                const leaderboard = Array.isArray(war?.leaderboard)
+                    ? war.leaderboard
+                    : [];
+
+                const ownerText = war?.owner
+                    ? `[${escapeHTML(war.owner.clanTag)}] ${escapeHTML(war.owner.clanName)}`
+                    : 'Henüz sahibi yok';
+
+                const rewardInfo = war?.rewards || {
+                    winnerTreasuryGold: 15000,
+                    participantHonor: 30,
+                    topDamageHonorBonus: 20,
+                    honorStep: 100,
+                    honorRubyReward: 100
+                };
+
+                if (!war) {
+                    body.innerHTML = `
+                        <div style="text-align:center;padding:42px 15px;background:#120e0c;border:1px solid #433222;border-radius:8px;">
+                            <div style="font-size:38px;margin-bottom:8px;">🏰</div>
+                            <div style="color:#f3cf7a;font-weight:bold;">Klan Kale Savaşı yükleniyor...</div>
+                            <div style="font-size:10px;color:#7c6f61;margin-top:6px;">Savaş saatleri ve klan sıralaması sunucudan alınıyor.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const attackDisabled =
+                    !hasClan ||
+                    !war.active ||
+                    Number(war.myAttacksRemaining || 0) <= 0 ||
+                    Number(war.cooldownRemainingMs || 0) > 0;
+
+                body.innerHTML = `
+                    <div style="background:linear-gradient(135deg,#21140c,#0c0907);border:1px solid #8b5e2c;border-radius:9px;padding:16px;margin-bottom:14px;box-shadow:inset 0 0 30px rgba(0,0,0,.35);">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                            <div>
+                                <div style="color:#ffdf73;font-size:18px;font-weight:900;">🏰 ${escapeHTML(war.castleName || 'Hisar-ı Hümayun')}</div>
+                                <div style="color:#9c8e7b;font-size:10px;margin-top:4px;">Klanların birlikte kaleyi kuşattığı toplu savaş alanı</div>
+                            </div>
+                            <div style="padding:4px 8px;border-radius:5px;border:1px solid ${war.active ? '#ef4444' : '#3b82f6'};color:${war.active ? '#fca5a5' : '#93c5fd'};font-size:10px;font-weight:bold;">
+                                ${war.active ? '🔥 SAVAŞ AÇIK' : '⏳ SAVAŞ KAPALI'}
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:12px;">
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">👑 Kale Sahibi<br><strong style="color:#f3cf7a;">${ownerText}</strong></div>
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">🛡️ Senin Klanın<br><strong style="color:${hasClan ? '#86efac' : '#fca5a5'};">${clanNameText}</strong></div>
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">🕒 Savaş Saatleri<br><strong style="color:#60a5fa;">00:00 • 06:00 • 12:00 • 18:00</strong></div>
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">⏱️ Savaş Süresi<br><strong style="color:#d4c5b9;">${Number(war.durationMinutes || 30)} dakika</strong></div>
+                        </div>
+
+                        <div id="clanWarCountdown" style="margin-top:10px;text-align:center;color:${war.active ? '#fca5a5' : '#93c5fd'};font-size:12px;font-weight:bold;">
+                            ${war.active ? `Savaş bitişi: ${formatClanWarTime(war.endAt)}` : `Sonraki savaş: ${formatClanWarTime(war.nextStartAt)}`}
+                        </div>
+                    </div>
+
+                    <div style="background:#120e0c;border:1px solid #5b4720;border-radius:8px;padding:13px;margin-bottom:14px;">
+                        <div style="color:#ffdf73;font-size:13px;font-weight:bold;margin-bottom:8px;">🎁 Kale Ele Geçirme Ödülleri</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px;">
+                            <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">💰 Kazanan Klan Hazinesi<br><strong style="color:#22c55e;">+${Number(rewardInfo.winnerTreasuryGold || 0).toLocaleString('tr-TR')} Altın</strong></div>
+                            <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">🌟 Savaşa Katılan Kazanan Üye<br><strong style="color:#f3cf7a;">+${Number(rewardInfo.participantHonor || 0)} Onur</strong></div>
+                            <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">🏆 En Yüksek Hasar Bonusu<br><strong style="color:#f97316;">+${Number(rewardInfo.topDamageHonorBonus || 0)} Onur</strong></div>
+                            <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">💎 Onur Milestone Ödülü<br><strong style="color:#c4b5fd;">Her ${Number(rewardInfo.honorStep || 100)} Onur = ${Number(rewardInfo.honorRubyReward || 100)} Yakut</strong></div>
+                        </div>
+                    </div>
+
+                    ${!hasClan ? `
+                        <div style="background:rgba(127,29,29,.13);border:1px solid #7f1d1d;border-radius:7px;padding:12px;margin-bottom:14px;text-align:center;">
+                            <div style="color:#fca5a5;font-size:12px;font-weight:bold;">🛡️ Kale Savaşına katılmak için bir klana üye olmalısın.</div>
+                            <button class="btn-quest" style="margin-top:8px;" onclick="switchTab('clan')">Klan Merkezine Git</button>
+                        </div>
+                    ` : ''}
+
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.75fr);gap:12px;">
+                        <div style="background:#120e0c;border:1px solid #433222;border-radius:8px;padding:13px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+                                <div style="color:#f3cf7a;font-size:13px;font-weight:bold;">⚔️ Kuşatma Durumun</div>
+                                <button class="btn-stat" onclick="requestClanCastleWarStatus()">↻ Yenile</button>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:7px;">
+                                <div style="background:#080605;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">🛡️ Klan Hasarı<br><strong style="color:#22c55e;font-size:14px;">${Number(war.myClanDamage || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div style="background:#080605;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">⚔️ Senin Hasarın<br><strong style="color:#f3cf7a;font-size:14px;">${Number(war.myDamage || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div style="background:#080605;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">🎯 Kalan Saldırı<br><strong style="color:#60a5fa;font-size:14px;">${Number(war.myAttacksRemaining || 0)}/${Number(war.attackLimit || 5)}</strong></div>
+                                <div style="background:#080605;border:1px solid #33241b;padding:8px;border-radius:5px;font-size:9px;color:#9c8e7b;">🔥 Toplam Saldırı Gücü<br><strong style="color:#f97316;font-size:14px;">${(Number(war.characterPower || 0) + Number(war.armyPower || 0)).toLocaleString('tr-TR')}</strong></div>
+                            </div>
+
+                            <div style="font-size:9px;color:#7c6f61;line-height:1.5;margin-top:8px;">
+                                Hasar; karakter savaş gücü + ordu gücünden hesaplanır. 🪵 Mancınıklar da toplam ordu gücüne dahildir.
+                            </div>
+
+                            <div id="clanWarAttackCooldown" style="font-size:10px;color:#9c8e7b;margin-top:8px;">
+                                ${Number(war.cooldownRemainingMs || 0) > 0 ? `⏳ Saldırı bekleme: ${Math.ceil(Number(war.cooldownRemainingMs) / 1000)} sn` : '⚔️ Saldırı hazır'}
+                            </div>
+
+                            <button id="clanCastleAttackBtn" class="btn-quest" style="width:100%;margin-top:8px;padding:9px;" ${attackDisabled ? 'disabled' : ''} onclick="attackClanCastleWarSubmit()">
+                                ${!hasClan ? '🛡️ Klan Gerekli' : (!war.active ? '⏳ Savaş Kapalı' : (Number(war.myAttacksRemaining || 0) <= 0 ? '⛔ Saldırı Hakkı Bitti' : '🏰 Kaleye Saldır'))}
+                            </button>
+                        </div>
+
+                        <div style="background:#120e0c;border:1px solid #433222;border-radius:8px;padding:13px;">
+                            <div style="color:#f3cf7a;font-size:13px;font-weight:bold;margin-bottom:8px;">🏆 Klan Hasar Sıralaması</div>
+                            ${leaderboard.length > 0 ? leaderboard.slice(0,10).map(entry => `
+                                <div style="display:flex;justify-content:space-between;gap:7px;padding:6px 0;border-bottom:1px dashed #2d2017;font-size:10px;">
+                                    <span style="color:#d4c5b9;">#${entry.rank} [${escapeHTML(entry.clanTag)}] ${escapeHTML(entry.clanName)}</span>
+                                    <strong style="color:#22c55e;">${Number(entry.totalDamage || 0).toLocaleString('tr-TR')}</strong>
+                                </div>
+                            `).join('') : `<div style="color:#6b7280;font-size:10px;">Henüz hiçbir klan hasar vermedi.</div>`}
+
+                            ${!war.active && war.lastWar?.winnerClanName ? `
+                                <div style="margin-top:10px;padding:8px;background:rgba(212,175,55,.06);border:1px solid #5b4720;border-radius:5px;font-size:10px;color:#9c8e7b;">
+                                    🏆 Son Kazanan:<br>
+                                    <strong style="color:#f3cf7a;">[${escapeHTML(war.lastWar.winnerClanTag || '')}] ${escapeHTML(war.lastWar.winnerClanName)}</strong><br>
+                                    ${Number(war.lastWar.winningDamage || 0).toLocaleString('tr-TR')} toplam hasar
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div id="clanWarLogResult" class="quest-log" style="margin-top:15px;">${escapeHTML(lastClanMessage || 'Kale savaşı raporları burada görünecek...')}</div>
+                `;
+
+                startClanCastleWarCountdown();
+
             } else if(activeTab === 'metin') {
                 const metinDefinitions = [
                     { id:1, name:'Savaş Metini', icon:'🪨', requiredLevel:1,  maxHp:500,   respawnHours:4,  hpCostPercent:4, papers:'1 Kutsama Kağıdı' },
@@ -10778,8 +10666,7 @@
             stopClanCastleWarCountdown();
 
             if (
-                activeTab !== 'clan' ||
-                !currentClanData ||
+                activeTab !== 'clanWar' ||
                 !clanCastleWarState
             ) {
                 return;
@@ -11013,10 +10900,7 @@
             clanCastleWarState =
                 data || null;
 
-            if (
-                activeTab === 'clan' &&
-                currentClanData
-            ) {
+            if (activeTab === 'clanWar') {
                 renderPanelContent();
             }
         });
@@ -11037,14 +10921,14 @@
             }
 
             if (
-                activeTab === 'clan' &&
+                activeTab === 'clanWar' &&
                 currentClanData
             ) {
                 renderPanelContent();
 
                 const logEl =
                     document.getElementById(
-                        'clanLogResult'
+                        'clanWarLogResult'
                     );
 
                 if (logEl && res?.message) {
@@ -11068,11 +10952,23 @@
         });
 
         socket.on('clanCastleWarRefresh', () => {
-            if (
-                activeTab === 'clan' &&
-                currentClanData
-            ) {
+            if (activeTab === 'clanWar') {
                 requestClanCastleWarStatus();
+            }
+        });
+
+        socket.on('clanCastleReward', (res) => {
+            if (res?.userData) {
+                updateHeader(res.userData);
+            }
+
+            if (res?.message) {
+                lastClanMessage = res.message;
+            }
+
+            if (activeTab === 'clanWar') {
+                requestClanCastleWarStatus();
+                renderPanelContent();
             }
         });
 
@@ -11093,14 +10989,9 @@
                 updateHeader(data.userData);
             }
 
-            if (currentClanData) {
-                requestClanCastleWarStatus();
-            } else {
-                clanCastleWarState = null;
-                stopClanCastleWarCountdown();
-            }
+            requestClanCastleWarStatus();
 
-            if (activeTab === 'clan') {
+            if (activeTab === 'clan' || activeTab === 'clanWar') {
                 renderPanelContent();
             }
         });
@@ -11389,7 +11280,7 @@
                     ...incomingTroops,
                     catapult: {
                         name: 'Mancınık',
-                        icon: '🏗️',
+                        icon: '🪵',
                         cost: 3000,
                         power: 100,
                         ...(previousTroops.catapult || {}),
