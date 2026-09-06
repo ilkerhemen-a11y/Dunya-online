@@ -372,7 +372,161 @@
         .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
         .inventory-item-card { background: linear-gradient(135deg, #17110d 0%, #0d0a08 100%); border: 1px solid #38291e; border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
         .item-info-area { display: flex; align-items: center; gap: 8px; }
-        .item-icon-box { width: 36px; height: 36px; background: #0b0806; border: 1px solid #2d2017; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .item-icon-box {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(145deg, #15100d 0%, #090705 100%);
+            border: 1px solid #4a3524;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.05),
+                0 4px 12px rgba(0,0,0,0.35);
+            flex-shrink: 0;
+        }
+
+        .item-icon-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.08), transparent 42%);
+            pointer-events: none;
+        }
+
+        .item-icon-box img,
+        .item-art-tile {
+            width: 100%;
+            height: 100%;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item-icon-box img {
+            object-fit: cover;
+        }
+
+        .item-art-tile {
+            position: relative;
+            font-size: 23px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.18), transparent 30%),
+                linear-gradient(145deg, #251b15 0%, #0c0907 100%);
+            box-shadow:
+                inset 0 0 14px rgba(255,255,255,0.04),
+                inset 0 -10px 14px rgba(0,0,0,0.2);
+        }
+
+        .item-art-tile::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(135deg, transparent 12%, rgba(255,255,255,0.08) 30%, transparent 55%);
+            pointer-events: none;
+        }
+
+        .item-art-tile.theme-blade {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.22), transparent 30%),
+                linear-gradient(145deg, #4a3b2f 0%, #17110d 60%, #090705 100%);
+        }
+
+        .item-art-tile.theme-sunblade {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,245,184,0.35), transparent 30%),
+                linear-gradient(145deg, #7c5a10 0%, #3d2b08 48%, #120d04 100%);
+            box-shadow:
+                inset 0 0 14px rgba(255,236,153,0.13),
+                0 0 12px rgba(250,204,21,0.12);
+        }
+
+        .item-art-tile.theme-armor {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.18), transparent 30%),
+                linear-gradient(145deg, #4b2d1e 0%, #26160f 55%, #0d0806 100%);
+        }
+
+        .item-art-tile.theme-royalarmor {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(244,217,142,0.24), transparent 30%),
+                linear-gradient(145deg, #4d2c61 0%, #261233 56%, #0e0713 100%);
+            box-shadow:
+                inset 0 0 14px rgba(168,85,247,0.15),
+                0 0 12px rgba(168,85,247,0.10);
+        }
+
+        .item-art-tile.theme-crown {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,249,196,0.32), transparent 30%),
+                linear-gradient(145deg, #7c6313 0%, #45340c 55%, #130f05 100%);
+            box-shadow:
+                inset 0 0 14px rgba(250,204,21,0.14),
+                0 0 10px rgba(250,204,21,0.10);
+        }
+
+        .item-art-tile.theme-ring {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.22), transparent 30%),
+                linear-gradient(145deg, #5f253d 0%, #2f101d 55%, #0f0509 100%);
+        }
+
+        .item-art-tile.theme-boots {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.18), transparent 30%),
+                linear-gradient(145deg, #355570 0%, #1a2836 55%, #070b0f 100%);
+        }
+
+        .item-art-tile.theme-gloves {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.18), transparent 30%),
+                linear-gradient(145deg, #5a3212 0%, #29170a 55%, #0c0704 100%);
+        }
+
+        .item-art-tile.theme-amulet {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(226,232,240,0.25), transparent 30%),
+                linear-gradient(145deg, #0f4c5c 0%, #0a2430 55%, #040b0f 100%);
+        }
+
+        .item-art-tile.theme-shield {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.18), transparent 30%),
+                linear-gradient(145deg, #3f454d 0%, #1f252b 55%, #090b0d 100%);
+        }
+
+        .item-art-tile.theme-scroll {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,250,220,0.28), transparent 30%),
+                linear-gradient(145deg, #80632d 0%, #463214 55%, #120d05 100%);
+        }
+
+        .item-art-tile.theme-material {
+            background:
+                radial-gradient(circle at 30% 28%, rgba(255,255,255,0.20), transparent 30%),
+                linear-gradient(145deg, #19445b 0%, #102433 55%, #060b11 100%);
+        }
+
+        .item-art-tile.theme-legendary {
+            box-shadow:
+                inset 0 0 16px rgba(250,204,21,0.16),
+                0 0 14px rgba(249,115,22,0.14);
+        }
+
+        .item-art-tile.theme-epic {
+            box-shadow:
+                inset 0 0 16px rgba(168,85,247,0.16),
+                0 0 14px rgba(168,85,247,0.12);
+        }
+
         .item-details { display: flex; flex-direction: column; gap: 2px; }
         
         .rarity-Sıradan { color: #d4c5b9; }
@@ -2967,11 +3121,76 @@
             return { bonusStr, bonusVit, totalStr, totalVit, combatPower, setCount };
         }
 
+        function getCleanItemName(name) {
+            return String(name || '').replace(/\s*\+\d+$/, '').trim();
+        }
+
+        function getItemVisualMeta(item) {
+            const cleanName = getCleanItemName(item?.name);
+            const type = item?.type || 'misc';
+            const rarity = item?.rarity || 'Sıradan';
+
+            const namedVisuals = {
+                'Tahta Kılıç': { icon: '🗡️', theme: 'blade' },
+                'Deri Zırh': { icon: '🥋', theme: 'armor' },
+                'Güneş Kılıcı': { icon: '⚔️', theme: 'sunblade' },
+                'Vezir Zırhı': { icon: '🛡️', theme: 'royalarmor' },
+                'Sultan Tacı': { icon: '👑', theme: 'crown' },
+                'Hünkar Yüzüğü': { icon: '💍', theme: 'ring' },
+                'Şehzade Çizmesi': { icon: '👢', theme: 'boots' },
+                'Tuğra Tacı': { icon: '👑', theme: 'crown' },
+                'Saray Kolyesi': { icon: '📿', theme: 'amulet' },
+                'Hümayun Zırhı': { icon: '🛡️', theme: 'royalarmor' },
+                'Hakan Kılıcı': { icon: '⚔️', theme: 'sunblade' },
+                'Cihan Kalkanı': { icon: '🛡️', theme: 'shield' },
+                'Fetih Yüzüğü': { icon: '💍', theme: 'ring' },
+                'Serdar Eldiveni': { icon: '🧤', theme: 'gloves' },
+                'Akıncı Çizmesi': { icon: '👢', theme: 'boots' },
+                'Kutsama Kağıdı': { icon: '📜', theme: 'scroll' }
+            };
+
+            const typeVisuals = {
+                weapon: { icon: '⚔️', theme: 'blade' },
+                armor: { icon: '🛡️', theme: 'armor' },
+                helmet: { icon: '👑', theme: 'crown' },
+                ring: { icon: '💍', theme: 'ring' },
+                boots: { icon: '👢', theme: 'boots' },
+                gloves: { icon: '🧤', theme: 'gloves' },
+                shield: { icon: '🛡️', theme: 'shield' },
+                necklace: { icon: '📿', theme: 'amulet' },
+                material: { icon: '🧪', theme: 'material' }
+            };
+
+            const base = namedVisuals[cleanName] || typeVisuals[type] || {
+                icon: item?.icon || '📦',
+                theme: 'material'
+            };
+
+            let rarityTheme = '';
+            if (rarity === 'Efsanevi') rarityTheme = ' theme-legendary';
+            else if (rarity === 'Epik') rarityTheme = ' theme-epic';
+
+            return {
+                icon: base.icon || item?.icon || '📦',
+                themeClass: `theme-${base.theme}${rarityTheme}`
+            };
+        }
+
         function renderOverviewItemIcon(item) {
             if (item?.icon && String(item.icon).startsWith('http')) {
                 return `<img src="${escapeHTML(item.icon)}" alt="${escapeHTML(item.name || 'Eşya')}">`;
             }
-            return escapeHTML(item?.icon || '📦');
+
+            const visual = getItemVisualMeta(item);
+
+            return `
+                <span
+                    class="item-art-tile ${visual.themeClass}"
+                    title="${escapeHTML(getCleanItemName(item?.name || 'Eşya'))}"
+                >
+                    ${escapeHTML(visual.icon)}
+                </span>
+            `;
         }
 
         function renderOverviewEquipmentSlot(slot, item, label, placeholder) {
@@ -4318,7 +4537,7 @@
                     <div class="market-list">
                         <div class="market-card" style="border-color:#a855f7; box-shadow:0 0 10px rgba(168,85,247,0.18);">
                             <div class="item-info-area">
-                                <div class="item-icon-box">⚔️</div>
+                                <div class="item-icon-box">${renderOverviewItemIcon({ name: 'Güneş Kılıcı', type: 'weapon', rarity: 'Epik', icon: '⚔️' })}</div>
                                 <div class="market-info">
                                     <h4 class="rarity-Epik"><span style="font-size:10px; border:1px solid #a855f7; padding:1px 4px; border-radius:3px; margin-right:5px;">EPİK</span>Güneş Kılıcı +1</h4>
                                     <p>Güç: +12 | Dayanıklılık: +4</p>
@@ -4329,7 +4548,7 @@
                         </div>
                         <div class="market-card" style="border-color:#a855f7; box-shadow:0 0 10px rgba(168,85,247,0.18);">
                             <div class="item-info-area">
-                                <div class="item-icon-box">🛡️</div>
+                                <div class="item-icon-box">${renderOverviewItemIcon({ name: 'Vezir Zırhı', type: 'armor', rarity: 'Epik', icon: '🛡️' })}</div>
                                 <div class="market-info">
                                     <h4 class="rarity-Epik"><span style="font-size:10px; border:1px solid #a855f7; padding:1px 4px; border-radius:3px; margin-right:5px;">EPİK</span>Vezir Zırhı +1</h4>
                                     <p>Güç: +5 | Dayanıklılık: +15</p>
@@ -4340,7 +4559,7 @@
                         </div>
                         <div class="market-card" style="border-color:#a855f7; box-shadow:0 0 10px rgba(168,85,247,0.18);">
                             <div class="item-info-area">
-                                <div class="item-icon-box">👑</div>
+                                <div class="item-icon-box">${renderOverviewItemIcon({ name: 'Sultan Tacı', type: 'helmet', rarity: 'Epik', icon: '👑' })}</div>
                                 <div class="market-info">
                                     <h4 class="rarity-Epik"><span style="font-size:10px; border:1px solid #a855f7; padding:1px 4px; border-radius:3px; margin-right:5px;">EPİK</span>Sultan Tacı +1</h4>
                                     <p>Güç: +4 | Dayanıklılık: +10</p>
@@ -4351,7 +4570,7 @@
                         </div>
                         <div class="market-card" style="border-color:#a855f7; box-shadow:0 0 10px rgba(168,85,247,0.18);">
                             <div class="item-info-area">
-                                <div class="item-icon-box">💍</div>
+                                <div class="item-icon-box">${renderOverviewItemIcon({ name: 'Hünkar Yüzüğü', type: 'ring', rarity: 'Epik', icon: '💍' })}</div>
                                 <div class="market-info">
                                     <h4 class="rarity-Epik"><span style="font-size:10px; border:1px solid #a855f7; padding:1px 4px; border-radius:3px; margin-right:5px;">EPİK</span>Hünkar Yüzüğü +1</h4>
                                     <p>Güç: +8 | Dayanıklılık: +8</p>
@@ -4362,7 +4581,7 @@
                         </div>
                         <div class="market-card" style="border-color:#a855f7; box-shadow:0 0 10px rgba(168,85,247,0.18);">
                             <div class="item-info-area">
-                                <div class="item-icon-box">👢</div>
+                                <div class="item-icon-box">${renderOverviewItemIcon({ name: 'Şehzade Çizmesi', type: 'boots', rarity: 'Epik', icon: '👢' })}</div>
                                 <div class="market-info">
                                     <h4 class="rarity-Epik"><span style="font-size:10px; border:1px solid #a855f7; padding:1px 4px; border-radius:3px; margin-right:5px;">EPİK</span>Şehzade Çizmesi +1</h4>
                                     <p>Güç: +6 | Dayanıklılık: +6</p>
@@ -5398,7 +5617,7 @@
                                         return `
                                             <div class="forge-card">
                                                 <div class="item-info-area">
-                                                    <div class="item-icon-box">${item.icon || '📦'}</div>
+                                                    <div class="item-icon-box">${renderOverviewItemIcon(item)}</div>
                                                     <div class="forge-info">
                                                         <h4 class="${rarityClass}">${cleanName} +${currentLvl}</h4>
                                                         <p>⚔️ STR +${Number(item.strBonus) || 0} | 🛡️ VIT +${Number(item.vitBonus) || 0}</p>
@@ -5457,7 +5676,7 @@
                                         return `
                                             <div class="forge-card">
                                                 <div class="item-info-area">
-                                                    <div class="item-icon-box">${item.icon || '📦'}</div>
+                                                    <div class="item-icon-box">${renderOverviewItemIcon(item)}</div>
                                                     <div class="forge-info">
                                                         <h4 class="${rarityClass}">${cleanName} +${level}</h4>
                                                         <p>⚔️ STR +${Number(item.strBonus) || 0} | 🛡️ VIT +${Number(item.vitBonus) || 0}</p>
@@ -5502,7 +5721,7 @@
                                         return `
                                             <div class="forge-card">
                                                 <div class="item-info-area">
-                                                    <div class="item-icon-box">${item.icon || '📦'}</div>
+                                                    <div class="item-icon-box">${renderOverviewItemIcon(item)}</div>
                                                     <div class="forge-info">
                                                         <h4 class="${rarityClass}">${cleanName} +${level}</h4>
                                                         <p>⚔️ STR +${Number(item.strBonus) || 0} | 🛡️ VIT +${Number(item.vitBonus) || 0} | Toplam ${totalStats}</p>
@@ -5909,7 +6128,7 @@
                                 ${myStall.inventory.length > 0 ? myStall.inventory.map((itemObj, idx) => `
                                     <div style="background:#0d0a08; border:1px solid #33241b; padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; font-size:11px;">
                                         <span>
-                                            ${itemObj.item.icon || '📦'} ${escapeHTML(itemObj.item.name)}
+                                            <span style="display:inline-flex;align-items:center;gap:8px;"><span class="item-icon-box" style="width:32px;height:32px;">${renderOverviewItemIcon(itemObj.item)}</span><span>${escapeHTML(itemObj.item.name)}</span></span>
                                             ${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? `<strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong>` : ''}
                                             (<strong style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#f3cf7a'};">${itemObj.price} ${itemObj.currency === 'ruby' ? '💎' : '🪙'}</strong>)
                                         </span>
@@ -5950,7 +6169,7 @@
                                 ${st.inventory && st.inventory.length > 0 ? st.inventory.map((itemObj, sIdx) => `
                                     <div style="background:#0d0a08; border:1px solid #33241b; padding:8px; border-radius:4px; display:flex; justify-content:space-between; align-items:center; width:100%; font-size:11px;">
                                         <div style="display:flex; align-items:center; gap:8px;">
-                                            <span>${itemObj.item.icon || '📦'}</span>
+                                            <span class="item-icon-box" style="width:32px;height:32px;">${renderOverviewItemIcon(itemObj.item)}</span>
                                             <div>
                                                 <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? ` +${Number(itemObj.item.level) || 0}` : ''}</strong>
                                                 <div style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#22c55e'}; font-weight:bold;">
