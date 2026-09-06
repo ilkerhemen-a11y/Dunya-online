@@ -4035,7 +4035,7 @@
 
                             <div style="margin-top:9px;padding:7px 9px;border:1px solid #5b4720;border-radius:5px;background:rgba(212,175,55,.05);font-size:9px;color:#9c8e7b;text-align:center;">
                                 🎁 <strong style="color:#f3cf7a;">Onur Ödülü:</strong>
-                                Her 100 Onur puanında <strong style="color:#c4b5fd;">100 Yakut 💎</strong>.
+                                Her 100 Onur puanında <strong style="color:#c4b5fd;">10 Yakut 💎</strong>.
                                 Şu an: <strong>${currentHonor}</strong> • Sonraki ödül: <strong>${nextHonorRubyTarget} Onur</strong> • İlerleme: <strong>${honorRubyProgress}/100</strong>
                             </div>
                         </div>
@@ -6488,7 +6488,7 @@
                         </div>
 
                         <div style="margin-top:7px;font-size:10px;color:#c4b5fd;">
-                            🎁 Her <strong>100 Onur</strong> puanında otomatik olarak <strong>100 Yakut 💎</strong> kazanırsın.
+                            🎁 Her <strong>100 Onur</strong> puanında otomatik olarak <strong>10 Yakut 💎</strong> kazanırsın.
                             Sonraki eşik: <strong>${(Math.floor((Number(u.honor) || 0) / 100) + 1) * 100} Onur</strong>
                         </div>
                     </div>
@@ -6693,6 +6693,7 @@
 
                                                     <p>
                                                         Seviye ${Number(clan.level || 1)}
+                                                        • ${escapeHTML(clan.rankTitle || 'Oba')}
                                                         • Üye ${Number(clan.memberCount || 0)}/${Number(clan.maxMembers || 15)}
                                                         • Hazine ${Number(clan.treasury || 0).toLocaleString('tr-TR')} 🪙
                                                     </p>
@@ -6886,12 +6887,20 @@
                             ">
                                 🏰 Klan Kalesi<br>
                                 <strong style="color:#60a5fa;">
-                                    ${
-                                        clan.castleId
-                                            ? escapeHTML(clan.castleId)
-                                            : 'Henüz Yok'
-                                    }
+                                    ${clan.castleId ? escapeHTML(clan.castleId) : 'Henüz Yok'}
                                 </strong>
+                            </div>
+
+                            <div style="background:#0d0a08;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:11px;">
+                                ⭐ Klan Seviyesi<br>
+                                <strong style="color:#f3cf7a;">
+                                    ${Number(clan.level || 1)}/${Number(clan.maxLevel || 5)} • ${escapeHTML(clan.rankTitle || 'Oba')}
+                                </strong>
+                            </div>
+
+                            <div style="background:#0d0a08;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:11px;">
+                                ⚔️ Klan Kale Bonusu<br>
+                                <strong style="color:#f97316;">+%${Number(clan.castleDamageBonusPercent || 0)}</strong>
                             </div>
                         </div>
                     </div>
@@ -7093,6 +7102,27 @@
                                 </div>
                             </div>
 
+                            <div style="background:#120e0c;border:1px solid #7c5a10;border-radius:6px;padding:12px;">
+                                <h3 style="color:#ffdf73;font-size:13px;margin-bottom:7px;">🏛️ Klan Geliştirme</h3>
+                                <div style="font-size:10px;color:#9c8e7b;line-height:1.6;">
+                                    <div>Mevcut: <strong style="color:#f3cf7a;">Seviye ${Number(clan.level || 1)} — ${escapeHTML(clan.rankTitle || 'Oba')}</strong></div>
+                                    <div>👥 Üye Kapasitesi: <strong>${Number(clan.maxMembers || 15)}</strong></div>
+                                    <div>🏰 Klan Kale Hasarı: <strong style="color:#f97316;">+%${Number(clan.castleDamageBonusPercent || 0)}</strong></div>
+                                    ${clan.isMaxLevel ? `
+                                        <div style="margin-top:7px;color:#22c55e;font-weight:bold;">✅ Maksimum klan seviyesine ulaşıldı.</div>
+                                    ` : `
+                                        <div style="margin-top:7px;padding-top:7px;border-top:1px dashed #3d2f23;">
+                                            Sonraki geliştirme: <strong style="color:#f3cf7a;">${Number(clan.nextUpgradeCost || 0).toLocaleString('tr-TR')} Altın</strong>
+                                        </div>
+                                        <div style="color:#c4b5fd;margin-top:3px;">✨ ${escapeHTML(clan.nextLevelBenefit || '')}</div>
+                                    `}
+                                </div>
+                                <button id="upgradeClanBtn" class="btn-quest" style="width:100%;margin-top:9px;"
+                                    ${clan.isMaxLevel || myRole !== 'leader' || Number(clan.treasury || 0) < Number(clan.nextUpgradeCost || 0) ? 'disabled' : ''}
+                                    onclick="upgradeClanSubmit()">
+                                    ${clan.isMaxLevel ? '🏆 Maksimum Seviye' : (myRole !== 'leader' ? '🔒 Sadece Lider Geliştirebilir' : (Number(clan.treasury || 0) < Number(clan.nextUpgradeCost || 0) ? '💰 Hazine Yetersiz' : `⬆️ Seviye ${Number(clan.level || 1) + 1} Yap`))}
+                                </button>
+                            </div>
 
                         </div>
                     </div>
@@ -7342,7 +7372,7 @@
 
                             <div class="howto-step">
                                 Arena ve Klan Kale Savaşı ile Onur kazan.
-                                Her yeni <strong>100 Onur eşiğinde +100 Yakut</strong> ödülünü hedefle.
+                                Her yeni <strong>100 Onur eşiğinde +10 Yakut</strong> ödülünü hedefle.
                             </div>
 
                             <div class="howto-step">
@@ -8009,7 +8039,7 @@
                             <div class="howto-tip">
                                 🎁 <strong>Onur Ödül Sistemi:</strong>
                                 Her yeni 100 Onur eşiğine ulaştığında
-                                <strong>+100 Yakut 💎</strong> kazanırsın.
+                                <strong>+10 Yakut 💎</strong> kazanırsın.
                                 Örneğin 95 → 110 Onur olduğunda 100 Onur ödülü verilir.
                                 Daha önce alınmış aynı eşik, Onurun düşüp tekrar yükselse bile
                                 ikinci kez ödül üretmez.
@@ -8064,10 +8094,26 @@
                                 klan dağılır.
                             </p>
 
+                            <h4>🏛️ Klan Seviyeleri</h4>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead><tr><th>Seviye</th><th>Unvan</th><th>Kapasite</th><th>Kale Hasarı</th><th>Sonraki Maliyet</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>1</td><td>Oba</td><td>15</td><td>%0</td><td>25.000 Altın</td></tr>
+                                        <tr><td>2</td><td>Sancak</td><td>20</td><td>%0</td><td>50.000 Altın</td></tr>
+                                        <tr><td>3</td><td>Beylik</td><td>20</td><td>%2</td><td>75.000 Altın</td></tr>
+                                        <tr><td>4</td><td>Hanedan</td><td>25</td><td>%2</td><td>100.000 Altın</td></tr>
+                                        <tr><td>5</td><td>Büyük Hanedan</td><td>25</td><td>%2</td><td>Maksimum</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>Klan geliştirmesini yalnızca <strong>Klan Lideri</strong> yapabilir ve maliyet klan hazinesinden düşer.</p>
+
                             <div class="howto-tip">
-                                💡 Klan hazinesi özellikle Klan Kale Savaşı ödüllerinin
-                                toplandığı ortak kasadır. Kale savaşı kazanıldığında
-                                ödül doğrudan kişisel Altına değil klan hazinesine eklenir.
+                                💡 Klan hazinesi artık hem Klan Kale Savaşı ödüllerinin toplandığı ortak kasa,
+                                hem de <strong>Klan Seviyesi geliştirmelerinin</strong> ana kaynağıdır.
                             </div>
                         </div>
                     </details>
@@ -8189,7 +8235,7 @@
                             <div class="howto-grid">
                                 <div class="howto-mini-card">
                                     <b>🕒 Savaş Saatleri</b>
-                                    Türkiye saatiyle 00:00, 06:00, 12:00 ve 18:00'de açılır.
+                                    Türkiye saatiyle her gün 15:00 ve 21:00'de açılır.
                                 </div>
 
                                 <div class="howto-mini-card">
@@ -8250,7 +8296,7 @@
                                 <div class="howto-mini-card">
                                     <b>💎 Onur → Yakut</b>
                                     Ödülle yeni bir 100 Onur eşiği geçilirse
-                                    her eşik için +100 Yakut da otomatik verilir.
+                                    her eşik için +10 Yakut da otomatik verilir.
                                 </div>
                             </div>
 
@@ -8379,14 +8425,14 @@
 
                                 <div class="howto-mini-card">
                                     <b>🏰 Klan Kale Savaşı</b>
-                                    00:00 / 06:00 / 12:00 / 18:00'de açılır,
+                                    15:00 / 21:00'de açılır,
                                     30 dakika sürer; oyuncu başına 5 saldırı ve
                                     saldırılar arasında 10 saniye bekleme vardır.
                                 </div>
 
                                 <div class="howto-mini-card">
                                     <b>🌟 Onur Ödülü</b>
-                                    Her yeni 100 Onur eşiğinde +100 Yakut.
+                                    Her yeni 100 Onur eşiğinde +10 Yakut.
                                     Aynı eşik ikinci kez ödül vermez.
                                 </div>
                             </div>
@@ -8445,7 +8491,7 @@
                                 <div class="howto-step">
                                     100 Onur eşiklerini takip et. Arena ve kazanan
                                     Klan Kale Savaşı ödülleri yeni eşik geçirirse
-                                    Yakut ödülü otomatik gelir.
+                                    her yeni eşikte 10 Yakut ödülü otomatik gelir.
                                 </div>
 
                                 <div class="howto-step">
@@ -8489,7 +8535,7 @@
                                 <div class="howto-mini-card">
                                     <b>🌟 Onur</b>
                                     Arena ve Klan Kale Savaşı ile kazanılabilen prestij puanı.
-                                    Her yeni 100 Onur eşiği +100 Yakut verir.
+                                    Her yeni 100 Onur eşiği +10 Yakut verir.
                                 </div>
 
                                 <div class="howto-mini-card">
@@ -8668,8 +8714,9 @@
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:12px;">
                             <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">👑 Kale Sahibi<br><strong style="color:#f3cf7a;">${ownerText}</strong></div>
                             <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">🛡️ Senin Klanın<br><strong style="color:${hasClan ? '#86efac' : '#fca5a5'};">${clanNameText}</strong></div>
-                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">🕒 Savaş Saatleri<br><strong style="color:#60a5fa;">00:00 • 06:00 • 12:00 • 18:00</strong></div>
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">🕒 Savaş Saatleri<br><strong style="color:#60a5fa;">15:00 • 21:00</strong></div>
                             <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">⏱️ Savaş Süresi<br><strong style="color:#d4c5b9;">${Number(war.durationMinutes || 30)} dakika</strong></div>
+                            <div style="background:#0b0806;border:1px solid #33241b;padding:9px;border-radius:5px;font-size:10px;color:#9c8e7b;">⚔️ Klan Seviye Bonusu<br><strong style="color:#f97316;">+%${Number(war.clanCastleDamageBonusPercent || 0)}</strong></div>
                         </div>
 
                         <div id="clanWarCountdown" style="margin-top:10px;text-align:center;color:${war.active ? '#fca5a5' : '#93c5fd'};font-size:12px;font-weight:bold;">
@@ -8683,7 +8730,7 @@
                             <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">💰 Kazanan Klan Hazinesi<br><strong style="color:#22c55e;">+${Number(rewardInfo.winnerTreasuryGold || 0).toLocaleString('tr-TR')} Altın</strong></div>
                             <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">🌟 Savaşa Katılan Kazanan Üye<br><strong style="color:#f3cf7a;">+${Number(rewardInfo.participantHonor || 0)} Onur</strong></div>
                             <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">🏆 En Yüksek Hasar Bonusu<br><strong style="color:#f97316;">+${Number(rewardInfo.topDamageHonorBonus || 0)} Onur</strong></div>
-                            <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">💎 Onur Milestone Ödülü<br><strong style="color:#c4b5fd;">Her ${Number(rewardInfo.honorStep || 100)} Onur = ${Number(rewardInfo.honorRubyReward || 100)} Yakut</strong></div>
+                            <div style="background:#0b0908;border:1px solid #33241b;border-radius:5px;padding:8px;font-size:10px;color:#9c8e7b;">💎 Onur Milestone Ödülü<br><strong style="color:#c4b5fd;">Her ${Number(rewardInfo.honorStep || 100)} Onur = ${Number(rewardInfo.honorRubyReward ?? 10)} Yakut</strong></div>
                         </div>
                     </div>
 
@@ -11084,6 +11131,21 @@
                 'donateClanGold',
                 { amount }
             );
+        }
+
+        function upgradeClanSubmit() {
+            if (!currentClanData) return;
+            if (currentClanData.isMaxLevel) return alert('Klan zaten maksimum seviyede.');
+
+            const cost = Number(currentClanData.nextUpgradeCost || 0);
+            const confirmed = confirm(
+                `Klanı Seviye ${Number(currentClanData.level || 1) + 1} yapmak için ` +
+                `${cost.toLocaleString('tr-TR')} Altın klan hazinesinden harcanacak. Devam edilsin mi?`
+            );
+            if (!confirmed) return;
+
+            cooldownButton('upgradeClanBtn', 1200);
+            socket.emit('upgradeClan');
         }
 
         function setClanRoleSubmit(
