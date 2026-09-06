@@ -2681,24 +2681,38 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('exchangeRubyForGold', async () => {
+    socket.on('exchangeRubyForGold', async (data) => {
         if (!checkRateLimit(socket.id)) return;
 
         const user = users[socket.id];
         if (!user) return;
 
-        const rubyCost = 1;
-        const goldReward = 100;
+        const rubyAmount = Number.parseInt(data?.amount, 10);
 
-        if ((user.rubies || 0) < rubyCost) {
+        if (
+            !Number.isInteger(rubyAmount) ||
+            rubyAmount < 100 ||
+            rubyAmount % 100 !== 0
+        ) {
             return socket.emit('marketResult', {
                 success: false,
                 userData: user,
-                message: "💎 Sarraf: Bu işlem için en az 1 Yakut gerekiyor."
+                message: "💎 Sarraf: Yakut bozdurma işlemi minimum 100 Yakut ve 100'ün katları şeklinde yapılır."
             });
         }
 
-        user.rubies -= rubyCost;
+        const goldReward = rubyAmount * 100;
+
+        if ((user.rubies || 0) < rubyAmount) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message:
+                    `💎 Sarraf: ${rubyAmount.toLocaleString('tr-TR')} Yakut bozdurmak için yeterli Yakutun yok.`
+            });
+        }
+
+        user.rubies -= rubyAmount;
         user.balance = (user.balance || 0) + goldReward;
 
         await user.save();
@@ -2706,36 +2720,67 @@ io.on('connection', (socket) => {
         socket.emit('marketResult', {
             success: true,
             userData: user,
-            message: `💰 Sarraf işlemi tamamlandı: -1 Yakut 💎 → +${goldReward} Altın 🪙`
+            exchange: {
+                direction: 'rubyToGold',
+                rubyAmount,
+                goldAmount: goldReward
+            },
+            message:
+                `💰 Sarraf işlemi tamamlandı: ` +
+                `-${rubyAmount.toLocaleString('tr-TR')} Yakut 💎 → ` +
+                `+${goldReward.toLocaleString('tr-TR')} Altın 🪙`
         });
     });
 
-    socket.on('exchangeGoldForRuby', async () => {
+    socket.on('exchangeGoldForRuby', async (data) => {
         if (!checkRateLimit(socket.id)) return;
 
         const user = users[socket.id];
         if (!user) return;
 
-        const goldCost = 1000;
-        const rubyReward = 1;
+        const rubyAmount = Number.parseInt(data?.amount, 10);
+
+        if (
+            !Number.isInteger(rubyAmount) ||
+            rubyAmount < 100 ||
+            rubyAmount % 100 !== 0
+        ) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🪙 Sarraf: Yakut satın alma işlemi minimum 100 Yakut ve 100'ün katları şeklinde yapılır."
+            });
+        }
+
+        const goldCost = rubyAmount * 1000;
 
         if ((user.balance || 0) < goldCost) {
             return socket.emit('marketResult', {
                 success: false,
                 userData: user,
-                message: `🪙 Sarraf: Bu işlem için ${goldCost.toLocaleString('tr-TR')} Altın gerekiyor.`
+                message:
+                    `🪙 Sarraf: ${rubyAmount.toLocaleString('tr-TR')} Yakut almak için ` +
+                    `${goldCost.toLocaleString('tr-TR')} Altın gerekiyor.`
             });
         }
 
         user.balance -= goldCost;
-        user.rubies = (user.rubies || 0) + rubyReward;
+        user.rubies = (user.rubies || 0) + rubyAmount;
 
         await user.save();
 
         socket.emit('marketResult', {
             success: true,
             userData: user,
-            message: `💰 Sarraf işlemi tamamlandı: -${goldCost.toLocaleString('tr-TR')} Altın 🪙 → +1 Yakut 💎`
+            exchange: {
+                direction: 'goldToRuby',
+                rubyAmount,
+                goldAmount: goldCost
+            },
+            message:
+                `💰 Sarraf işlemi tamamlandı: ` +
+                `-${goldCost.toLocaleString('tr-TR')} Altın 🪙 → ` +
+                `+${rubyAmount.toLocaleString('tr-TR')} Yakut 💎`
         });
     });
 
