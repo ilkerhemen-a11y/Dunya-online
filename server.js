@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
+const GAME_BUILD_ID = '2026-09-06-clan-catapult-fix-v2';
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
@@ -228,9 +230,10 @@ const HUKUMDAR_SET_BONUSES = {
 };
 
 const TROOP_TYPES = {
-    archer:  { name: 'Okçu',    icon: '🏹', cost: 250,  power: 10 },
-    warrior: { name: 'Savaşçı', icon: '⚔️', cost: 500,  power: 20 },
-    cavalry: { name: 'Süvari',  icon: '🐎', cost: 1000, power: 35 }
+    archer:   { name: 'Okçu',     icon: '🏹', cost: 250,  power: 10 },
+    warrior:  { name: 'Savaşçı',  icon: '⚔️', cost: 500,  power: 20 },
+    cavalry:  { name: 'Süvari',   icon: '🐎', cost: 1000, power: 35 },
+    catapult: { name: 'Mancınık', icon: '🏗️', cost: 3000, power: 100 }
 };
 
 const CASTLE_WALL_POWER = 500;
@@ -239,12 +242,13 @@ const CASTLE_DEFENSE_BONUS = 1.15;
 const NPC_CASTLE_ARMY = {
     archer: 50,
     warrior: 30,
-    cavalry: 20
+    cavalry: 20,
+    catapult: 0
 };
 
 function normalizeArmy(user) {
     if (!user.army) {
-        user.army = { archer: 0, warrior: 0, cavalry: 0 };
+        user.army = { archer: 0, warrior: 0, cavalry: 0, catapult: 0 };
         user.markModified('army');
         return true;
     }
@@ -281,7 +285,8 @@ function cloneArmy(army) {
     return {
         archer: Math.max(0, Number.parseInt(army?.archer, 10) || 0),
         warrior: Math.max(0, Number.parseInt(army?.warrior, 10) || 0),
-        cavalry: Math.max(0, Number.parseInt(army?.cavalry, 10) || 0)
+        cavalry: Math.max(0, Number.parseInt(army?.cavalry, 10) || 0),
+        catapult: Math.max(0, Number.parseInt(army?.catapult, 10) || 0)
     };
 }
 
@@ -303,7 +308,7 @@ function applyArmyLosses(army, lossRate) {
 
 function getArmyCount(army) {
     const safe = cloneArmy(army);
-    return safe.archer + safe.warrior + safe.cavalry;
+    return Object.values(safe).reduce((total, amount) => total + (Number(amount) || 0), 0);
 }
 
 function normalizeSiegeMarketState(user) {
@@ -332,12 +337,13 @@ function normalizeSiegeMarketState(user) {
             archer: 0,
             warrior: 0,
             cavalry: 0,
+            catapult: 0,
             available: false
         };
         changed = true;
     }
 
-    for (const type of ['archer', 'warrior', 'cavalry']) {
+    for (const type of ['archer', 'warrior', 'cavalry', 'catapult']) {
         const amount = Math.max(
             0,
             Number.parseInt(user.lastCastleLosses[type], 10) || 0
@@ -361,7 +367,7 @@ function normalizeSiegeMarketState(user) {
 }
 
 function formatArmyLosses(lost) {
-    return `🏹 ${lost.archer || 0} Okçu | ⚔️ ${lost.warrior || 0} Savaşçı | 🐎 ${lost.cavalry || 0} Süvari`;
+    return `🏹 ${lost.archer || 0} Okçu | ⚔️ ${lost.warrior || 0} Savaşçı | 🐎 ${lost.cavalry || 0} Süvari | 🏗️ ${lost.catapult || 0} Mancınık`;
 }
 
 function normalizeBankState(user) {
@@ -1287,6 +1293,12 @@ const userSchema = new mongoose.Schema({
     dungeonFloor: { type: Number, default: 1 },
     dungeonDailyAttempts: { type: [Number], default: () => Array(10).fill(0) },
     dungeonResetDate: { type: String, default: "" },
+
+    // --- KLAN SİSTEMİ ---
+    clanId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clan', default: null },
+    clanRole: { type: String, default: null }, // leader | officer | member
+    clanContribution: { type: Number, default: 0 },
+
     metinStoneHp: { type: [Number], default: () => Object.values(METIN_STONES).map(stone => stone.maxHp) },
     metinStoneRespawnAt: { type: [Number], default: () => Object.values(METIN_STONES).map(() => 0) },
     str: { type: Number, default: 5 },
@@ -1331,7 +1343,8 @@ const userSchema = new mongoose.Schema({
     army: {
         archer: { type: Number, default: 0 },
         warrior: { type: Number, default: 0 },
-        cavalry: { type: Number, default: 0 }
+        cavalry: { type: Number, default: 0 },
+        catapult: { type: Number, default: 0 }
     },
     castleVictories: { type: Number, default: 0 },
 
@@ -1345,6 +1358,7 @@ const userSchema = new mongoose.Schema({
         archer: { type: Number, default: 0 },
         warrior: { type: Number, default: 0 },
         cavalry: { type: Number, default: 0 },
+        catapult: { type: Number, default: 0 },
         available: { type: Boolean, default: false }
     },
 
@@ -1385,6 +1399,45 @@ const stallSchema = new mongoose.Schema({
     rubies: { type: Number, default: 0 } // Tezgah kasasındaki biriken yakut
 });
 const Stall = mongoose.model('Stall', stallSchema);
+
+// ============================================================
+// KLAN SİSTEMİ V1
+// ============================================================
+const CLAN_CREATE_COST = 10000;
+const CLAN_BASE_MAX_MEMBERS = 15;
+const CLAN_CHAT_HISTORY_LIMIT = 50;
+
+const clanMemberSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    role: { type: String, enum: ['leader', 'officer', 'member'], default: 'member' },
+    joinedAt: { type: Date, default: Date.now }
+}, { _id: false });
+
+const clanChatMessageSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    username: { type: String, required: true },
+    message: { type: String, required: true, maxlength: 150 },
+    createdAt: { type: Date, default: Date.now }
+}, { _id: false });
+
+const clanSchema = new mongoose.Schema({
+    name: { type: String, required: true, trim: true, maxlength: 24 },
+    nameKey: { type: String, required: true, unique: true, index: true },
+    tag: { type: String, required: true, trim: true, maxlength: 5 },
+    tagKey: { type: String, required: true, unique: true, index: true },
+    leaderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    members: { type: [clanMemberSchema], default: [] },
+    treasury: { type: Number, default: 0, min: 0 },
+    level: { type: Number, default: 1, min: 1 },
+    exp: { type: Number, default: 0, min: 0 },
+    maxMembers: { type: Number, default: CLAN_BASE_MAX_MEMBERS },
+    wins: { type: Number, default: 0 },
+    losses: { type: Number, default: 0 },
+    castleId: { type: String, default: null },
+    chatMessages: { type: [clanChatMessageSchema], default: [] }
+}, { timestamps: true });
+
+const Clan = mongoose.model('Clan', clanSchema);
 
 // Ana Kale / Taht durumu — tüm oyuncular için tek global kayıt
 const castleSchema = new mongoose.Schema({
@@ -1479,12 +1532,13 @@ function syncOnlineArmy(userId, army, noticeMessage = '') {
         if (String(onlineUser._id) !== String(userId)) continue;
 
         if (!onlineUser.army) {
-            onlineUser.army = { archer: 0, warrior: 0, cavalry: 0 };
+            onlineUser.army = { archer: 0, warrior: 0, cavalry: 0, catapult: 0 };
         }
 
         onlineUser.army.archer = army.archer || 0;
         onlineUser.army.warrior = army.warrior || 0;
         onlineUser.army.cavalry = army.cavalry || 0;
+        onlineUser.army.catapult = army.catapult || 0;
         onlineUser.markModified('army');
 
         io.to(socketId).emit('statUpdated', onlineUser);
@@ -1500,7 +1554,366 @@ function syncOnlineArmy(userId, army, noticeMessage = '') {
 let castleBattleLock = false;
 
 
-const users = {}; 
+const users = {};
+
+function getOnlinePlayerCount() {
+    const uniquePlayers = new Set();
+
+    for (const onlineUser of Object.values(users)) {
+        if (onlineUser?._id) {
+            uniquePlayers.add(String(onlineUser._id));
+        }
+    }
+
+    return uniquePlayers.size;
+}
+
+function broadcastOnlinePlayerCount() {
+    io.emit('onlinePlayerCount', {
+        count: getOnlinePlayerCount()
+    });
+}
+
+function normalizeClanName(value) {
+    return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ');
+}
+
+function getClanNameKey(value) {
+    return normalizeClanName(value).toLocaleLowerCase('tr-TR');
+}
+
+function normalizeClanTag(value) {
+    return String(value || '').normalize('NFKC').trim().toLocaleUpperCase('tr-TR');
+}
+
+function isValidClanName(name) {
+    return /^[A-Za-z0-9ÇĞİÖŞÜçğıöşü ]{3,24}$/u.test(name);
+}
+
+function isValidClanTag(tag) {
+    return /^[A-Z0-9ÇĞİÖŞÜ]{2,5}$/u.test(tag);
+}
+
+function getClanMemberPower(user) {
+    if (!user) {
+        return { totalStr: 5, totalVit: 5, power: 15 };
+    }
+
+    const totalStr = getTotalStr(user);
+    const totalVit = getTotalVit(user);
+    const power = getCharacterCombatPower(user);
+
+    return { totalStr, totalVit, power };
+}
+
+function isUserOnline(userId) {
+    const targetId = String(userId);
+    return Object.values(users).some(
+        onlineUser => onlineUser && String(onlineUser._id) === targetId
+    );
+}
+
+function syncOnlineUserClan(userId, clanId, role) {
+    const targetId = String(userId);
+
+    for (const onlineUser of Object.values(users)) {
+        if (!onlineUser || String(onlineUser._id) !== targetId) continue;
+        onlineUser.clanId = clanId || null;
+        onlineUser.clanRole = role || null;
+    }
+}
+
+function emitToOnlineUser(userId, eventName, payload) {
+    const targetId = String(userId);
+
+    for (const [socketId, onlineUser] of Object.entries(users)) {
+        if (!onlineUser || String(onlineUser._id) !== targetId) continue;
+        io.to(socketId).emit(eventName, payload);
+    }
+}
+
+function broadcastClanRefresh(clanId, message = '') {
+    if (!clanId) return;
+    const targetClanId = String(clanId);
+
+    for (const [socketId, onlineUser] of Object.entries(users)) {
+        if (!onlineUser?.clanId) continue;
+        if (String(onlineUser.clanId) !== targetClanId) continue;
+
+        io.to(socketId).emit('clanRefresh', {
+            message: String(message || '').substring(0, 180)
+        });
+    }
+}
+
+async function buildClanPayload(clan, requestingUser) {
+    if (!clan) return null;
+
+    const memberIds = (clan.members || []).map(member => member.userId);
+
+    const memberUsers = memberIds.length > 0
+        ? await User.find({ _id: { $in: memberIds } })
+            .select('username level str vit equipped honor clanContribution')
+            .lean()
+        : [];
+
+    const userMap = new Map(
+        memberUsers.map(memberUser => [String(memberUser._id), memberUser])
+    );
+
+    const members = (clan.members || []).map(member => {
+        const memberUser = userMap.get(String(member.userId));
+        const stats = getClanMemberPower(memberUser || null);
+
+        return {
+            userId: String(member.userId),
+            username: memberUser?.username || 'Bilinmeyen Oyuncu',
+            level: Math.max(1, Number(memberUser?.level) || 1),
+            honor: Math.max(0, Number(memberUser?.honor) || 0),
+            contribution: Math.max(0, Number(memberUser?.clanContribution) || 0),
+            role: member.role || 'member',
+            joinedAt: member.joinedAt,
+            totalStr: stats.totalStr,
+            totalVit: stats.totalVit,
+            power: stats.power,
+            online: isUserOnline(member.userId)
+        };
+    });
+
+    const roleOrder = { leader: 0, officer: 1, member: 2 };
+
+    members.sort((a, b) => {
+        const roleDifference =
+            (roleOrder[a.role] ?? 9) -
+            (roleOrder[b.role] ?? 9);
+
+        if (roleDifference !== 0) return roleDifference;
+        return b.power - a.power;
+    });
+
+    return {
+        _id: String(clan._id),
+        name: clan.name,
+        tag: clan.tag,
+        leaderId: String(clan.leaderId),
+        treasury: Math.max(0, Number(clan.treasury) || 0),
+        level: Math.max(1, Number(clan.level) || 1),
+        exp: Math.max(0, Number(clan.exp) || 0),
+        maxMembers: Math.max(
+            CLAN_BASE_MAX_MEMBERS,
+            Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
+        ),
+        memberCount: members.length,
+        wins: Math.max(0, Number(clan.wins) || 0),
+        losses: Math.max(0, Number(clan.losses) || 0),
+        castleId: clan.castleId || null,
+        myRole: requestingUser?.clanRole || 'member',
+        members,
+        chatMessages: (clan.chatMessages || [])
+            .slice(-CLAN_CHAT_HISTORY_LIMIT)
+            .map(chatMessage => ({
+                userId: String(chatMessage.userId),
+                username: chatMessage.username,
+                message: chatMessage.message,
+                createdAt: chatMessage.createdAt
+            }))
+    };
+}
+
+async function sendClanData(socket, user) {
+    if (!user?.clanId) {
+        socket.emit('clanData', {
+            clan: null,
+            userData: user || null
+        });
+        return;
+    }
+
+    const clan = await Clan.findById(user.clanId);
+
+    if (!clan) {
+        user.clanId = null;
+        user.clanRole = null;
+        await user.save();
+
+        socket.emit('clanData', {
+            clan: null,
+            userData: user
+        });
+        return;
+    }
+
+    const membership = (clan.members || []).find(
+        member => String(member.userId) === String(user._id)
+    );
+
+    if (!membership) {
+        user.clanId = null;
+        user.clanRole = null;
+        await user.save();
+
+        socket.emit('clanData', {
+            clan: null,
+            userData: user
+        });
+        return;
+    }
+
+    if (user.clanRole !== membership.role) {
+        user.clanRole = membership.role;
+        await user.save();
+    }
+
+    socket.emit('clanData', {
+        clan: await buildClanPayload(clan, user),
+        userData: user
+    });
+}
+
+
+function getRequestBearerToken(req) {
+    const auth = String(req.headers?.authorization || '');
+    if (auth.toLowerCase().startsWith('bearer ')) {
+        return auth.slice(7).trim();
+    }
+    return String(req.headers?.['x-auth-token'] || '').trim();
+}
+
+function safeUserForClient(user) {
+    if (!user) return null;
+    const obj = typeof user.toObject === 'function' ? user.toObject() : { ...user };
+    delete obj.password;
+    delete obj.token;
+    return obj;
+}
+
+// Backend'in gerçekten hangi sürümde çalıştığını tarayıcıdan kontrol etmek için.
+app.get('/api/build', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({
+        ok: true,
+        build: GAME_BUILD_ID,
+        clanV1: true,
+        catapult: true,
+        onlineCounter: true,
+        mongoReadyState: mongoose.connection.readyState
+    });
+});
+
+// Socket.IO klan cevabı herhangi bir nedenle gelmezse güvenli HTTP fallback.
+app.get('/api/clan-data', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+
+    try {
+        const token = getRequestBearerToken(req);
+        if (!token) {
+            return res.status(401).json({
+                ok: false,
+                error: 'Oturum anahtarı bulunamadı.'
+            });
+        }
+
+        const user = await User.findOne({ token });
+        if (!user) {
+            return res.status(401).json({
+                ok: false,
+                error: 'Oturum geçersiz veya süresi dolmuş.'
+            });
+        }
+
+        if (!user.clanId) {
+            return res.json({
+                ok: true,
+                clan: null,
+                userData: safeUserForClient(user)
+            });
+        }
+
+        const clan = await Clan.findById(user.clanId);
+
+        if (!clan) {
+            user.clanId = null;
+            user.clanRole = null;
+            await user.save();
+
+            return res.json({
+                ok: true,
+                clan: null,
+                userData: safeUserForClient(user)
+            });
+        }
+
+        const membership = (clan.members || []).find(
+            member => String(member.userId) === String(user._id)
+        );
+
+        if (!membership) {
+            user.clanId = null;
+            user.clanRole = null;
+            await user.save();
+
+            return res.json({
+                ok: true,
+                clan: null,
+                userData: safeUserForClient(user)
+            });
+        }
+
+        if (user.clanRole !== membership.role) {
+            user.clanRole = membership.role;
+            await user.save();
+        }
+
+        return res.json({
+            ok: true,
+            clan: await buildClanPayload(clan, user),
+            userData: safeUserForClient(user)
+        });
+    } catch (err) {
+        console.error('GET /api/clan-data hatası:', err);
+        return res.status(500).json({
+            ok: false,
+            error: 'Klan bilgileri HTTP üzerinden yüklenemedi.'
+        });
+    }
+});
+
+app.get('/api/clan-list', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+
+    try {
+        const clans = await Clan.find({})
+            .select('name tag level treasury members maxMembers wins losses')
+            .sort({ level: -1, treasury: -1, createdAt: 1 })
+            .limit(50)
+            .lean();
+
+        return res.json({
+            ok: true,
+            clans: clans.map(clan => ({
+                _id: String(clan._id),
+                name: clan.name,
+                tag: clan.tag,
+                level: Math.max(1, Number(clan.level) || 1),
+                treasury: Math.max(0, Number(clan.treasury) || 0),
+                memberCount: Array.isArray(clan.members) ? clan.members.length : 0,
+                maxMembers: Math.max(
+                    CLAN_BASE_MAX_MEMBERS,
+                    Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
+                ),
+                wins: Math.max(0, Number(clan.wins) || 0),
+                losses: Math.max(0, Number(clan.losses) || 0)
+            }))
+        });
+    } catch (err) {
+        console.error('GET /api/clan-list hatası:', err);
+        return res.status(500).json({
+            ok: false,
+            clans: [],
+            error: 'Klan listesi HTTP üzerinden yüklenemedi.'
+        });
+    }
+});
 
 const rateLimits = {};
 function checkRateLimit(socketId) {
@@ -1518,7 +1931,20 @@ const getDefaultInventory = () => [
 ];
 
 io.on('connection', (socket) => {
-    
+    socket.on('getGameBuildInfo', () => {
+        socket.emit('gameBuildInfo', {
+            build: GAME_BUILD_ID,
+            clanV1: true,
+            catapult: true,
+            onlineCounter: true
+        });
+    });
+
+    // Giriş yapmamış istemci dahil herkese mevcut online oyuncu sayısını göster.
+    socket.emit('onlinePlayerCount', {
+        count: getOnlinePlayerCount()
+    });
+
     socket.on('userRegister', async (data) => {
         const { username, password } = data;
         if (!username || !password) return socket.emit('authResult', { success: false, message: "Eksik bilgi!" });
@@ -1567,6 +1993,7 @@ io.on('connection', (socket) => {
             await dbUser.save();
             
             users[socket.id] = dbUser;
+            broadcastOnlinePlayerCount();
             socket.emit('authResult', { success: true, message: "Giriş başarılı!", token: token });
             
             const userData = dbUser.toObject();
@@ -1598,6 +2025,7 @@ io.on('connection', (socket) => {
             await dbUser.save();
             
             users[socket.id] = dbUser;
+            broadcastOnlinePlayerCount();
             const userData = dbUser.toObject();
             userData.offlineGoldEarned = offlineGold;
             socket.emit('userData', userData);
@@ -1606,9 +2034,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('logout', () => { 
-        delete users[socket.id]; 
-        socket.emit('logoutSuccess'); 
+    socket.on('logout', () => {
+        delete users[socket.id];
+        broadcastOnlinePlayerCount();
+        socket.emit('logoutSuccess');
     });
 
     socket.on('getOverviewStatus', async () => {
@@ -2100,7 +2529,8 @@ io.on('connection', (socket) => {
                 baseCost: TROOP_TYPES.cavalry.cost,
                 cost: Math.max(1, Math.floor(TROOP_TYPES.cavalry.cost * (1 - cavalryDiscount))),
                 discountPercent: Math.round(cavalryDiscount * 100)
-            }
+            },
+            catapult: { ...TROOP_TYPES.catapult }
         };
 
         return {
@@ -2159,7 +2589,7 @@ io.on('connection', (socket) => {
                 return socket.emit('barracksResult', {
                     success: false,
                     userData: user,
-                    message: 'Tek seferde 1 ile 100 arasında asker yetiştirebilirsin.'
+                    message: 'Tek seferde 1 ile 100 arasında birlik üretebilirsin.'
                 });
             }
 
@@ -2208,7 +2638,7 @@ io.on('connection', (socket) => {
                 armyPower,
                 armyCount: getArmyCount(user.army),
                 message:
-                    `${troop.icon} ${quantity} ${troop.name} yetiştirildi! ` +
+                    `${troop.icon} ${quantity} ${troop.name} ${troopType === 'catapult' ? 'inşa edildi' : 'yetiştirildi'}! ` +
                     `🪙 ${totalCost.toLocaleString('tr-TR')} Altın harcandı. ` +
                     `${troopType === 'cavalry' && cavalryDiscount > 0
                         ? `🐎 Ahır indirimi: %${Math.round(cavalryDiscount * 100)}. `
@@ -2398,16 +2828,19 @@ io.on('connection', (socket) => {
             user.army.archer = attackerLossResult.after.archer;
             user.army.warrior = attackerLossResult.after.warrior;
             user.army.cavalry = attackerLossResult.after.cavalry;
+            user.army.catapult = attackerLossResult.after.catapult;
 
             user.lastCastleLosses = {
                 archer: attackerLossResult.lost.archer || 0,
                 warrior: attackerLossResult.lost.warrior || 0,
                 cavalry: attackerLossResult.lost.cavalry || 0,
+                catapult: attackerLossResult.lost.catapult || 0,
                 available:
                     (
                         (attackerLossResult.lost.archer || 0) +
                         (attackerLossResult.lost.warrior || 0) +
-                        (attackerLossResult.lost.cavalry || 0)
+                        (attackerLossResult.lost.cavalry || 0) +
+                        (attackerLossResult.lost.catapult || 0)
                     ) > 0
             };
 
@@ -2430,17 +2863,22 @@ io.on('connection', (socket) => {
                 defenderUser.army.cavalry =
                     defenderLossResult.after.cavalry;
 
+                defenderUser.army.catapult =
+                    defenderLossResult.after.catapult;
+
                 normalizeSiegeMarketState(defenderUser);
 
                 defenderUser.lastCastleLosses = {
                     archer: defenderLossResult.lost.archer || 0,
                     warrior: defenderLossResult.lost.warrior || 0,
                     cavalry: defenderLossResult.lost.cavalry || 0,
+                    catapult: defenderLossResult.lost.catapult || 0,
                     available:
                         (
                             (defenderLossResult.lost.archer || 0) +
                             (defenderLossResult.lost.warrior || 0) +
-                            (defenderLossResult.lost.cavalry || 0)
+                            (defenderLossResult.lost.cavalry || 0) +
+                            (defenderLossResult.lost.catapult || 0)
                         ) > 0
                 };
 
@@ -2541,6 +2979,13 @@ io.on('connection', (socket) => {
                     name: 'Okçu Yaylımı',
                     attackerUnits: attackerArmy.archer,
                     defenderUnits: defenderArmy.archer
+                },
+                {
+                    id: 'catapult',
+                    icon: '🏗️',
+                    name: 'Mancınık Bombardımanı',
+                    attackerUnits: attackerArmy.catapult,
+                    defenderUnits: defenderArmy.catapult
                 },
                 {
                     id: 'infantry',
@@ -3631,7 +4076,8 @@ io.on('connection', (socket) => {
         const totalLosses =
             (Number(losses.archer) || 0) +
             (Number(losses.warrior) || 0) +
-            (Number(losses.cavalry) || 0);
+            (Number(losses.cavalry) || 0) +
+            (Number(losses.catapult) || 0);
 
         if (!losses.available || totalLosses <= 0) {
             return socket.emit('marketResult', {
@@ -3652,7 +4098,8 @@ io.on('connection', (socket) => {
         const restored = {
             archer: Math.ceil((Number(losses.archer) || 0) * 0.10),
             warrior: Math.ceil((Number(losses.warrior) || 0) * 0.10),
-            cavalry: Math.ceil((Number(losses.cavalry) || 0) * 0.10)
+            cavalry: Math.ceil((Number(losses.cavalry) || 0) * 0.10),
+            catapult: Math.ceil((Number(losses.catapult) || 0) * 0.10)
         };
 
         user.balance -= cost;
@@ -3660,11 +4107,13 @@ io.on('connection', (socket) => {
         user.army.archer += restored.archer;
         user.army.warrior += restored.warrior;
         user.army.cavalry += restored.cavalry;
+        user.army.catapult += restored.catapult;
 
         user.lastCastleLosses = {
             archer: 0,
             warrior: 0,
             cavalry: 0,
+            catapult: 0,
             available: false
         };
 
@@ -3680,7 +4129,8 @@ io.on('connection', (socket) => {
                 `🩹 Ordu Hekimi yaralı askerleri geri döndürdü! ` +
                 `🏹 +${restored.archer} Okçu | ` +
                 `⚔️ +${restored.warrior} Savaşçı | ` +
-                `🐎 +${restored.cavalry} Süvari.`
+                `🐎 +${restored.cavalry} Süvari | ` +
+                `🏗️ +${restored.catapult} Mancınık.`
         });
     });
 
@@ -4817,13 +5267,869 @@ io.on('connection', (socket) => {
         socket.emit('statUpdated', user);
     });
 
+    // ============================================================
+    // KLAN SİSTEMİ V1 — AKTİF
+    // ============================================================
+
+    socket.on('getClanData', async () => {
+        const user = users[socket.id];
+
+        if (!user) {
+            return socket.emit('clanData', {
+                clan: null,
+                userData: null,
+                error: 'Oturum bulunamadı. Lütfen yeniden giriş yap.'
+            });
+        }
+
+        try {
+            await sendClanData(socket, user);
+        } catch (err) {
+            console.error('getClanData hatası:', err);
+
+            // Hata durumunda da istemciye clanData gönder.
+            // Böylece Klan ekranı "yükleniyor" durumunda sonsuza kadar kalmaz.
+            socket.emit('clanData', {
+                clan: null,
+                userData: user,
+                error: 'Klan bilgileri yüklenirken sunucu hatası oluştu.'
+            });
+        }
+    });
+
+    socket.on('getClanList', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            const clans = await Clan.find({})
+                .select('name tag level treasury members maxMembers wins losses')
+                .sort({ level: -1, treasury: -1, createdAt: 1 })
+                .limit(50)
+                .lean();
+
+            socket.emit('clanList', clans.map(clan => ({
+                _id: String(clan._id),
+                name: clan.name,
+                tag: clan.tag,
+                level: Math.max(1, Number(clan.level) || 1),
+                treasury: Math.max(0, Number(clan.treasury) || 0),
+                memberCount: Array.isArray(clan.members) ? clan.members.length : 0,
+                maxMembers: Math.max(
+                    CLAN_BASE_MAX_MEMBERS,
+                    Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
+                ),
+                wins: Math.max(0, Number(clan.wins) || 0),
+                losses: Math.max(0, Number(clan.losses) || 0)
+            })));
+        } catch (err) {
+            console.error('getClanList hatası:', err);
+
+            // Liste hatası ana klan ekranını kilitlemesin.
+            socket.emit('clanList', []);
+            socket.emit('clanListError', {
+                message: 'Klan listesi yüklenemedi.'
+            });
+        }
+    });
+
+    socket.on('createClan', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        if (user.clanId) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Zaten bir klana üyesin.'
+            });
+        }
+
+        const name = normalizeClanName(data?.name);
+        const tag = normalizeClanTag(data?.tag);
+
+        if (!isValidClanName(name)) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klan adı 3-24 karakter olmalı. Harf, rakam ve boşluk kullanabilirsin.'
+            });
+        }
+
+        if (!isValidClanTag(tag)) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klan etiketi 2-5 karakter olmalı. Harf ve rakam kullanabilirsin.'
+            });
+        }
+
+        if ((Number(user.balance) || 0) < CLAN_CREATE_COST) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: `Klan kurmak için ${CLAN_CREATE_COST.toLocaleString('tr-TR')} Altın gerekiyor.`
+            });
+        }
+
+        let createdClan = null;
+
+        try {
+            const existingClan = await Clan.findOne({
+                $or: [
+                    { nameKey: getClanNameKey(name) },
+                    { tagKey: tag }
+                ]
+            }).lean();
+
+            if (existingClan) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Bu klan adı veya etiketi başka bir klan tarafından kullanılıyor.'
+                });
+            }
+
+            createdClan = new Clan({
+                name,
+                nameKey: getClanNameKey(name),
+                tag,
+                tagKey: tag,
+                leaderId: user._id,
+                members: [{
+                    userId: user._id,
+                    role: 'leader',
+                    joinedAt: new Date()
+                }]
+            });
+
+            await createdClan.save();
+
+            user.balance -= CLAN_CREATE_COST;
+            user.clanId = createdClan._id;
+            user.clanRole = 'leader';
+            user.clanContribution = Math.max(
+                0,
+                Number(user.clanContribution) || 0
+            );
+
+            try {
+                await user.save();
+            } catch (userSaveError) {
+                await Clan.deleteOne({ _id: createdClan._id });
+                throw userSaveError;
+            }
+
+            syncOnlineUserClan(
+                user._id,
+                createdClan._id,
+                'leader'
+            );
+
+            socket.emit('clanResult', {
+                success: true,
+                userData: user,
+                message:
+                    `🛡️ [${tag}] ${name} klanı kuruldu! ` +
+                    `${CLAN_CREATE_COST.toLocaleString('tr-TR')} Altın harcandı.`
+            });
+
+            await sendClanData(socket, user);
+            broadcastClanRefresh(createdClan._id);
+        } catch (err) {
+            console.error('createClan hatası:', err);
+
+            if (err?.code === 11000) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Bu klan adı veya etiketi zaten kullanılıyor.'
+                });
+            }
+
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klan kurulurken bir hata oluştu.'
+            });
+        }
+    });
+
+    socket.on('joinClan', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        if (user.clanId) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Önce mevcut klanından ayrılmalısın.'
+            });
+        }
+
+        const clanId = String(data?.clanId || '');
+
+        if (!mongoose.Types.ObjectId.isValid(clanId)) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Geçersiz klan seçimi.'
+            });
+        }
+
+        try {
+            const clan = await Clan.findById(clanId);
+
+            if (!clan) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Klan bulunamadı.'
+                });
+            }
+
+            const existingMembership = (clan.members || []).find(
+                member => String(member.userId) === String(user._id)
+            );
+
+            if (existingMembership) {
+                user.clanId = clan._id;
+                user.clanRole = existingMembership.role || 'member';
+                await user.save();
+
+                syncOnlineUserClan(
+                    user._id,
+                    clan._id,
+                    user.clanRole
+                );
+
+                return sendClanData(socket, user);
+            }
+
+            const maxMembers = Math.max(
+                CLAN_BASE_MAX_MEMBERS,
+                Number(clan.maxMembers) || CLAN_BASE_MAX_MEMBERS
+            );
+
+            if ((clan.members || []).length >= maxMembers) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Bu klan maksimum üye sayısına ulaştı.'
+                });
+            }
+
+            clan.members.push({
+                userId: user._id,
+                role: 'member',
+                joinedAt: new Date()
+            });
+
+            await clan.save();
+
+            user.clanId = clan._id;
+            user.clanRole = 'member';
+
+            try {
+                await user.save();
+            } catch (userSaveError) {
+                clan.members = clan.members.filter(
+                    member => String(member.userId) !== String(user._id)
+                );
+                await clan.save();
+                throw userSaveError;
+            }
+
+            syncOnlineUserClan(user._id, clan._id, 'member');
+
+            socket.emit('clanResult', {
+                success: true,
+                userData: user,
+                message: `🛡️ [${clan.tag}] ${clan.name} klanına katıldın!`
+            });
+
+            broadcastClanRefresh(
+                clan._id,
+                `${user.username} klana katıldı.`
+            );
+
+            await sendClanData(socket, user);
+        } catch (err) {
+            console.error('joinClan hatası:', err);
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klana katılırken bir hata oluştu.'
+            });
+        }
+    });
+
+    socket.on('leaveClan', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+
+        if (!user?.clanId) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Bir klana üye değilsin.'
+            });
+        }
+
+        try {
+            const clan = await Clan.findById(user.clanId);
+
+            if (!clan) {
+                user.clanId = null;
+                user.clanRole = null;
+                await user.save();
+                syncOnlineUserClan(user._id, null, null);
+
+                socket.emit('clanData', {
+                    clan: null,
+                    userData: user
+                });
+
+                return socket.emit('clanResult', {
+                    success: true,
+                    userData: user,
+                    message: 'Klan kaydı bulunamadı; üyelik kaydın temizlendi.'
+                });
+            }
+
+            const leavingUserId = String(user._id);
+            const isLeader =
+                String(clan.leaderId) === leavingUserId;
+
+            if (isLeader && (clan.members || []).length > 1) {
+                const nextLeader =
+                    clan.members.find(
+                        member =>
+                            String(member.userId) !== leavingUserId &&
+                            member.role === 'officer'
+                    ) ||
+                    clan.members.find(
+                        member =>
+                            String(member.userId) !== leavingUserId
+                    );
+
+                if (!nextLeader) {
+                    return socket.emit('clanResult', {
+                        success: false,
+                        userData: user,
+                        message: 'Yeni klan lideri belirlenemedi.'
+                    });
+                }
+
+                nextLeader.role = 'leader';
+                clan.leaderId = nextLeader.userId;
+
+                await User.updateOne(
+                    { _id: nextLeader.userId },
+                    { $set: { clanRole: 'leader' } }
+                );
+
+                syncOnlineUserClan(
+                    nextLeader.userId,
+                    clan._id,
+                    'leader'
+                );
+
+                emitToOnlineUser(
+                    nextLeader.userId,
+                    'clanResult',
+                    {
+                        success: true,
+                        message:
+                            `👑 ${clan.name} klanının yeni lideri oldun!`
+                    }
+                );
+            }
+
+            clan.members = (clan.members || []).filter(
+                member =>
+                    String(member.userId) !== leavingUserId
+            );
+
+            user.clanId = null;
+            user.clanRole = null;
+
+            await user.save();
+            syncOnlineUserClan(user._id, null, null);
+
+            if (clan.members.length === 0) {
+                await Clan.deleteOne({ _id: clan._id });
+
+                socket.emit('clanResult', {
+                    success: true,
+                    userData: user,
+                    message:
+                        `🛡️ ${clan.name} klanından ayrıldın. ` +
+                        `Klanda üye kalmadığı için klan dağıldı.`
+                });
+            } else {
+                await clan.save();
+
+                socket.emit('clanResult', {
+                    success: true,
+                    userData: user,
+                    message: `🛡️ ${clan.name} klanından ayrıldın.`
+                });
+
+                broadcastClanRefresh(
+                    clan._id,
+                    `${user.username} klandan ayrıldı.`
+                );
+            }
+
+            socket.emit('clanData', {
+                clan: null,
+                userData: user
+            });
+        } catch (err) {
+            console.error('leaveClan hatası:', err);
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Klandan ayrılırken bir hata oluştu.'
+            });
+        }
+    });
+
+    socket.on('donateClanGold', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+
+        if (!user?.clanId) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Bir klana üye değilsin.'
+            });
+        }
+
+        const amount =
+            Number.parseInt(data?.amount, 10);
+
+        if (
+            !Number.isInteger(amount) ||
+            amount < 100 ||
+            amount > 1000000
+        ) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message:
+                    'Bağış miktarı 100 ile 1.000.000 Altın arasında olmalı.'
+            });
+        }
+
+        if ((Number(user.balance) || 0) < amount) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Bağış için yeterli Altının yok.'
+            });
+        }
+
+        try {
+            const clan = await Clan.findById(user.clanId);
+
+            if (!clan) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Klan bulunamadı.'
+                });
+            }
+
+            const isMember = (clan.members || []).some(
+                member =>
+                    String(member.userId) === String(user._id)
+            );
+
+            if (!isMember) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Klan üyeliğin doğrulanamadı.'
+                });
+            }
+
+            user.balance -= amount;
+            user.clanContribution =
+                Math.max(0, Number(user.clanContribution) || 0) +
+                amount;
+
+            clan.treasury =
+                Math.max(0, Number(clan.treasury) || 0) +
+                amount;
+
+            await Promise.all([
+                user.save(),
+                clan.save()
+            ]);
+
+            socket.emit('clanResult', {
+                success: true,
+                userData: user,
+                message:
+                    `💰 Klan hazinesine ` +
+                    `${amount.toLocaleString('tr-TR')} Altın bağışladın.`
+            });
+
+            broadcastClanRefresh(
+                clan._id,
+                `${user.username} klan hazinesine bağış yaptı.`
+            );
+
+            await sendClanData(socket, user);
+        } catch (err) {
+            console.error('donateClanGold hatası:', err);
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Bağış işlemi tamamlanamadı.'
+            });
+        }
+    });
+
+    socket.on('setClanRole', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+
+        if (!user?.clanId || user.clanRole !== 'leader') {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message:
+                    'Bu işlem yalnızca klan liderine açıktır.'
+            });
+        }
+
+        const targetUserId =
+            String(data?.userId || '');
+
+        const newRole =
+            String(data?.role || '');
+
+        if (
+            !mongoose.Types.ObjectId.isValid(targetUserId) ||
+            !['officer', 'member'].includes(newRole)
+        ) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Geçersiz rol işlemi.'
+            });
+        }
+
+        if (targetUserId === String(user._id)) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message:
+                    'Lider kendi rolünü bu menüden değiştiremez.'
+            });
+        }
+
+        try {
+            const clan = await Clan.findById(user.clanId);
+            if (!clan) return;
+
+            const member = (clan.members || []).find(
+                clanMember =>
+                    String(clanMember.userId) === targetUserId
+            );
+
+            if (!member || member.role === 'leader') {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Üye bulunamadı.'
+                });
+            }
+
+            member.role = newRole;
+            await clan.save();
+
+            await User.updateOne(
+                { _id: targetUserId },
+                { $set: { clanRole: newRole } }
+            );
+
+            syncOnlineUserClan(
+                targetUserId,
+                clan._id,
+                newRole
+            );
+
+            const roleText =
+                newRole === 'officer'
+                    ? 'Komutan'
+                    : 'Üye';
+
+            socket.emit('clanResult', {
+                success: true,
+                userData: user,
+                message:
+                    `Üyenin rolü ${roleText} olarak değiştirildi.`
+            });
+
+            emitToOnlineUser(
+                targetUserId,
+                'clanResult',
+                {
+                    success: true,
+                    message:
+                        `🛡️ Klan rolün ${roleText} olarak değiştirildi.`
+                }
+            );
+
+            broadcastClanRefresh(clan._id);
+            await sendClanData(socket, user);
+        } catch (err) {
+            console.error('setClanRole hatası:', err);
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Rol değiştirilemedi.'
+            });
+        }
+    });
+
+    socket.on('kickClanMember', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+
+        if (!user?.clanId || user.clanRole !== 'leader') {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message:
+                    'Bu işlem yalnızca klan liderine açıktır.'
+            });
+        }
+
+        const targetUserId =
+            String(data?.userId || '');
+
+        if (
+            !mongoose.Types.ObjectId.isValid(targetUserId) ||
+            targetUserId === String(user._id)
+        ) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Geçersiz üye.'
+            });
+        }
+
+        try {
+            const clan = await Clan.findById(user.clanId);
+            if (!clan) return;
+
+            const targetMember =
+                (clan.members || []).find(
+                    member =>
+                        String(member.userId) === targetUserId
+                );
+
+            if (!targetMember || targetMember.role === 'leader') {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Üye bulunamadı.'
+                });
+            }
+
+            clan.members = clan.members.filter(
+                member =>
+                    String(member.userId) !== targetUserId
+            );
+
+            await clan.save();
+
+            const kickedUser =
+                await User.findById(targetUserId);
+
+            const kickedName =
+                kickedUser?.username || 'Oyuncu';
+
+            if (kickedUser) {
+                kickedUser.clanId = null;
+                kickedUser.clanRole = null;
+                await kickedUser.save();
+            }
+
+            syncOnlineUserClan(
+                targetUserId,
+                null,
+                null
+            );
+
+            emitToOnlineUser(
+                targetUserId,
+                'clanResult',
+                {
+                    success: false,
+                    userData: kickedUser || undefined,
+                    message:
+                        `🛡️ ${clan.name} klanından çıkarıldın.`
+                }
+            );
+
+            emitToOnlineUser(
+                targetUserId,
+                'clanData',
+                {
+                    clan: null,
+                    userData: kickedUser || undefined
+                }
+            );
+
+            socket.emit('clanResult', {
+                success: true,
+                userData: user,
+                message:
+                    `${kickedName} klandan çıkarıldı.`
+            });
+
+            broadcastClanRefresh(clan._id);
+            await sendClanData(socket, user);
+        } catch (err) {
+            console.error('kickClanMember hatası:', err);
+            socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Üye klandan çıkarılamadı.'
+            });
+        }
+    });
+
+    socket.on('sendClanChatMessage', async (data) => {
+        if (!checkRateLimit(socket.id)) {
+            return socket.emit('clanResult', {
+                success: false,
+                message: 'Çok hızlı mesaj gönderiyorsun.'
+            });
+        }
+
+        const user = users[socket.id];
+
+        if (!user?.clanId) {
+            return socket.emit('clanResult', {
+                success: false,
+                userData: user,
+                message: 'Bir klana üye değilsin.'
+            });
+        }
+
+        const message =
+            String(data?.message || '')
+                .trim()
+                .substring(0, 150);
+
+        if (!message) return;
+
+        try {
+            const clan =
+                await Clan.findById(user.clanId);
+
+            if (!clan) return;
+
+            const membership =
+                (clan.members || []).find(
+                    member =>
+                        String(member.userId) ===
+                        String(user._id)
+                );
+
+            if (!membership) {
+                return socket.emit('clanResult', {
+                    success: false,
+                    userData: user,
+                    message:
+                        'Klan üyeliğin doğrulanamadı.'
+                });
+            }
+
+            const chatMessage = {
+                userId: user._id,
+                username: user.username,
+                message,
+                createdAt: new Date()
+            };
+
+            clan.chatMessages.push(chatMessage);
+
+            if (
+                clan.chatMessages.length >
+                CLAN_CHAT_HISTORY_LIMIT
+            ) {
+                clan.chatMessages =
+                    clan.chatMessages.slice(
+                        -CLAN_CHAT_HISTORY_LIMIT
+                    );
+            }
+
+            clan.markModified('chatMessages');
+            await clan.save();
+
+            for (
+                const [socketId, onlineUser]
+                of Object.entries(users)
+            ) {
+                if (!onlineUser?.clanId) continue;
+
+                if (
+                    String(onlineUser.clanId) !==
+                    String(clan._id)
+                ) {
+                    continue;
+                }
+
+                io.to(socketId).emit(
+                    'receiveClanChatMessage',
+                    {
+                        userId: String(user._id),
+                        username: user.username,
+                        message,
+                        createdAt: chatMessage.createdAt
+                    }
+                );
+            }
+        } catch (err) {
+            console.error(
+                'sendClanChatMessage hatası:',
+                err
+            );
+
+            socket.emit('clanResult', {
+                success: false,
+                message: 'Klan mesajı gönderilemedi.'
+            });
+        }
+    });
+
     socket.on('sendChatMessage', (data) => {
         if (!checkRateLimit(socket.id)) return socket.emit('errorMessage', "Çok hızlı mesaj gönderiyorsun!");
         const safeMsg = data.message.substring(0, 100); 
         io.emit('receiveChatMessage', { username: users[socket.id]?.username, message: safeMsg });
     });
 
-    socket.on('disconnect', () => delete users[socket.id]);
+    socket.on('disconnect', () => {
+        delete users[socket.id];
+        broadcastOnlinePlayerCount();
+    });
 });
 
 // Online oyuncuların Sefer Hakkını otomatik yenile.
@@ -4874,4 +6180,7 @@ setInterval(async () => {
 }, 60000);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sunucu aktif: ${PORT}`));
+server.listen(PORT, () => {
+    console.log(`Sunucu aktif: ${PORT}`);
+    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Klan V1: AKTİF | Mancınık: AKTİF`);
+});
