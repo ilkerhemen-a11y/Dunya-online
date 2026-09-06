@@ -669,37 +669,170 @@ io.on('connection', (socket) => {
 
     socket.on('doQuest', async (data) => {
         if (!checkRateLimit(socket.id)) return;
+
         const user = users[socket.id];
         if (!user) return;
-        
+
         checkSeferRefill(user);
-        if (user.seferLimiti <= 0) return socket.emit('questResult', { success: false, message: "Sefer hakkınız bitti!" });
-        
+
+        if (user.seferLimiti <= 0) {
+            return socket.emit('questResult', {
+                success: false,
+                userData: user,
+                message: "⏳ Sefer hakkın bitti! Sefer limitinin yenilenmesini beklemelisin."
+            });
+        }
+
+        const quests = {
+            1: {
+                name: 'Köy Devriyesi',
+                requiredLevel: 1,
+                gold: 45,
+                exp: 20,
+                hpCost: 10
+            },
+            2: {
+                name: 'Haydut Avı',
+                requiredLevel: 5,
+                gold: 80,
+                exp: 35,
+                hpCost: 15
+            },
+            3: {
+                name: 'Kervan Muhafızlığı',
+                requiredLevel: 10,
+                gold: 140,
+                exp: 55,
+                hpCost: 20
+            },
+            4: {
+                name: 'Sınır Karakolu',
+                requiredLevel: 20,
+                gold: 220,
+                exp: 80,
+                hpCost: 30
+            },
+            5: {
+                name: 'Asi Beyliği Baskını',
+                requiredLevel: 30,
+                gold: 320,
+                exp: 115,
+                hpCost: 40
+            },
+            6: {
+                name: 'Düşman Casusları',
+                requiredLevel: 40,
+                gold: 450,
+                exp: 160,
+                hpCost: 50
+            },
+            7: {
+                name: 'Şehzade Konvoyu',
+                requiredLevel: 50,
+                gold: 600,
+                exp: 220,
+                hpCost: 65
+            },
+            8: {
+                name: 'Düşman Erzak Hattı',
+                requiredLevel: 60,
+                gold: 800,
+                exp: 300,
+                hpCost: 80
+            },
+            9: {
+                name: 'Han Ordusu Seferi',
+                requiredLevel: 75,
+                gold: 1100,
+                exp: 420,
+                hpCost: 100
+            },
+            10: {
+                name: 'Taht Yolu Muharebesi',
+                requiredLevel: 90,
+                gold: 1500,
+                exp: 600,
+                hpCost: 125
+            }
+        };
+
+        const questId = Number.parseInt(data?.questId, 10);
+        const quest = quests[questId];
+
+        if (!quest) {
+            return socket.emit('questResult', {
+                success: false,
+                userData: user,
+                message: "Geçersiz görev seçimi."
+            });
+        }
+
+        if ((Number(user.level) || 1) < quest.requiredLevel) {
+            return socket.emit('questResult', {
+                success: false,
+                userData: user,
+                message:
+                    `🔒 ${quest.name} için en az Seviye ${quest.requiredLevel} olmalısın.`
+            });
+        }
+
+        // Göreve çıkmadan önce yeterli can şartı.
+        if ((Number(user.hp) || 0) < quest.hpCost) {
+            return socket.emit('questResult', {
+                success: false,
+                userData: user,
+                message:
+                    `❤️ ${quest.name} için yeterli canın yok! ` +
+                    `En az ${quest.hpCost} HP gerekiyor. Mevcut HP: ${user.hp || 0}.`
+            });
+        }
+
+        // Sefer hakkı sadece gerçekten başlatılan görevde harcanır.
         user.seferLimiti -= 1;
-        if (user.seferLimiti === 0) user.seferNextRefill = Date.now() + REFILL_INTERVAL;
 
-        const quests = { 1: [45, 20, 15], 2: [120, 55, 35], 3: [300, 140, 70] };
-        const q = quests[data.questId] || quests[1];
+        if (user.seferLimiti === 0) {
+            user.seferNextRefill = Date.now() + REFILL_INTERVAL;
+        }
 
-        user.balance += q[0];
-        if (user.level < MAX_LEVEL) user.exp += q[1];
-        user.hp = Math.max(0, user.hp - q[2]);
+        user.balance += quest.gold;
+
+        if (user.level < MAX_LEVEL) {
+            user.exp += quest.exp;
+        }
+
+        user.hp = Math.max(0, user.hp - quest.hpCost);
 
         const progression = processLevelUps(user);
 
-        let questMessage = "Sefer başarıyla tamamlandı!";
+        let questMessage =
+            `✅ ${quest.name} başarıyla tamamlandı! ` +
+            `🪙 +${quest.gold.toLocaleString('tr-TR')} Altın | ` +
+            `✨ +${quest.exp} Tecrübe | ` +
+            `❤️ -${quest.hpCost} HP.`;
+
         if (progression.levelUps > 0) {
-            questMessage += ` ✨ ${progression.levelUps} seviye atladın! Yeni seviyen: ${progression.level}.`;
+            questMessage +=
+                ` 🎉 ${progression.levelUps} seviye atladın! Yeni seviyen: ${progression.level}.`;
         }
+
         if (progression.titleChanged) {
-            questMessage += ` 🏅 Yeni Ünvan kazandın: ${progression.newTitle}!`;
+            questMessage +=
+                ` 🏅 Yeni Ünvan kazandın: ${progression.newTitle}!`;
         }
+
         if (progression.reachedMax) {
-            questMessage += ` 👑 Maksimum seviye ${MAX_LEVEL}!`;
+            questMessage +=
+                ` 👑 Maksimum seviye ${MAX_LEVEL}!`;
         }
 
         await user.save();
-        socket.emit('questResult', { success: true, userData: user, message: questMessage });
+
+        socket.emit('questResult', {
+            success: true,
+            userData: user,
+            questId,
+            message: questMessage
+        });
     });
 
     socket.on('advanceDungeonFloor', async () => {
