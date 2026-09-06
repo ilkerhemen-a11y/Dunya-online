@@ -2635,6 +2635,358 @@
         @keyframes legendarySparkOrbit { 0%{transform:translate(0,0) rotate(0deg) scale(.8);opacity:.25} 50%{transform:translate(12px,-18px) rotate(180deg) scale(1.25);opacity:1} 100%{transform:translate(0,0) rotate(360deg) scale(.8);opacity:.25} }
         @keyframes crownFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @media (max-width:760px) { .character-showcase-v2{grid-template-columns:1fr}.showcase-slot-column{grid-template-columns:repeat(2,1fr)}.showcase-slot-column.right .showcase-tooltip,.showcase-tooltip{left:5px;right:5px;top:calc(100% + 5px);width:auto}.showcase-character-center{order:-1;min-height:300px} }
+
+        /* === NASIL OYNANIR / OYUN REHBERİ === */
+        .howto-hero {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #8a6b3a;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(212,175,55,.10), transparent 33%),
+                linear-gradient(145deg,#1a130d,#0a0705 72%);
+            box-shadow:
+                inset 0 0 28px rgba(212,175,55,.025),
+                0 7px 22px rgba(0,0,0,.35);
+        }
+
+        .howto-hero::before {
+            content: "📖";
+            position: absolute;
+            right: 18px;
+            top: 8px;
+            font-size: 56px;
+            opacity: .07;
+            transform: rotate(-8deg);
+            pointer-events: none;
+        }
+
+        .howto-title {
+            color: #f3cf7a;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: .4px;
+        }
+
+        .howto-subtitle {
+            color: #9c8e7b;
+            font-size: 10px;
+            line-height: 1.55;
+            margin-top: 5px;
+            max-width: 760px;
+        }
+
+        .howto-player-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(115px,1fr));
+            gap: 7px;
+            margin-top: 11px;
+        }
+
+        .howto-player-stat {
+            border: 1px solid #3d2f23;
+            border-radius: 6px;
+            padding: 7px;
+            background: rgba(7,5,4,.62);
+            text-align: center;
+            color: #8f806f;
+            font-size: 8px;
+        }
+
+        .howto-player-stat strong {
+            display: block;
+            color: #f3cf7a;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .howto-toolbar {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 7px;
+            margin-bottom: 10px;
+        }
+
+        .howto-search {
+            min-width: 0;
+            border: 1px solid #433222;
+            border-radius: 5px;
+            padding: 8px 9px;
+            background: #080605;
+            color: #f0e6d2;
+            outline: none;
+            font-size: 10px;
+        }
+
+        .howto-search:focus {
+            border-color: #b38b4d;
+            box-shadow: 0 0 0 2px rgba(212,175,55,.05);
+        }
+
+        .howto-tool-btn {
+            border: 1px solid #433222;
+            border-radius: 5px;
+            padding: 7px 9px;
+            background: #120e0c;
+            color: #d4c5b9;
+            cursor: pointer;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+
+        .howto-tool-btn:hover {
+            border-color: #b38b4d;
+            color: #f3cf7a;
+        }
+
+        .howto-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 12px;
+        }
+
+        .howto-nav button {
+            border: 1px solid #3d2f23;
+            border-radius: 999px;
+            padding: 5px 8px;
+            background: #100c09;
+            color: #9c8e7b;
+            font-size: 8px;
+            cursor: pointer;
+        }
+
+        .howto-nav button:hover {
+            color: #f3cf7a;
+            border-color: #8a6b3a;
+            background: rgba(212,175,55,.05);
+        }
+
+        .howto-section {
+            border: 1px solid #33241b;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background:
+                linear-gradient(145deg,#120e0b,#090705);
+            overflow: hidden;
+            transition:
+                border-color .15s ease,
+                box-shadow .15s ease;
+        }
+
+        .howto-section[open] {
+            border-color: #5c432c;
+            box-shadow: inset 0 0 16px rgba(212,175,55,.018);
+        }
+
+        .howto-section summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 11px 12px;
+            color: #f3cf7a;
+            font-size: 11px;
+            font-weight: 900;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+        }
+
+        .howto-section summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .howto-section summary::after {
+            content: "＋";
+            color: #8a6b3a;
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .howto-section[open] summary::after {
+            content: "−";
+            color: #d4af37;
+        }
+
+        .howto-content {
+            border-top: 1px solid #2b211a;
+            padding: 11px 12px 13px;
+            color: #aa9b8b;
+            font-size: 9px;
+            line-height: 1.6;
+        }
+
+        .howto-content strong {
+            color: #e7d7bd;
+        }
+
+        .howto-content h4 {
+            color: #d8b86d;
+            font-size: 10px;
+            margin: 9px 0 5px;
+        }
+
+        .howto-content p + p {
+            margin-top: 6px;
+        }
+
+        .howto-note,
+        .howto-warning,
+        .howto-tip {
+            margin-top: 7px;
+            padding: 7px 8px;
+            border-radius: 5px;
+            font-size: 8px;
+            line-height: 1.5;
+        }
+
+        .howto-tip {
+            border: 1px solid #365314;
+            background: rgba(54,83,20,.08);
+            color: #bef264;
+        }
+
+        .howto-note {
+            border: 1px solid #1e3a5f;
+            background: rgba(30,58,95,.08);
+            color: #93c5fd;
+        }
+
+        .howto-warning {
+            border: 1px solid #7f1d1d;
+            background: rgba(127,29,29,.08);
+            color: #fca5a5;
+        }
+
+        .howto-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+            gap: 7px;
+            margin-top: 7px;
+        }
+
+        .howto-mini-card {
+            border: 1px solid #30241c;
+            border-radius: 6px;
+            padding: 7px;
+            background: rgba(5,4,3,.38);
+            color: #9c8e7b;
+        }
+
+        .howto-mini-card b {
+            display: block;
+            color: #d4c5b9;
+            margin-bottom: 3px;
+        }
+
+        .howto-table-wrap {
+            overflow-x: auto;
+            margin-top: 7px;
+            border: 1px solid #30241c;
+            border-radius: 6px;
+        }
+
+        .howto-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 520px;
+            background: rgba(5,4,3,.38);
+            font-size: 8px;
+        }
+
+        .howto-table th,
+        .howto-table td {
+            padding: 6px 7px;
+            border-bottom: 1px solid #251c16;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .howto-table th {
+            color: #f3cf7a;
+            background: #110d0a;
+            font-weight: 800;
+        }
+
+        .howto-table td {
+            color: #9f9080;
+        }
+
+        .howto-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .howto-steps {
+            counter-reset: guideStep;
+            display: grid;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .howto-step {
+            counter-increment: guideStep;
+            position: relative;
+            padding: 7px 8px 7px 31px;
+            border: 1px solid #30241c;
+            border-radius: 6px;
+            background: rgba(7,5,4,.45);
+        }
+
+        .howto-step::before {
+            content: counter(guideStep);
+            position: absolute;
+            left: 7px;
+            top: 7px;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #6f5016;
+            color: #fff4c2;
+            font-size: 8px;
+            font-weight: 900;
+        }
+
+        .howto-route {
+            border: 1px solid #6b4f35;
+            border-radius: 8px;
+            padding: 11px;
+            margin-bottom: 10px;
+            background:
+                radial-gradient(circle at 0 0,rgba(212,175,55,.06),transparent 35%),
+                #0d0a08;
+        }
+
+        .howto-route h3 {
+            color: #f3cf7a;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .howto-empty-search {
+            display: none;
+            border: 1px dashed #433222;
+            border-radius: 7px;
+            padding: 14px;
+            text-align: center;
+            color: #7c6f61;
+            font-size: 9px;
+        }
+
+        @media (max-width: 700px) {
+            .howto-toolbar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .howto-search {
+                grid-column: 1 / -1;
+            }
+        }
 </style>
 </head>
 <body class="auth-open" data-world-theme="overview">
@@ -2822,6 +3174,7 @@
             <button class="menu-btn" onclick="switchTab('metin')">🪨 Metin Taşı Kes</button>
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
+            <button class="menu-btn" onclick="switchTab('howto')">📖 Nasıl Oynanır?</button>
             <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
         </nav>
 
@@ -3246,12 +3599,92 @@
                 blacksmith: 'blacksmith',
                 arena: 'arena',
                 chat: 'chat',
+                howto: 'overview',
                 dungeon: 'dungeon',
                 metin: 'metin'
             };
 
             document.body.dataset.worldTheme =
                 themeMap[tab] || 'overview';
+        }
+
+        function filterHowToGuide() {
+            const input =
+                document.getElementById('howtoSearch');
+
+            const empty =
+                document.getElementById('howtoEmptySearch');
+
+            if (!input) return;
+
+            const query =
+                String(input.value || '')
+                    .toLocaleLowerCase('tr-TR')
+                    .trim();
+
+            const sections =
+                Array.from(
+                    document.querySelectorAll(
+                        '.howto-section'
+                    )
+                );
+
+            let visibleCount = 0;
+
+            sections.forEach(section => {
+                const text =
+                    String(section.innerText || '')
+                        .toLocaleLowerCase('tr-TR');
+
+                const match =
+                    !query ||
+                    text.includes(query);
+
+                section.style.display =
+                    match ? '' : 'none';
+
+                if (match) {
+                    visibleCount += 1;
+
+                    if (query.length >= 2) {
+                        section.open = true;
+                    }
+                }
+            });
+
+            if (empty) {
+                empty.style.display =
+                    visibleCount === 0
+                        ? 'block'
+                        : 'none';
+            }
+        }
+
+        function setHowToDetails(openState) {
+            document
+                .querySelectorAll('.howto-section')
+                .forEach(section => {
+                    if (
+                        section.style.display !== 'none'
+                    ) {
+                        section.open =
+                            Boolean(openState);
+                    }
+                });
+        }
+
+        function scrollHowToSection(id) {
+            const target =
+                document.getElementById(id);
+
+            if (!target) return;
+
+            target.open = true;
+
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
         }
 
         function switchTab(tab) {
@@ -3268,6 +3701,7 @@
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
                 'chat': 'Diyar Meclisi (Sohbet)',
+                'howto': 'Nasıl Oynanır? — Taht Savaşları Rehberi',
                 'dungeon': 'Zindan Adası',
                 'metin': 'Metin Taşı Kes'
             };
@@ -5864,6 +6298,1096 @@
                             <button id="chatBtn" class="btn-quest" onclick="sendChat()">Gönder</button>
                         </div>
                     </div>
+                `;
+            } else if(activeTab === 'howto') {
+                const guideStats =
+                    getClientTotalStats(u);
+
+                const guideLevel =
+                    Math.max(
+                        1,
+                        Math.min(
+                            MAX_LEVEL,
+                            Number(u.level) || 1
+                        )
+                    );
+
+                const guideTitle =
+                    getTitleByLevel(
+                        guideLevel
+                    );
+
+                body.innerHTML = `
+                    <div class="howto-hero">
+                        <div class="howto-title">
+                            📖 Taht Savaşları — Nasıl Oynanır?
+                        </div>
+
+                        <div class="howto-subtitle">
+                            Bu bölüm oyundaki temel ilerlemeden ekonomiye,
+                            Demirhane'den Zindan Adası'na, Tımar yönetiminden
+                            Taht Savaşı'na kadar mevcut sistemlerin tamamını
+                            tek yerde açıklar. Bir sistemi bulmak için aşağıdaki
+                            arama kutusunu kullanabilirsin.
+                        </div>
+
+                        <div class="howto-player-strip">
+                            <div class="howto-player-stat">
+                                Ünvanın
+                                <strong>${escapeHTML(guideTitle)}</strong>
+                            </div>
+
+                            <div class="howto-player-stat">
+                                Seviyen
+                                <strong>${guideLevel}/${MAX_LEVEL}</strong>
+                            </div>
+
+                            <div class="howto-player-stat">
+                                Toplam STR
+                                <strong>${Number(guideStats.totalStr || 0).toLocaleString('tr-TR')}</strong>
+                            </div>
+
+                            <div class="howto-player-stat">
+                                Toplam VIT
+                                <strong>${Number(guideStats.totalVit || 0).toLocaleString('tr-TR')}</strong>
+                            </div>
+
+                            <div class="howto-player-stat">
+                                Savaş Gücü
+                                <strong>${Number(guideStats.combatPower || 0).toLocaleString('tr-TR')}</strong>
+                            </div>
+
+                            <div class="howto-player-stat">
+                                Sefer
+                                <strong>${Number(u.seferLimiti ?? 20)}/20</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="howto-toolbar">
+                        <input
+                            id="howtoSearch"
+                            class="howto-search"
+                            type="text"
+                            placeholder="🔎 Örn: Demirhane, Zindan, Tımar, Yakut, Kale..."
+                            oninput="filterHowToGuide()"
+                        >
+
+                        <button
+                            class="howto-tool-btn"
+                            onclick="setHowToDetails(true)"
+                        >
+                            Tümünü Aç
+                        </button>
+
+                        <button
+                            class="howto-tool-btn"
+                            onclick="setHowToDetails(false)"
+                        >
+                            Tümünü Kapat
+                        </button>
+                    </div>
+
+                    <div class="howto-nav">
+                        <button onclick="scrollHowToSection('guide_start')">🚩 Başlangıç</button>
+                        <button onclick="scrollHowToSection('guide_character')">👤 Karakter</button>
+                        <button onclick="scrollHowToSection('guide_work')">⚔️ Görevler</button>
+                        <button onclick="scrollHowToSection('guide_market')">🛒 Market</button>
+                        <button onclick="scrollHowToSection('guide_timar')">🏰 Tımar</button>
+                        <button onclick="scrollHowToSection('guide_forge')">⚒️ Demirhane</button>
+                        <button onclick="scrollHowToSection('guide_dungeon')">🌋 Zindan</button>
+                        <button onclick="scrollHowToSection('guide_metin')">🪨 Metin</button>
+                        <button onclick="scrollHowToSection('guide_arena')">🏟️ Arena</button>
+                        <button onclick="scrollHowToSection('guide_castle')">👑 Taht</button>
+                        <button onclick="scrollHowToSection('guide_set')">✨ Hükümdar Seti</button>
+                        <button onclick="scrollHowToSection('guide_limits')">⏱️ Limitler</button>
+                    </div>
+
+                    <div class="howto-route">
+                        <h3>🚩 Yeni Oyuncu İçin Önerilen Yol</h3>
+
+                        <div class="howto-steps">
+                            <div class="howto-step">
+                                <strong>İş / Görevler</strong> bölümünden
+                                seviyene uygun görevleri yap; Altın ve Tecrübe kazan.
+                            </div>
+
+                            <div class="howto-step">
+                                Stat puanlarını STR ve VIT'e dağıt.
+                                STR saldırı/güç, VIT ise maksimum HP için önemlidir.
+                            </div>
+
+                            <div class="howto-step">
+                                Tımar alıp pasif gelir üretmeye başla.
+                                Vergileri Tımar Hazinesinden toplamayı unutma.
+                            </div>
+
+                            <div class="howto-step">
+                                Ekipmanlarını kuşan; Zindan, Suluhan,
+                                Hazine Sandığı ve diğer kaynaklardan daha iyi itemler topla.
+                            </div>
+
+                            <div class="howto-step">
+                                Metinlerden Kutsama Kağıdı kazan,
+                                Demirhane'de ekipmanlarını geliştir.
+                            </div>
+
+                            <div class="howto-step">
+                                Kışlada asker üret; gücün yeterli olduğunda
+                                Kale Kuşatmasına katıl ve Taht için savaş.
+                            </div>
+
+                            <div class="howto-step">
+                                End-game hedefi olarak Efsanevi
+                                <strong>Hükümdar Seti</strong> parçalarını toplamaya çalış.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="howtoEmptySearch" class="howto-empty-search">
+                        Aradığın ifadeyle eşleşen rehber bölümü bulunamadı.
+                    </div>
+
+                    <details id="guide_start" class="howto-section" open>
+                        <summary>🚩 1. Oyunun Temel Amacı</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Taht Savaşları'nda amaç karakterini,
+                                ekonomini, Tımarlarını ve ordunu geliştirerek
+                                imparatorluk gücünü büyütmek ve sonunda
+                                <strong>Taht Kalesi'ni ele geçirip Hükümdar olmak</strong>.
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>✨ Karakter Gelişimi</b>
+                                    Seviye atla, STR/VIT artır, ekipman kuşan.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>💰 Ekonomi</b>
+                                    Altın, Yakut, Altın Anahtar ve Tımar gelirini yönet.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>⚔️ Savaş</b>
+                                    Görev, Zindan, Metin, Arena ve Kale savaşlarına katıl.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>👑 End-game</b>
+                                    Hükümdar Seti topla ve Taht'ın sahibi ol.
+                                </div>
+                            </div>
+
+                            <div class="howto-tip">
+                                💡 İlk hedefin: görev yap → seviye/stat kazan →
+                                Tımar al → ekipman güçlendir → Zindan/Metin →
+                                Ordu/Kale şeklinde ilerlemek olabilir.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_character" class="howto-section">
+                        <summary>👤 2. Karakter, Seviye, STR, VIT ve Ünvanlar</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                <strong>STR</strong> karakterin saldırı ve birçok
+                                savaş sistemindeki ana gücüdür.
+                                <strong>VIT</strong> maksimum canını belirler.
+                                Maksimum HP temel olarak
+                                <strong>Toplam VIT × 20</strong> şeklinde hesaplanır.
+                            </p>
+
+                            <p>
+                                Ekipmanlardan gelen STR ve VIT toplam değerlere eklenir.
+                                Genel Durum ekranında Base Stat, Ekipman Statı,
+                                Toplam STR/VIT ve Savaş Gücünü görebilirsin.
+                            </p>
+
+                            <h4>Seviye Sistemi</h4>
+
+                            <p>
+                                Maksimum seviye <strong>99</strong>.
+                                Bir sonraki seviye için gereken tecrübe:
+                                <strong>mevcut seviye × 100</strong>.
+                                Her seviye atladığında <strong>+3 Stat Puanı</strong>
+                                kazanırsın ve HP'n tamamen dolar.
+                            </p>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Seviye</th>
+                                            <th>Ünvan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>1</td><td>Çaylak</td></tr>
+                                        <tr><td>10</td><td>Savaşçı</td></tr>
+                                        <tr><td>20</td><td>Muhafız</td></tr>
+                                        <tr><td>30</td><td>Şampiyon</td></tr>
+                                        <tr><td>40</td><td>Komutan</td></tr>
+                                        <tr><td>50</td><td>Savaş Lordu</td></tr>
+                                        <tr><td>60</td><td>Büyük Kumandan</td></tr>
+                                        <tr><td>70</td><td>Fatih</td></tr>
+                                        <tr><td>80</td><td>İmparator</td></tr>
+                                        <tr><td>90</td><td>Efsane</td></tr>
+                                        <tr><td>99</td><td>Tahtın Efendisi</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="howto-note">
+                                ℹ️ Seviye 99'da Tecrübe artık birikmez ve EXP çubuğu MAX görünür.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_equipment" class="howto-section">
+                        <summary>🛡️ 3. Ekipman, Nadirlik ve Envanter</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Karakterde 8 ekipman slotu vardır:
+                                <strong>Miğfer, Kolye, Zırh, Silah, Kalkan,
+                                Yüzük, Eldiven ve Çizme.</strong>
+                            </p>
+
+                            <p>
+                                Item nadirlik sırası:
+                                <strong>Sıradan → Nadir → Epik → Efsanevi</strong>.
+                                Ekipmanlar STR/VIT bonusu verir.
+                                Kuşandığın veya çıkardığın eşya maksimum HP'ni de
+                                VIT'e göre değiştirir.
+                            </p>
+
+                            <p>
+                                +10, +20, +30 ve +40 gibi yüksek geliştirme
+                                seviyelerinde item kartları gittikçe daha güçlü
+                                görsel parlamalar kazanır.
+                            </p>
+
+                            <div class="howto-warning">
+                                ⚠️ Envanterdeki <strong>Sil</strong> işlemi eşyayı kaldırır.
+                                Değerli veya Efsanevi itemlerde dikkatli ol.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_work" class="howto-section">
+                        <summary>⚔️ 4. İş / Sefer Görevleri ve Sefer Hakkı</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Görevler Altın ve Tecrübenin en temel kaynaklarından biridir.
+                                Her geçerli görev <strong>1 Sefer Hakkı</strong> harcar
+                                ve belirtilen miktarda HP tüketir.
+                            </p>
+
+                            <p>
+                                Maksimum Sefer Hakkı <strong>20</strong>.
+                                20'nin altına düştüğünde sayaç başlar ve
+                                <strong>her 3 dakikada +1 Sefer</strong> yenilenir.
+                                Yeni görev yapmak çalışan sayacı sıfırlamaz.
+                            </p>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Görev</th>
+                                            <th>Lv</th>
+                                            <th>Altın</th>
+                                            <th>EXP</th>
+                                            <th>HP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>Köy Devriyesi</td><td>1</td><td>45</td><td>20</td><td>10</td></tr>
+                                        <tr><td>Haydut Avı</td><td>5</td><td>80</td><td>35</td><td>15</td></tr>
+                                        <tr><td>Kervan Muhafızlığı</td><td>10</td><td>140</td><td>55</td><td>20</td></tr>
+                                        <tr><td>Sınır Karakolu</td><td>20</td><td>220</td><td>80</td><td>30</td></tr>
+                                        <tr><td>Asi Beyliği Baskını</td><td>30</td><td>320</td><td>115</td><td>40</td></tr>
+                                        <tr><td>Düşman Casusları</td><td>40</td><td>450</td><td>160</td><td>50</td></tr>
+                                        <tr><td>Şehzade Konvoyu</td><td>50</td><td>600</td><td>220</td><td>65</td></tr>
+                                        <tr><td>Düşman Erzak Hattı</td><td>60</td><td>800</td><td>300</td><td>80</td></tr>
+                                        <tr><td>Han Ordusu Seferi</td><td>75</td><td>1100</td><td>420</td><td>100</td></tr>
+                                        <tr><td>Taht Yolu Muharebesi</td><td>90</td><td>1500</td><td>600</td><td>125</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="howto-tip">
+                                💡 Market'teki Sefer İksiri 25.000 Altın karşılığında
+                                Sefer Hakkını doğrudan 20/20 yapar.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_market" class="howto-section">
+                        <summary>🛒 5. Market, Sandıklar, Sarraf ve Banka</summary>
+
+                        <div class="howto-content">
+                            <h4>Market Ürünleri</h4>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>❤️ Can İksiri — 25.000 Altın</b>
+                                    HP'yi mevcut maksimum HP'ye tamamen doldurur.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🧭 Sefer İksiri — 25.000 Altın</b>
+                                    Sefer Hakkını 20/20 yapar.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🍖 Ordu Erzağı — 15.000 Altın</b>
+                                    Sonraki Kale saldırısında saldıran tarafın asker kaybını %10 azaltır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🩹 Ordu Hekimi — 40.000 Altın</b>
+                                    Son Kale savaşındaki kayıpların her asker türünde %10'unu geri getirir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🥁 Savaş Davulu — 25 Yakut</b>
+                                    Sonraki Kale saldırısında toplam saldırı tabanını %5 artırır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>📜 Komutan Fermanı — 50 Yakut</b>
+                                    Sonraki Kale saldırısında karakter STR katkısını %25 artırır.
+                                </div>
+                            </div>
+
+                            <h4>🎁 Hazine Sandığı — 10.000 Altın</h4>
+
+                            <p>
+                                Hazine Sandığında ana ödül dağılımı:
+                                <strong>%10 Yakut (5–15)</strong>,
+                                <strong>%20 Altın (5.000–15.000)</strong>,
+                                <strong>%70 ekipman</strong>.
+                                Ekipman ödülünde Sıradan, Nadir veya Epik item çıkabilir.
+                            </p>
+
+                            <h4>📦 Altın Sandık</h4>
+
+                            <p>
+                                Zindanlardan kazandığın
+                                <strong>1 Altın Anahtar</strong> harcanır ve
+                                <strong>10 Yakut</strong> verir.
+                            </p>
+
+                            <h4>💱 Sarraf Hacı Mahmud</h4>
+
+                            <p>
+                                İşlemler minimum <strong>100 Yakut</strong> ve
+                                100'ün katları şeklindedir.
+                                <strong>100 Yakut → 10.000 Altın</strong>.
+                                Ters yönde
+                                <strong>100.000 Altın → 100 Yakut</strong>.
+                            </p>
+
+                            <div class="howto-warning">
+                                ⚠️ Sarraf alış ve satış oranları aynı değildir.
+                                Altın → Yakut → Altın turu kâr üretmez.
+                            </div>
+
+                            <h4>🏦 Banka</h4>
+
+                            <p>
+                                Tek aktif vadeli hesap açabilirsin.
+                                En fazla <strong>100.000 Altın</strong> yatırılır.
+                                Vade <strong>24 saat</strong> ve faiz
+                                <strong>%50</strong>.
+                                Örnek:
+                                <strong>100.000 yatır → vade sonunda 150.000 Altın tahsil et.</strong>
+                            </p>
+
+                            <div class="howto-note">
+                                ℹ️ Vade dolmadan anapara + faiz tahsil edilemez.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_beypazari" class="howto-section">
+                        <summary>⛺ 6. Beypazarı — Oyuncu Tezgahları</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Beypazarı oyuncuların birbirleriyle item ticareti yaptığı bölümdür.
+                                Kendi tezgahını kurup envanterindeki uygun itemleri
+                                <strong>Altın veya Yakut</strong> karşılığında satışa koyabilirsin.
+                            </p>
+
+                            <p>
+                                Satış fiyatı sunucu tarafından
+                                <strong>1 ile 100.000.000</strong> arasında doğrulanır.
+                                Satılan ürünün geliri tezgah kasasında birikir;
+                                <strong>Kazançları Topla</strong> ile Altın ve Yakutlarını alırsın.
+                            </p>
+
+                            <p>
+                                Materyaller satışa konabilir;
+                                anahtarlar normal satış ürünü değildir.
+                            </p>
+
+                            <div class="howto-tip">
+                                💡 Nadir, Epik, yüksek + seviyeli veya özel set itemleri için
+                                satış fiyatını belirlemeden önce rarity ve stat toplamına bak.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_suluhan" class="howto-section">
+                        <summary>🏛️ 7. Suluhan Antik Çarşısı</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Suluhan'daki özel itemlerin tamamı
+                                <strong>Epik +1</strong> olarak alınır.
+                                Her item için Altın veya Yakut ödeme seçeneği vardır.
+                            </p>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Altın</th>
+                                            <th>Yakut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>⚔️ Güneş Kılıcı +1</td><td>5.000</td><td>1.000</td></tr>
+                                        <tr><td>🛡️ Vezir Zırhı +1</td><td>8.000</td><td>750</td></tr>
+                                        <tr><td>👑 Sultan Tacı +1</td><td>4.000</td><td>450</td></tr>
+                                        <tr><td>💍 Hünkar Yüzüğü +1</td><td>10.000</td><td>300</td></tr>
+                                        <tr><td>👢 Şehzade Çizmesi +1</td><td>2.500</td><td>200</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_timar" class="howto-section">
+                        <summary>🏰 8. Tımar 2.0 — Pasif Gelir ve Bölge Yönetimi</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Tımar gelirleri doğrudan cüzdana değil,
+                                <strong>Tımar Hazinesine</strong> birikir.
+                                Oyuna girmesen bile uygun süre boyunca gelir üretmeye devam eder.
+                                Hazinedeki parayı manuel olarak toplarsın.
+                            </p>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tımar</th>
+                                            <th>Satın Alma</th>
+                                            <th>Başlangıç Geliri</th>
+                                            <th>Temel Hazine</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>🌾 Küçük Çiftlik</td><td>500</td><td>10/dk</td><td>25.000</td></tr>
+                                        <tr><td>🏘️ Kervansaray</td><td>2.000</td><td>15/dk</td><td>40.000</td></tr>
+                                        <tr><td>⛏️ Altın Madeni</td><td>7.500</td><td>20/dk</td><td>60.000</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h4>🏰 Tımar Seviyesi</h4>
+                            <p>
+                                Her Tımar <strong>Seviye 1–5</strong> geliştirilebilir.
+                                Seviye arttıkça gelir ve hazine kapasitesi yükselir.
+                            </p>
+
+                            <h4>👥 Sadakat ve Vergi</h4>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🕊️ Düşük Vergi</b>
+                                    Gelir ×0,80; Sadakat yaklaşık +3/saat.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>⚖️ Normal Vergi</b>
+                                    Gelir ×1,00; Sadakat yaklaşık +0,5/saat.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>🔥 Ağır Vergi</b>
+                                    Gelir ×1,25; Sadakat yaklaşık -4/saat.
+                                </div>
+                            </div>
+
+                            <p>
+                                Yüksek Sadakat gelir bonusu verir,
+                                düşük Sadakat ise Tımar verimini düşürür.
+                            </p>
+
+                            <h4>🏗️ Binalar — Maksimum Lv3</h4>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🌾 Çiftlik</b>
+                                    Her seviye Tımar gelirine +%5.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>🏪 Pazar</b>
+                                    Her seviye gelir +%3 ve hazine kapasitesi +%15.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>🛡️ Karakol</b>
+                                    Eşkıya/İsyan riskini ve olay gelir kaybını azaltır.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>🐎 Ahır</b>
+                                    En yüksek Ahır seviyesine göre Süvari maliyetini
+                                    seviye başına %3, maksimum %9 azaltır.
+                                </div>
+                            </div>
+
+                            <p>
+                                Eşkıya Baskını, Vergi İsyanı ve Kervan Yağması gibi
+                                olaylar çıkabilir. Olayı bastırmak
+                                <strong>1 Sefer Hakkı</strong> harcar ve ödül/Sadakat sağlar.
+                            </p>
+
+                            <div class="howto-tip">
+                                👑 Taht sahibi oyuncu Tımar gelirlerinde
+                                <strong>+%10 Hükümdar Bonusu</strong> alır.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_forge" class="howto-section">
+                        <summary>⚒️ 9. Demirhane — + Basma, Kutsama, Eritme ve Yeniden Dövme</summary>
+
+                        <div class="howto-content">
+                            <h4>🔨 Normal Geliştirme</h4>
+
+                            <p>
+                                Bir sonraki + seviyesi için temel maliyet:
+                                <strong>sonraki seviye × 150 Altın</strong> ve
+                                <strong>sonraki seviye kadar Yakut</strong>.
+                                Demirci Ustalığı Altın maliyetini azaltır.
+                            </p>
+
+                            <p>
+                                Başarılı geliştirmede item rarity'sine göre
+                                STR ve VIT aynı anda artar:
+                                <strong>Sıradan +2 / Nadir +3 / Epik +4 / Efsanevi +5</strong>.
+                            </p>
+
+                            <h4>📜 +10 Kutsama Sistemi</h4>
+
+                            <p>
+                                +9→10, +19→20, +29→30 gibi her 10'luk eşikte
+                                <strong>Kutsama Kağıdı</strong> gerekir.
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card"><b>1 Kağıt</b>%25 başarı</div>
+                                <div class="howto-mini-card"><b>2 Kağıt</b>%50 başarı</div>
+                                <div class="howto-mini-card"><b>3 Kağıt</b>%75 başarı</div>
+                                <div class="howto-mini-card"><b>4 Kağıt</b>%100 başarı</div>
+                            </div>
+
+                            <p>
+                                Başarısız Kutsama girişiminde item
+                                <strong>yanmaz ve + seviyesi düşmez</strong>;
+                                kullanılan kağıtlar ve normal geliştirme maliyeti harcanır.
+                            </p>
+
+                            <h4>🔥 Eşya Eritme</h4>
+
+                            <p>
+                                Kullanmadığın ekipmanları yok ederek
+                                <strong>Demir Cevheri</strong> kazanırsın.
+                                Cevher getirisi rarity ve + seviyesine göre artar.
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card"><b>Sıradan</b>2 + floor(+/5)</div>
+                                <div class="howto-mini-card"><b>Nadir</b>5 + floor(+/4)</div>
+                                <div class="howto-mini-card"><b>Epik</b>10 + floor(+/3)</div>
+                                <div class="howto-mini-card"><b>Efsanevi</b>18 + floor(+/2)</div>
+                            </div>
+
+                            <h4>🔨 Yeniden Dövme</h4>
+
+                            <p>
+                                Itemin toplam <strong>STR + VIT</strong> miktarı
+                                değişmez; puanların STR/VIT arasındaki dağılımı yeniden belirlenir.
+                                Cevher maliyeti:
+                                <strong>5 + floor(item seviyesi / 5)</strong>.
+                                Temel Altın maliyeti:
+                                <strong>500 + item seviyesi × 100</strong>.
+                            </p>
+
+                            <h4>👨‍🏭 Demirci Ustalığı</h4>
+
+                            <p>
+                                Maksimum Ustalık Seviyesi <strong>20</strong>.
+                                Seviye başına %0,5 Altın indirimi,
+                                maksimum <strong>%10</strong>.
+                                Geliştirme, Kutsama denemesi, eritme ve yeniden dövme
+                                Ustalık XP kazandırır.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details id="guide_dungeon" class="howto-section">
+                        <summary>🌋 10. Zindan Adası — STR, Günlük Hak ve Ganimet</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Zindan savaşında ana değer
+                                <strong>Toplam STR</strong>'dir.
+                                Katın minimum STR şartını karşılamıyorsan
+                                saldırı başlamaz ve günlük hakkın tüketilmez.
+                            </p>
+
+                            <p>
+                                Her kat için günlük
+                                <strong>5 gerçek saldırı hakkı</strong> vardır.
+                                Geçerli savaş başladığında, zafer veya yenilgi fark etmeksizin
+                                1 hak tüketilir.
+                            </p>
+
+                            <h4>🎯 Başarı Şansı</h4>
+
+                            <p>
+                                Tam gereken STR'de başarı yaklaşık <strong>%55</strong>.
+                                Gereken gücün 1,5 katında yaklaşık <strong>%72,5</strong>,
+                                2 katında yaklaşık <strong>%90</strong>.
+                                Maksimum şans <strong>%95</strong>.
+                            </p>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kat</th>
+                                            <th>STR</th>
+                                            <th>HP</th>
+                                            <th>Altın</th>
+                                            <th>EXP</th>
+                                            <th>Anahtar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>1</td><td>50</td><td>20</td><td>100</td><td>40</td><td>1</td></tr>
+                                        <tr><td>2</td><td>100</td><td>45</td><td>250</td><td>90</td><td>1</td></tr>
+                                        <tr><td>3</td><td>250</td><td>90</td><td>600</td><td>200</td><td>1</td></tr>
+                                        <tr><td>4</td><td>500</td><td>120</td><td>900</td><td>320</td><td>1</td></tr>
+                                        <tr><td>5</td><td>750</td><td>150</td><td>1.200</td><td>400</td><td>1</td></tr>
+                                        <tr><td>6</td><td>1.000</td><td>190</td><td>1.600</td><td>550</td><td>1</td></tr>
+                                        <tr><td>7</td><td>1.500</td><td>240</td><td>2.100</td><td>700</td><td>1</td></tr>
+                                        <tr><td>8</td><td>2.000</td><td>300</td><td>2.800</td><td>900</td><td>1</td></tr>
+                                        <tr><td>9</td><td>3.000</td><td>370</td><td>3.600</td><td>1.150</td><td>1</td></tr>
+                                        <tr><td>10</td><td>5.000</td><td>450</td><td>5.000</td><td>1.800</td><td>2 + 2💎</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Zaferde ayrıca <strong>%35 ihtimalle Nadir zindan itemi</strong>
+                                düşebilir. 10. Kat final bossunda
+                                <strong>%3 Hükümdar Seti</strong> parçası ihtimali vardır.
+                            </p>
+
+                            <p>
+                                Bir sonraki kat kilidini açmak için
+                                mevcut kat numarası × <strong>5 Yakut</strong> ödenir.
+                                Örneğin 4. kattan 5. kata geçiş 20 Yakut.
+                            </p>
+
+                            <div class="howto-warning">
+                                ⚠️ Zindan savaşında gerekli HP saldırı başladığında gider;
+                                kaybedersen ödül kazanmazsın.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_metin" class="howto-section">
+                        <summary>🪨 11. Metin Taşları ve Kutsama Kağıdı</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Metinlerde hasar karakterinin
+                                <strong>Toplam STR × 4</strong> tabanına dayanır
+                                ve yaklaşık %85–115 aralığında rastgele değişir.
+                                Her vuruş oyuncunun maksimum HP'sinden belirli bir yüzde tüketir.
+                            </p>
+
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Metin</th>
+                                            <th>Lv</th>
+                                            <th>HP</th>
+                                            <th>Yeniden Doğma</th>
+                                            <th>Kağıt</th>
+                                            <th>Vuruş HP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>Savaş Metini</td><td>1</td><td>500</td><td>4 saat</td><td>1</td><td>%4</td></tr>
+                                        <tr><td>Gölge Metini</td><td>20</td><td>2.000</td><td>6 saat</td><td>1</td><td>%5</td></tr>
+                                        <tr><td>Ruh Metini</td><td>40</td><td>6.000</td><td>8 saat</td><td>1</td><td>%6</td></tr>
+                                        <tr><td>Kıyamet Metini</td><td>60</td><td>15.000</td><td>12 saat</td><td>1</td><td>%7</td></tr>
+                                        <tr><td>Taht Metini</td><td>80</td><td>35.000</td><td>24 saat</td><td>2</td><td>%8</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Metin tamamen parçalandığında
+                                <strong>Kutsama Kağıdı</strong> kazanılır.
+                                Taht Metini ayrıca
+                                <strong>%4 Hükümdar Seti parçası</strong> ihtimaline sahiptir.
+                            </p>
+
+                            <div class="howto-tip">
+                                💡 Kutsama Kağıtlarını +10, +20, +30 gibi
+                                Demirhane eşiklerinde kullanmak için sakla.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_arena" class="howto-section">
+                        <summary>🏟️ 12. PvP Arena</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Arena savaşları sunucu tarafından hesaplanır.
+                                Savaş <strong>3 tur</strong> sürer;
+                                taraflardan biri düşmezse gerektiğinde
+                                <strong>Son Darbe</strong> aşaması ile sonuç belirlenir.
+                            </p>
+
+                            <p>
+                                Arena gücü Toplam STR ve VIT'ten oluşur.
+                                Kritik vuruş ihtimali vardır ve savaş sırasında
+                                arena için ayrı simülasyon HP'si kullanılır;
+                                ana karakter HP'n doğrudan arena dövüşünde harcanmaz.
+                            </p>
+
+                            <p>
+                                Günlük <strong>5 Arena savaşı</strong>.
+                                Zafer:
+                                <strong>30–79 Altın + 15 Onur</strong>.
+                                Mağlubiyet:
+                                <strong>-5 Onur</strong> ve Onur 0'ın altına düşmez.
+                            </p>
+
+                            <p>
+                                Genel Durum'da Arena Zaferi ve Onur değerlerini takip edebilirsin.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details id="guide_barracks" class="howto-section">
+                        <summary>🛡️ 13. Kışla ve Ordu</summary>
+
+                        <div class="howto-content">
+                            <div class="howto-table-wrap">
+                                <table class="howto-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Birlik</th>
+                                            <th>Maliyet</th>
+                                            <th>Güç</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>🏹 Okçu</td><td>250 Altın</td><td>10</td></tr>
+                                        <tr><td>⚔️ Savaşçı</td><td>500 Altın</td><td>20</td></tr>
+                                        <tr><td>🐎 Süvari</td><td>1.000 Altın</td><td>35</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Askerleri 1, 10, 50 veya 100 adetlik miktarlarda yetiştirebilirsin.
+                                Ordu Gücü birliklerin toplam gücüne karakter STR katkısının
+                                eklenmesiyle Kale savaşında kullanılır.
+                            </p>
+
+                            <p>
+                                Tımar Ahırı en yüksek seviyesine göre
+                                yalnızca Süvari yetiştirme maliyetini düşürür;
+                                maksimum indirim <strong>%9</strong>.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details id="guide_castle" class="howto-section">
+                        <summary>👑 14. Kale Kuşatması ve Taht Savaşı</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Kale'nin sahibi Taht'ın sahibidir.
+                                Saldıran tarafın temel gücü:
+                                <strong>Birlik Gücü + Karakter Toplam STR</strong>.
+                            </p>
+
+                            <p>
+                                Oyuncu savunmasında birlik gücü + savunan komutan STR'ı kullanılır.
+                                Kale ayrıca <strong>500 Duvar Gücü</strong> kazanır ve
+                                savunma toplamına <strong>%15 savunma bonusu</strong> uygulanır.
+                            </p>
+
+                            <p>
+                                Savaşta saldırı ve savunma tarafına yaklaşık
+                                <strong>%90–110</strong> aralığında savaş atışı uygulanır.
+                                Son saldırı gücü savunmayı geçerse Kale fethedilir.
+                                Her iki taraf da savaşa göre asker kaybedebilir.
+                            </p>
+
+                            <h4>Market Hazırlıkları</h4>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🍖 Ordu Erzağı</b>
+                                    Saldıranın asker kayıp oranını %10 azaltır.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>🥁 Savaş Davulu</b>
+                                    Saldırı gücü +%5.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>📜 Komutan Fermanı</b>
+                                    STR katkısı +%25.
+                                </div>
+                                <div class="howto-mini-card">
+                                    <b>👑 Hükümdar Seti 6 Parça</b>
+                                    Kale saldırı gücü +%3.
+                                </div>
+                            </div>
+
+                            <p>
+                                Başarılı fetih ödülü:
+                                <strong>10.000 Altın + 100 Yakut</strong>.
+                                Ayrıca Kale Fethinde
+                                <strong>%5 Hükümdar Seti parçası</strong> düşme ihtimali vardır.
+                            </p>
+
+                            <div class="howto-note">
+                                ℹ️ Bir sonraki saldırı için hazırlanan Erzak, Davul ve Ferman
+                                gerçek Kale saldırısında otomatik tüketilir.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_set" class="howto-section">
+                        <summary>✨ 15. Efsanevi Hükümdar Seti</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Hükümdar Seti oyunun Efsanevi 8 parçalık end-game setidir:
+                            </p>
+
+                            <p>
+                                👑 Tuğra Tacı • 📿 Saray Kolyesi • 🛡️ Hümayun Zırhı •
+                                ⚔️ Hakan Kılıcı • 🛡️ Cihan Kalkanı • 💍 Fetih Yüzüğü •
+                                🧤 Serdar Eldiveni • 👢 Akıncı Çizmesi
+                            </p>
+
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>2 Parça</b>
+                                    STR +%3
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>4 Parça</b>
+                                    VIT +%5
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>6 Parça</b>
+                                    Kale saldırı gücü +%3
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>8 Parça</b>
+                                    Savaş Gücü +%5 ve Hükümdarın Kudreti efekti
+                                </div>
+                            </div>
+
+                            <h4>Düşme Kaynakları</h4>
+
+                            <p>
+                                🌋 10. Kat Final Boss: <strong>%3</strong><br>
+                                👑 Taht Metini: <strong>%4</strong><br>
+                                🏰 Başarılı Kale Fethi: <strong>%5</strong>
+                            </p>
+
+                            <div class="howto-warning">
+                                ⚠️ Hükümdar Seti parçaları çok nadirdir.
+                                Envanterden silmeden veya eritmeden önce dikkat et.
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_chat" class="howto-section">
+                        <summary>📜 16. Diyar Meclisi</summary>
+
+                        <div class="howto-content">
+                            <p>
+                                Diyar Meclisi oyundaki genel sohbet alanıdır.
+                                Diğer oyuncularla konuşabilir, pazar/fetih/oyun hakkında
+                                haberleşebilirsin.
+                            </p>
+
+                            <p>
+                                Mesaj alanında Enter tuşu ile veya Gönder butonuyla
+                                mesaj gönderebilirsin.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details id="guide_limits" class="howto-section">
+                        <summary>⏱️ 17. Günlük Limitler, Yenilenmeler ve Zamanlar</summary>
+
+                        <div class="howto-content">
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🧭 Sefer</b>
+                                    Maksimum 20. Eksildikten sonra her 3 dakikada +1.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🌋 Zindan</b>
+                                    Her kat için günlük 5 gerçek saldırı.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🏟️ Arena</b>
+                                    Günlük 5 savaş.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🪨 Metin</b>
+                                    Taşa göre 4 / 6 / 8 / 12 / 24 saat yeniden doğma.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🏦 Banka</b>
+                                    24 saat vade; aynı anda 1 aktif hesap.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🏰 Tımar</b>
+                                    Gelir çevrimdışı da hazinede birikebilir; kapasite dolunca artış durur.
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_tips" class="howto-section">
+                        <summary>🧠 18. İlerleme İpuçları ve Sık Yapılan Hatalar</summary>
+
+                        <div class="howto-content">
+                            <div class="howto-steps">
+                                <div class="howto-step">
+                                    Zindan'a yalnızca minimum STR ile girmek mümkündür
+                                    ama başarı şansın %55 civarında olur.
+                                    Daha güvenli savaş için STR fazlası biriktir.
+                                </div>
+
+                                <div class="howto-step">
+                                    VIT'i tamamen ihmal etme;
+                                    Görev, Zindan ve Metin sistemleri HP tüketir.
+                                </div>
+
+                                <div class="howto-step">
+                                    Kutsama Kağıdını düşük + seviyelerinde harcayamazsın;
+                                    +10 eşiklerine hazırlık için stokla.
+                                </div>
+
+                                <div class="howto-step">
+                                    Tımar hazinesi kapasitesini uzun süre dolu bırakma;
+                                    dolu hazine yeni geliri kabul etmez.
+                                </div>
+
+                                <div class="howto-step">
+                                    Kale saldırısından önce Ordu Erzağı,
+                                    Savaş Davulu ve Komutan Fermanı kullanmak
+                                    pahalı savaşlarda avantaj sağlayabilir.
+                                </div>
+
+                                <div class="howto-step">
+                                    Sarraf oranlarını alış ve satış olarak ayrı değerlendir;
+                                    Yakut bozdurup tekrar satın almak zarar ettirir.
+                                </div>
+
+                                <div class="howto-step">
+                                    Efsanevi Hükümdar Seti parçalarını yanlışlıkla
+                                    eritmemeye veya silmemeye dikkat et.
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <details id="guide_dictionary" class="howto-section">
+                        <summary>📚 19. Kısa Oyun Sözlüğü</summary>
+
+                        <div class="howto-content">
+                            <div class="howto-grid">
+                                <div class="howto-mini-card">
+                                    <b>🪙 Altın</b>
+                                    Görev, Tımar, Zindan ve diğer sistemlerde kullanılan ana para.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>💎 Yakut</b>
+                                    Geliştirme, özel Market ürünleri ve Zindan kat açma gibi işlemlerde kullanılır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🔑 Altın Anahtar</b>
+                                    Zindan zaferlerinden gelir; Altın Sandık açar.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>📜 Kutsama Kağıdı</b>
+                                    +10 geliştirme eşiklerinde başarı şansını belirler.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>⛏️ Demir Cevheri</b>
+                                    Eritmeden gelir; Yeniden Dövme'de kullanılır.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🌟 Onur</b>
+                                    PvP Arena'daki prestij değeridir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>🧭 Sefer Hakkı</b>
+                                    Görevler ve Tımar olayları gibi faaliyetlerin enerjisidir.
+                                </div>
+
+                                <div class="howto-mini-card">
+                                    <b>👑 Taht</b>
+                                    Kale'nin mevcut sahibi oyunun Hükümdarıdır.
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 `;
             } else if(activeTab === 'dungeon') {
                 const userDungeonFloor = Math.max(1, u.dungeonFloor || 1);
