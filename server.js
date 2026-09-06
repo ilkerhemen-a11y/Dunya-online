@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-clan-castle-war-v1';
+const GAME_BUILD_ID = '2026-09-06-clan-war-rewards-honor-v2';
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +16,10 @@ app.use(express.static(__dirname + '/public'));
 const MAX_SEFER_LIMITI = 20;
 const REFILL_INTERVAL = 3 * 60 * 1000;
 const MAX_LEVEL = 99;
+
+// --- ONUR ÖDÜL SİSTEMİ ---
+const HONOR_RUBY_STEP = 100;
+const HONOR_RUBY_REWARD = 100;
 
 const BANK_MAX_DEPOSIT = 100000;
 const BANK_INTEREST_RATE = 0.50;
@@ -197,6 +201,51 @@ function processLevelUps(user) {
 }
 
 
+function applyHonorChange(user, amount) {
+    const requestedChange = Number.parseInt(amount, 10) || 0;
+    const beforeHonor = Math.max(0, Number(user?.honor) || 0);
+
+    // Eski oyuncuların geçmiş 100'lük eşikleri yeniden ödül üretmesin.
+    // İlk kez yeni sisteme dokunulduğunda mevcut Onur seviyesi başlangıç kabul edilir.
+    if (!user.honorRewardInitialized) {
+        user.honorRubyMilestone = Math.floor(beforeHonor / HONOR_RUBY_STEP);
+        user.honorRewardInitialized = true;
+    }
+
+    const previousMilestone = Math.max(
+        0,
+        Number.parseInt(user.honorRubyMilestone, 10) || 0
+    );
+
+    user.honor = Math.max(0, beforeHonor + requestedChange);
+
+    let rubyReward = 0;
+    let milestonesGained = 0;
+
+    if (requestedChange > 0) {
+        const reachedMilestone = Math.floor(user.honor / HONOR_RUBY_STEP);
+
+        if (reachedMilestone > previousMilestone) {
+            milestonesGained = reachedMilestone - previousMilestone;
+            rubyReward = milestonesGained * HONOR_RUBY_REWARD;
+            user.rubies = Math.max(0, Number(user.rubies) || 0) + rubyReward;
+            user.honorRubyMilestone = reachedMilestone;
+        }
+    }
+
+    return {
+        honorChange: user.honor - beforeHonor,
+        newHonor: user.honor,
+        rubyReward,
+        milestonesGained,
+        nextHonorTarget: (Math.max(
+            previousMilestone,
+            Number.parseInt(user.honorRubyMilestone, 10) || 0
+        ) + 1) * HONOR_RUBY_STEP
+    };
+}
+
+
 const METIN_STONES = {
     // Tüm Metin taşlarında yeniden doğma süresi en az 4 saattir.
     // hpCostPercent: Her vuruşta oyuncunun maksimum HP'sinden düşecek yüzde.
@@ -233,7 +282,7 @@ const TROOP_TYPES = {
     archer:   { name: 'Okçu',     icon: '🏹', cost: 250,  power: 10 },
     warrior:  { name: 'Savaşçı',  icon: '⚔️', cost: 500,  power: 20 },
     cavalry:  { name: 'Süvari',   icon: '🐎', cost: 1000, power: 35 },
-    catapult: { name: 'Mancınık', icon: '🏗️', cost: 3000, power: 100 }
+    catapult: { name: 'Mancınık', icon: '🪵', cost: 3000, power: 100 }
 };
 
 const CASTLE_WALL_POWER = 500;
@@ -1306,6 +1355,8 @@ const userSchema = new mongoose.Schema({
     statPoints: { type: Number, default: 0 },
     hp: { type: Number, default: 100 },
     honor: { type: Number, default: 0 },
+    honorRubyMilestone: { type: Number, default: 0 },
+    honorRewardInitialized: { type: Boolean, default: false },
     arenaWins: { type: Number, default: 0 },
     dungeonBossWins: { type: Number, default: 0 },
     metinKills: { type: Number, default: 0 },
@@ -1416,6 +1467,11 @@ const CLAN_CASTLE_WAR_DURATION_MINUTES = 30;
 const CLAN_CASTLE_WAR_ATTACK_LIMIT = 5;
 const CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS = 10 * 1000;
 const CLAN_CASTLE_NAME = 'Hisar-ı Hümayun';
+
+// Kale ele geçirme ödülleri
+const CLAN_CASTLE_WIN_TREASURY_REWARD = 15000;
+const CLAN_CASTLE_WIN_PARTICIPANT_HONOR = 30;
+const CLAN_CASTLE_TOP_DAMAGE_HONOR_BONUS = 20;
 
 const clanMemberSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -1676,6 +1732,29 @@ function emitToOnlineUser(userId, eventName, payload) {
     for (const [socketId, onlineUser] of Object.entries(users)) {
         if (!onlineUser || String(onlineUser._id) !== targetId) continue;
         io.to(socketId).emit(eventName, payload);
+    }
+}
+
+
+function syncOnlineHonorRewardState(updatedUser) {
+    if (!updatedUser?._id) return;
+
+    const id = String(updatedUser._id);
+
+    for (const [socketId, onlineUser] of Object.entries(users)) {
+        if (String(onlineUser?._id) !== id) continue;
+
+        onlineUser.honor = Math.max(0, Number(updatedUser.honor) || 0);
+        onlineUser.rubies = Math.max(0, Number(updatedUser.rubies) || 0);
+        onlineUser.honorRubyMilestone = Math.max(
+            0,
+            Number(updatedUser.honorRubyMilestone) || 0
+        );
+        onlineUser.honorRewardInitialized = Boolean(
+            updatedUser.honorRewardInitialized
+        );
+
+        io.to(socketId).emit('statUpdated', onlineUser);
     }
 }
 
@@ -1980,14 +2059,70 @@ async function finalizeClanCastleWar(war) {
             }
         );
 
-        // Kazanan klana kale + galibiyet.
+        // Kazanan klana kale + galibiyet + klan hazinesi ödülü.
         await Clan.updateOne(
             { _id: winner.clanId },
             {
                 $set: { castleId: CLAN_CASTLE_NAME },
-                $inc: { wins: 1 }
+                $inc: {
+                    wins: 1,
+                    treasury: CLAN_CASTLE_WIN_TREASURY_REWARD
+                }
             }
         );
+
+        // Kazanan klanın savaşa gerçekten katılan üyelerine Onur ver.
+        // En fazla hasarı veren üye ayrıca bonus Onur kazanır.
+        const winningParticipants = (winner.members || [])
+            .filter(member => (Number(member.attacks) || 0) > 0)
+            .sort((a, b) => (Number(b.damage) || 0) - (Number(a.damage) || 0));
+
+        const topDamageUserId = winningParticipants[0]?.userId
+            ? String(winningParticipants[0].userId)
+            : null;
+
+        if (winningParticipants.length > 0) {
+            const participantIds = winningParticipants.map(member => member.userId);
+            const participantUsers = await User.find({
+                _id: { $in: participantIds }
+            });
+
+            for (const participantUser of participantUsers) {
+                const isTopDamage =
+                    topDamageUserId &&
+                    String(participantUser._id) === topDamageUserId;
+
+                const honorAmount =
+                    CLAN_CASTLE_WIN_PARTICIPANT_HONOR +
+                    (isTopDamage ? CLAN_CASTLE_TOP_DAMAGE_HONOR_BONUS : 0);
+
+                const honorReward = applyHonorChange(
+                    participantUser,
+                    honorAmount
+                );
+
+                await participantUser.save();
+                syncOnlineHonorRewardState(participantUser);
+
+                const rubyText = honorReward.rubyReward > 0
+                    ? ` 💎 Onur eşiği ödülü: +${honorReward.rubyReward} Yakut!`
+                    : '';
+
+                emitToOnlineUser(
+                    participantUser._id,
+                    'clanCastleReward',
+                    {
+                        success: true,
+                        userData: participantUser,
+                        message:
+                            `🏰 ${CLAN_CASTLE_NAME} klanınız tarafından ele geçirildi! ` +
+                            `+${honorAmount} Onur 🌟` +
+                            (isTopDamage ? ' (En Yüksek Hasar Bonusu dahil)' : '') +
+                            rubyText
+                    }
+                );
+            }
+        }
 
         // Savaşa katılan diğer klanlara mağlubiyet.
         const loserIds = leaderboard
@@ -2004,7 +2139,9 @@ async function finalizeClanCastleWar(war) {
 
         broadcastClanRefresh(
             winner.clanId,
-            `🏰 ${CLAN_CASTLE_NAME} ele geçirildi! En yüksek toplam hasarı [${winner.clanTag}] ${winner.clanName} verdi.`
+            `🏰 ${CLAN_CASTLE_NAME} ele geçirildi! ` +
+            `Klan hazinesine +${CLAN_CASTLE_WIN_TREASURY_REWARD.toLocaleString('tr-TR')} Altın, ` +
+            `katılan üyelere +${CLAN_CASTLE_WIN_PARTICIPANT_HONOR} Onur verildi.`
         );
     }
 
@@ -2168,6 +2305,13 @@ async function buildClanCastleWarStatus(user) {
         armyPower,
         castleAttackBonusPercent:
             Number(setBonus.castleAttackPercent) || 0,
+        rewards: {
+            winnerTreasuryGold: CLAN_CASTLE_WIN_TREASURY_REWARD,
+            participantHonor: CLAN_CASTLE_WIN_PARTICIPANT_HONOR,
+            topDamageHonorBonus: CLAN_CASTLE_TOP_DAMAGE_HONOR_BONUS,
+            honorStep: HONOR_RUBY_STEP,
+            honorRubyReward: HONOR_RUBY_REWARD
+        },
         canAttack:
             Boolean(
                 windowInfo.active &&
@@ -2223,6 +2367,7 @@ app.get('/api/build', (req, res) => {
         build: GAME_BUILD_ID,
         clanV1: true,
         clanCastleWarV1: true,
+        honorRubyRewards: true,
         catapult: true,
         onlineCounter: true,
         mongoReadyState: mongoose.connection.readyState
@@ -2365,6 +2510,7 @@ io.on('connection', (socket) => {
             build: GAME_BUILD_ID,
             clanV1: true,
             clanCastleWarV1: true,
+            honorRubyRewards: true,
             catapult: true,
             onlineCounter: true
         });
@@ -4269,24 +4415,30 @@ io.on('connection', (socket) => {
             let honorChange = 0;
             let resultMessage = '';
 
+            let honorRewardResult = {
+                rubyReward: 0,
+                milestonesGained: 0
+            };
+
             if (attackerWon) {
                 goldReward = Math.floor(Math.random() * 50) + 30;
                 honorChange = 15;
 
                 attacker.balance += goldReward;
-                attacker.honor = (attacker.honor || 0) + honorChange;
+                honorRewardResult = applyHonorChange(attacker, honorChange);
                 attacker.arenaWins = (attacker.arenaWins || 0) + 1;
+
+                const rubyMilestoneText = honorRewardResult.rubyReward > 0
+                    ? ` 🎁 100 Onur eşiği! +${honorRewardResult.rubyReward} Yakut 💎 kazandın!`
+                    : '';
 
                 resultMessage =
                     `🏆 ZAFER! ${defender.username} mağlup edildi. ` +
-                    `Ödül: +${goldReward} Altın 🪙 ve +${honorChange} Onur 🌟!`;
+                    `Ödül: +${goldReward} Altın 🪙 ve +${honorChange} Onur 🌟!` +
+                    rubyMilestoneText;
             } else {
                 honorChange = -5;
-
-                attacker.honor = Math.max(
-                    0,
-                    (attacker.honor || 0) + honorChange
-                );
+                applyHonorChange(attacker, honorChange);
 
                 resultMessage =
                     `💀 MAĞLUBİYET! ${defender.username} arena savaşını kazandı. ` +
@@ -4304,6 +4456,7 @@ io.on('connection', (socket) => {
                     attackerWon,
                     goldReward,
                     honorChange,
+                    honorRubyReward: honorRewardResult.rubyReward || 0,
                     attacker: {
                         id: String(attacker._id),
                         username: attacker.username,
