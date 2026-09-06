@@ -112,6 +112,90 @@ const METIN_STONES = {
 
 const EQUIP_SLOTS = ['helmet', 'necklace', 'armor', 'weapon', 'shield', 'ring', 'gloves', 'boots'];
 
+const TROOP_TYPES = {
+    archer:  { name: 'Okçu',    icon: '🏹', cost: 250,  power: 10 },
+    warrior: { name: 'Savaşçı', icon: '⚔️', cost: 500,  power: 20 },
+    cavalry: { name: 'Süvari',  icon: '🐎', cost: 1000, power: 35 }
+};
+
+const CASTLE_WALL_POWER = 500;
+const CASTLE_DEFENSE_BONUS = 1.15;
+
+const NPC_CASTLE_ARMY = {
+    archer: 50,
+    warrior: 30,
+    cavalry: 20
+};
+
+function normalizeArmy(user) {
+    if (!user.army) {
+        user.army = { archer: 0, warrior: 0, cavalry: 0 };
+        user.markModified('army');
+        return true;
+    }
+
+    let changed = false;
+
+    for (const type of Object.keys(TROOP_TYPES)) {
+        let amount = Number.parseInt(user.army[type], 10);
+
+        if (!Number.isInteger(amount) || amount < 0) {
+            amount = 0;
+        }
+
+        if (user.army[type] !== amount) {
+            user.army[type] = amount;
+            changed = true;
+        }
+    }
+
+    if (changed) user.markModified('army');
+    return changed;
+}
+
+function getArmyPower(army) {
+    if (!army) return 0;
+
+    return Object.entries(TROOP_TYPES).reduce((total, [type, troop]) => {
+        const amount = Math.max(0, Number.parseInt(army[type], 10) || 0);
+        return total + (amount * troop.power);
+    }, 0);
+}
+
+function cloneArmy(army) {
+    return {
+        archer: Math.max(0, Number.parseInt(army?.archer, 10) || 0),
+        warrior: Math.max(0, Number.parseInt(army?.warrior, 10) || 0),
+        cavalry: Math.max(0, Number.parseInt(army?.cavalry, 10) || 0)
+    };
+}
+
+function applyArmyLosses(army, lossRate) {
+    const before = cloneArmy(army);
+    const after = {};
+    const lost = {};
+
+    for (const type of Object.keys(TROOP_TYPES)) {
+        const amount = before[type];
+        const loss = Math.min(amount, Math.max(0, Math.round(amount * lossRate)));
+
+        lost[type] = loss;
+        after[type] = Math.max(0, amount - loss);
+    }
+
+    return { before, after, lost };
+}
+
+function getArmyCount(army) {
+    const safe = cloneArmy(army);
+    return safe.archer + safe.warrior + safe.cavalry;
+}
+
+function formatArmyLosses(lost) {
+    return `🏹 ${lost.archer || 0} Okçu | ⚔️ ${lost.warrior || 0} Savaşçı | 🐎 ${lost.cavalry || 0} Süvari`;
+}
+
+
 function getTotalStr(user) {
     let totalStr = Number(user.str) || 5;
 
@@ -333,6 +417,12 @@ const userSchema = new mongoose.Schema({
     seferLimiti: { type: Number, default: 20 },
     seferNextRefill: { type: Number, default: null },
     estates: { type: [Number], default: [] },
+    army: {
+        archer: { type: Number, default: 0 },
+        warrior: { type: Number, default: 0 },
+        cavalry: { type: Number, default: 0 }
+    },
+    castleVictories: { type: Number, default: 0 },
     equipped: { 
         helmet: { type: Object, default: null }, 
         necklace: { type: Object, default: null }, 
@@ -358,6 +448,109 @@ const stallSchema = new mongoose.Schema({
     rubies: { type: Number, default: 0 } // Tezgah kasasındaki biriken yakut
 });
 const Stall = mongoose.model('Stall', stallSchema);
+
+// Ana Kale / Taht durumu — tüm oyuncular için tek global kayıt
+const castleSchema = new mongoose.Schema({
+    key: { type: String, unique: true, default: 'main_castle' },
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    ownerName: { type: String, default: '' },
+    conqueredAt: { type: Number, default: 0 },
+    battleCount: { type: Number, default: 0 }
+});
+
+const CastleState = mongoose.model('CastleState', castleSchema);
+
+async function getOrCreateCastle() {
+    return CastleState.findOneAndUpdate(
+        { key: 'main_castle' },
+        {
+            $setOnInsert: {
+                key: 'main_castle',
+                ownerId: null,
+                ownerName: '',
+                conqueredAt: 0,
+                battleCount: 0
+            }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+}
+
+async function getCastleStatusForUser(user) {
+    let castle = await getOrCreateCastle();
+    let defenderArmy = cloneArmy(NPC_CASTLE_ARMY);
+    let defenderName = 'Saray Muhafızları';
+    let defenderIsNpc = true;
+
+    if (castle.ownerId) {
+        const defenderUser = await User.findById(castle.ownerId);
+
+        if (!defenderUser) {
+            castle.ownerId = null;
+            castle.ownerName = '';
+            castle.conqueredAt = 0;
+            await castle.save();
+        } else {
+            normalizeArmy(defenderUser);
+            await defenderUser.save();
+
+            defenderArmy = cloneArmy(defenderUser.army);
+            defenderName = defenderUser.username;
+            defenderIsNpc = false;
+        }
+    }
+
+    const rawArmyPower = getArmyPower(defenderArmy);
+    const defensePower = Math.floor(
+        (rawArmyPower + CASTLE_WALL_POWER) * CASTLE_DEFENSE_BONUS
+    );
+
+    return {
+        key: castle.key,
+        ownerId: castle.ownerId ? String(castle.ownerId) : null,
+        ownerName: castle.ownerName || '',
+        defenderName,
+        defenderIsNpc,
+        defenderArmy,
+        armyPower: rawArmyPower,
+        wallPower: CASTLE_WALL_POWER,
+        defensePower,
+        defenseBonusPercent: Math.round((CASTLE_DEFENSE_BONUS - 1) * 100),
+        conqueredAt: castle.conqueredAt || 0,
+        battleCount: castle.battleCount || 0,
+        isOwner: !!(
+            castle.ownerId &&
+            user &&
+            String(castle.ownerId) === String(user._id)
+        )
+    };
+}
+
+function syncOnlineArmy(userId, army, noticeMessage = '') {
+    for (const [socketId, onlineUser] of Object.entries(users)) {
+        if (String(onlineUser._id) !== String(userId)) continue;
+
+        if (!onlineUser.army) {
+            onlineUser.army = { archer: 0, warrior: 0, cavalry: 0 };
+        }
+
+        onlineUser.army.archer = army.archer || 0;
+        onlineUser.army.warrior = army.warrior || 0;
+        onlineUser.army.cavalry = army.cavalry || 0;
+        onlineUser.markModified('army');
+
+        io.to(socketId).emit('statUpdated', onlineUser);
+
+        if (noticeMessage) {
+            io.to(socketId).emit('castleDefenseNotice', {
+                message: noticeMessage
+            });
+        }
+    }
+}
+
+let castleBattleLock = false;
+
 
 const users = {}; 
 
@@ -418,6 +611,7 @@ io.on('connection', (socket) => {
             checkDungeonDailyReset(dbUser);
             normalizePlayerLevel(dbUser);
             normalizeMetinState(dbUser);
+            normalizeArmy(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -444,6 +638,7 @@ io.on('connection', (socket) => {
             checkDungeonDailyReset(dbUser);
             normalizePlayerLevel(dbUser);
             normalizeMetinState(dbUser);
+            normalizeArmy(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -671,6 +866,307 @@ io.on('connection', (socket) => {
         });
     });
 
+
+
+    // --- KIŞLA / KALE / TAHT SAVAŞI SİSTEMİ ---
+    socket.on('getBarracksStatus', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            normalizeArmy(user);
+            await user.save();
+
+            const castle = await getCastleStatusForUser(user);
+
+            socket.emit('barracksStatus', {
+                userData: user,
+                troops: TROOP_TYPES,
+                castle,
+                armyPower: getArmyPower(user.army),
+                armyCount: getArmyCount(user.army)
+            });
+        } catch (err) {
+            console.error('Kışla durum hatası:', err);
+        }
+    });
+
+    socket.on('trainTroops', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            normalizeArmy(user);
+
+            const troopType = String(data?.troopType || '');
+            const troop = TROOP_TYPES[troopType];
+            const quantity = Number.parseInt(data?.quantity, 10);
+
+            if (!troop) {
+                return socket.emit('barracksResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Geçersiz asker türü.'
+                });
+            }
+
+            if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+                return socket.emit('barracksResult', {
+                    success: false,
+                    userData: user,
+                    message: 'Tek seferde 1 ile 100 arasında asker yetiştirebilirsin.'
+                });
+            }
+
+            const totalCost = troop.cost * quantity;
+
+            if ((user.balance || 0) < totalCost) {
+                return socket.emit('barracksResult', {
+                    success: false,
+                    userData: user,
+                    message:
+                        `🪙 Yetersiz altın! ${quantity} ${troop.name} için ` +
+                        `${totalCost.toLocaleString('tr-TR')} Altın gerekiyor.`
+                });
+            }
+
+            user.balance -= totalCost;
+            user.army[troopType] = (Number(user.army[troopType]) || 0) + quantity;
+            user.markModified('army');
+
+            await user.save();
+
+            const castle = await getCastleStatusForUser(user);
+
+            socket.emit('barracksResult', {
+                success: true,
+                userData: user,
+                castle,
+                armyPower: getArmyPower(user.army),
+                armyCount: getArmyCount(user.army),
+                message:
+                    `${troop.icon} ${quantity} ${troop.name} yetiştirildi! ` +
+                    `🪙 ${totalCost.toLocaleString('tr-TR')} Altın harcandı.`
+            });
+
+            // Taht sahibi asker yetiştirirse kalenin savunması da anında değişir.
+            if (castle.isOwner) {
+                io.emit('castleRefresh');
+            }
+        } catch (err) {
+            console.error('Asker yetiştirme hatası:', err);
+            socket.emit('barracksResult', {
+                success: false,
+                userData: user,
+                message: 'Asker yetiştirme sırasında hata oluştu.'
+            });
+        }
+    });
+
+    socket.on('attackCastle', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        if (castleBattleLock) {
+            return socket.emit('castleBattleResult', {
+                success: false,
+                userData: user,
+                message: '⚔️ Kalede başka bir savaş sonuçlandırılıyor. Birkaç saniye sonra tekrar dene.'
+            });
+        }
+
+        castleBattleLock = true;
+
+        try {
+            normalizeArmy(user);
+
+            const attackerArmy = cloneArmy(user.army);
+            const attackerBasePower = getArmyPower(attackerArmy);
+
+            if (attackerBasePower <= 0 || getArmyCount(attackerArmy) <= 0) {
+                return socket.emit('castleBattleResult', {
+                    success: false,
+                    userData: user,
+                    message: '🛡️ Kaleye saldırmak için önce Kışla’dan asker yetiştirmelisin.'
+                });
+            }
+
+            const castle = await getOrCreateCastle();
+
+            if (
+                castle.ownerId &&
+                String(castle.ownerId) === String(user._id)
+            ) {
+                return socket.emit('castleBattleResult', {
+                    success: false,
+                    userData: user,
+                    message: '👑 Bu kale zaten senin. Kendi tahtına saldıramazsın.'
+                });
+            }
+
+            let defenderUser = null;
+            let defenderArmy = cloneArmy(NPC_CASTLE_ARMY);
+            let defenderName = 'Saray Muhafızları';
+            let defenderIsNpc = true;
+
+            if (castle.ownerId) {
+                defenderUser = await User.findById(castle.ownerId);
+
+                if (!defenderUser) {
+                    castle.ownerId = null;
+                    castle.ownerName = '';
+                    castle.conqueredAt = 0;
+                    await castle.save();
+                } else {
+                    normalizeArmy(defenderUser);
+                    defenderArmy = cloneArmy(defenderUser.army);
+                    defenderName = defenderUser.username;
+                    defenderIsNpc = false;
+                }
+            }
+
+            const defenderArmyPower = getArmyPower(defenderArmy);
+            const defenderBasePower = Math.floor(
+                (defenderArmyPower + CASTLE_WALL_POWER) * CASTLE_DEFENSE_BONUS
+            );
+
+            // Savaşta iki taraf da %90–110 performans gösterebilir.
+            const attackerRollMultiplier = 0.90 + (Math.random() * 0.20);
+            const defenderRollMultiplier = 0.90 + (Math.random() * 0.20);
+
+            const attackerBattlePower = Math.max(
+                1,
+                Math.floor(attackerBasePower * attackerRollMultiplier)
+            );
+
+            const defenderBattlePower = Math.max(
+                1,
+                Math.floor(defenderBasePower * defenderRollMultiplier)
+            );
+
+            const attackerWon = attackerBattlePower > defenderBattlePower;
+
+            // Kazanan da kayıp verir; kaybeden taraf daha ağır kayıp verir.
+            const attackerLossRate = attackerWon
+                ? 0.15 + (Math.random() * 0.20)   // %15–35
+                : 0.45 + (Math.random() * 0.30); // %45–75
+
+            const defenderLossRate = attackerWon
+                ? 0.55 + (Math.random() * 0.30)  // %55–85
+                : 0.10 + (Math.random() * 0.20); // %10–30
+
+            const attackerLossResult = applyArmyLosses(
+                attackerArmy,
+                attackerLossRate
+            );
+
+            const defenderLossResult = applyArmyLosses(
+                defenderArmy,
+                defenderLossRate
+            );
+
+            user.army.archer = attackerLossResult.after.archer;
+            user.army.warrior = attackerLossResult.after.warrior;
+            user.army.cavalry = attackerLossResult.after.cavalry;
+            user.markModified('army');
+
+            if (defenderUser) {
+                defenderUser.army.archer = defenderLossResult.after.archer;
+                defenderUser.army.warrior = defenderLossResult.after.warrior;
+                defenderUser.army.cavalry = defenderLossResult.after.cavalry;
+                defenderUser.markModified('army');
+                await defenderUser.save();
+            }
+
+            castle.battleCount = (castle.battleCount || 0) + 1;
+
+            let message = '';
+            let throneChanged = false;
+
+            if (attackerWon) {
+                throneChanged = true;
+
+                const oldOwnerName = castle.ownerName || 'Saray Muhafızları';
+
+                castle.ownerId = user._id;
+                castle.ownerName = user.username;
+                castle.conqueredAt = Date.now();
+
+                user.castleVictories = (user.castleVictories || 0) + 1;
+
+                message =
+                    `👑 KALE FETHEDİLDİ! ${user.username} kaleyi ele geçirdi ve TAHTIN yeni sahibi oldu! ` +
+                    `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
+                    `vs ${defenderBattlePower.toLocaleString('tr-TR')} (${oldOwnerName}). ` +
+                    `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
+
+                if (defenderUser) {
+                    syncOnlineArmy(
+                        defenderUser._id,
+                        defenderLossResult.after,
+                        `💥 ${user.username} kalene saldırdı ve tahtı ele geçirdi! ` +
+                        `Kayıpların: ${formatArmyLosses(defenderLossResult.lost)}.`
+                    );
+                }
+            } else {
+                message =
+                    `❌ KUŞATMA BAŞARISIZ! ${defenderName} kaleyi savundu. ` +
+                    `⚔️ Savaş Gücü: ${attackerBattlePower.toLocaleString('tr-TR')} ` +
+                    `vs ${defenderBattlePower.toLocaleString('tr-TR')}. ` +
+                    `Kayıpların: ${formatArmyLosses(attackerLossResult.lost)}.`;
+
+                if (defenderUser) {
+                    syncOnlineArmy(
+                        defenderUser._id,
+                        defenderLossResult.after,
+                        `🛡️ ${user.username} kalene saldırdı fakat savunmayı geçemedi. ` +
+                        `Savunma kayıpların: ${formatArmyLosses(defenderLossResult.lost)}.`
+                    );
+                }
+            }
+
+            await user.save();
+            await castle.save();
+
+            const updatedCastle = await getCastleStatusForUser(user);
+
+            socket.emit('castleBattleResult', {
+                success: attackerWon,
+                battleCompleted: true,
+                throneChanged,
+                userData: user,
+                castle: updatedCastle,
+                attackerBattlePower,
+                defenderBattlePower,
+                attackerLosses: attackerLossResult.lost,
+                defenderLosses: defenderLossResult.lost,
+                message
+            });
+
+            io.emit('castleRefresh');
+
+            if (throneChanged) {
+                io.emit('throneAnnouncement', {
+                    ownerName: user.username,
+                    message: `👑 ${user.username} kaleyi ele geçirdi ve Tahtın yeni sahibi oldu!`
+                });
+            }
+        } catch (err) {
+            console.error('Kale savaşı hatası:', err);
+
+            socket.emit('castleBattleResult', {
+                success: false,
+                userData: user,
+                message: 'Kale savaşı sırasında bir hata oluştu.'
+            });
+        } finally {
+            castleBattleLock = false;
+        }
+    });
 
     // --- METİN TAŞI KES SİSTEMİ ---
     socket.on('getMetinStatus', async () => {
