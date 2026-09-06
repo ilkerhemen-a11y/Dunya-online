@@ -99,6 +99,119 @@ function processLevelUps(user) {
     };
 }
 
+
+const METIN_STONES = {
+    1: { name: 'Savaş Metini', icon: '🪨', requiredLevel: 1,  maxHp: 500,   respawnMs: 2 * 60 * 1000,  papers: 1 },
+    2: { name: 'Gölge Metini', icon: '🌑', requiredLevel: 20, maxHp: 2000,  respawnMs: 3 * 60 * 1000,  papers: 1 },
+    3: { name: 'Ruh Metini', icon: '💠', requiredLevel: 40, maxHp: 6000,  respawnMs: 4 * 60 * 1000,  papers: 1 },
+    4: { name: 'Kıyamet Metini', icon: '🔥', requiredLevel: 60, maxHp: 15000, respawnMs: 5 * 60 * 1000,  papers: 1 },
+    5: { name: 'Taht Metini', icon: '👑', requiredLevel: 80, maxHp: 35000, respawnMs: 10 * 60 * 1000, papers: 2 }
+};
+
+const EQUIP_SLOTS = ['helmet', 'necklace', 'armor', 'weapon', 'shield', 'ring', 'gloves', 'boots'];
+
+function getTotalStr(user) {
+    let totalStr = Number(user.str) || 5;
+
+    if (user.equipped) {
+        Object.values(user.equipped).forEach(item => {
+            if (item) totalStr += Number(item.strBonus) || 0;
+        });
+    }
+
+    return Math.max(1, totalStr);
+}
+
+function normalizeMetinState(user) {
+    const count = Object.keys(METIN_STONES).length;
+    const hp = Array.isArray(user.metinStoneHp) ? Array.from(user.metinStoneHp) : [];
+    const respawns = Array.isArray(user.metinStoneRespawnAt) ? Array.from(user.metinStoneRespawnAt) : [];
+    const now = Date.now();
+
+    let changed = false;
+
+    while (hp.length < count) {
+        hp.push(METIN_STONES[hp.length + 1].maxHp);
+        changed = true;
+    }
+
+    while (respawns.length < count) {
+        respawns.push(0);
+        changed = true;
+    }
+
+    if (hp.length > count) {
+        hp.length = count;
+        changed = true;
+    }
+
+    if (respawns.length > count) {
+        respawns.length = count;
+        changed = true;
+    }
+
+    for (let i = 0; i < count; i++) {
+        const stone = METIN_STONES[i + 1];
+
+        let currentHp = Number(hp[i]);
+        if (!Number.isFinite(currentHp)) {
+            currentHp = stone.maxHp;
+            changed = true;
+        }
+
+        currentHp = Math.max(0, Math.min(stone.maxHp, Math.floor(currentHp)));
+
+        let respawnAt = Number(respawns[i]) || 0;
+
+        if (currentHp <= 0 && respawnAt > 0 && now >= respawnAt) {
+            currentHp = stone.maxHp;
+            respawnAt = 0;
+            changed = true;
+        }
+
+        // Eski veya bozuk kayıtlarda taş kaybolmasın.
+        if (currentHp <= 0 && respawnAt <= 0) {
+            currentHp = stone.maxHp;
+            changed = true;
+        }
+
+        if (hp[i] !== currentHp) {
+            hp[i] = currentHp;
+            changed = true;
+        }
+
+        if (respawns[i] !== respawnAt) {
+            respawns[i] = respawnAt;
+            changed = true;
+        }
+    }
+
+    user.metinStoneHp = hp;
+    user.metinStoneRespawnAt = respawns;
+
+    if (changed) {
+        user.markModified('metinStoneHp');
+        user.markModified('metinStoneRespawnAt');
+    }
+
+    return changed;
+}
+
+function createBlessingPaper() {
+    return {
+        id: `blessing_scroll_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+        baseId: 'blessing_scroll',
+        name: 'Kutsama Kağıdı',
+        icon: '📜',
+        type: 'material',
+        rarity: 'Nadir',
+        level: 0,
+        strBonus: 0,
+        vitBonus: 0,
+        description: 'Özel geliştirme malzemesi. Demirhane sistemi için saklanabilir.'
+    };
+}
+
 function checkSeferRefill(user) {
     const now = Date.now();
     if (user.seferLimiti <= 0 && user.seferNextRefill && now >= user.seferNextRefill) {
@@ -206,6 +319,8 @@ const userSchema = new mongoose.Schema({
     dungeonFloor: { type: Number, default: 1 },
     dungeonDailyAttempts: { type: [Number], default: () => Array(10).fill(0) },
     dungeonResetDate: { type: String, default: "" },
+    metinStoneHp: { type: [Number], default: () => Object.values(METIN_STONES).map(stone => stone.maxHp) },
+    metinStoneRespawnAt: { type: [Number], default: () => Object.values(METIN_STONES).map(() => 0) },
     str: { type: Number, default: 5 },
     vit: { type: Number, default: 5 },
     statPoints: { type: Number, default: 0 },
@@ -300,6 +415,7 @@ io.on('connection', (socket) => {
             checkArenaReset(dbUser);
             checkDungeonDailyReset(dbUser);
             normalizePlayerLevel(dbUser);
+            normalizeMetinState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -325,6 +441,7 @@ io.on('connection', (socket) => {
             checkArenaReset(dbUser);
             checkDungeonDailyReset(dbUser);
             normalizePlayerLevel(dbUser);
+            normalizeMetinState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -549,6 +666,123 @@ io.on('connection', (socket) => {
             successChance: Number(successChance.toFixed(1)), roll: Number(roll.toFixed(1)), outcome: 'victory',
             remainingAttempts: remainingAfterAttack,
             message: `🏆 KAT TEMİZLEME BAŞARILI! ${floor}. kat temizlendi. ⚔️ Gücün: ${totalStr} STR | 🎯 Başarı: %${successChance.toFixed(1)} | 🎲 Savaş atışı: %${roll.toFixed(1)} | ❤️ -${f.hp} HP | 💰 +${f.gold} Altın | ⭐ +${f.exp} Tecrübe.${bonusMessage} | 🕒 Bugün kalan saldırı: ${remainingAfterAttack}/5`
+        });
+    });
+
+
+    // --- METİN TAŞI KES SİSTEMİ ---
+    socket.on('getMetinStatus', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeMetinState(user);
+        await user.save();
+
+        socket.emit('metinStatus', {
+            userData: user,
+            stones: METIN_STONES
+        });
+    });
+
+    socket.on('attackMetinStone', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeMetinState(user);
+
+        const stoneId = Number.parseInt(data?.stoneId, 10);
+        const stone = METIN_STONES[stoneId];
+
+        if (!stone) {
+            return socket.emit('metinResult', {
+                success: false,
+                userData: user,
+                message: 'Geçersiz Metin Taşı!'
+            });
+        }
+
+        if ((Number(user.level) || 1) < stone.requiredLevel) {
+            return socket.emit('metinResult', {
+                success: false,
+                userData: user,
+                stoneId,
+                message: `🔒 ${stone.name} için en az Seviye ${stone.requiredLevel} olmalısın.`
+            });
+        }
+
+        const index = stoneId - 1;
+        const now = Date.now();
+
+        let currentHp = Number(user.metinStoneHp[index]);
+        if (!Number.isFinite(currentHp)) currentHp = stone.maxHp;
+
+        const respawnAt = Number(user.metinStoneRespawnAt[index]) || 0;
+
+        if (currentHp <= 0 && respawnAt > now) {
+            const seconds = Math.ceil((respawnAt - now) / 1000);
+
+            return socket.emit('metinResult', {
+                success: false,
+                userData: user,
+                stoneId,
+                message: `⏳ ${stone.name} yeniden doğuyor. Yaklaşık ${seconds} saniye kaldı.`
+            });
+        }
+
+        const totalStr = getTotalStr(user);
+
+        // Toplam STR x4, vuruş başına ±%15 değişken hasar.
+        const randomMultiplier = 0.85 + (Math.random() * 0.30);
+        const rawDamage = Math.max(1, Math.floor(totalStr * 4 * randomMultiplier));
+        const damage = Math.min(rawDamage, currentHp);
+        const newHp = Math.max(0, currentHp - damage);
+
+        user.metinStoneHp[index] = newHp;
+        user.markModified('metinStoneHp');
+
+        let destroyed = false;
+        let papersDropped = 0;
+        let message = `⚔️ ${stone.name}'ne ${damage} hasar verdin! ❤️ ${newHp}/${stone.maxHp}`;
+
+        if (newHp <= 0) {
+            destroyed = true;
+
+            user.metinStoneRespawnAt[index] = now + stone.respawnMs;
+            user.markModified('metinStoneRespawnAt');
+
+            papersDropped = stone.papers;
+
+            if (stoneId === 3 && Math.random() < 0.25) papersDropped += 1;
+            if (stoneId === 4 && Math.random() < 0.40) papersDropped += 1;
+            if (stoneId === 5 && Math.random() < 0.50) papersDropped += 1;
+
+            for (let i = 0; i < papersDropped; i++) {
+                user.inventory.push(createBlessingPaper());
+            }
+
+            user.markModified('inventory');
+
+            const respawnMinutes = Math.ceil(stone.respawnMs / 60000);
+
+            message =
+                `💥 ${stone.name} parçalandı! ` +
+                `📜 ${papersDropped} adet Kutsama Kağıdı envanterine eklendi. ` +
+                `⏳ Metin yaklaşık ${respawnMinutes} dakika sonra yeniden doğacak.`;
+        }
+
+        await user.save();
+
+        socket.emit('metinResult', {
+            success: true,
+            userData: user,
+            stoneId,
+            totalStr,
+            damage,
+            destroyed,
+            papersDropped,
+            message
         });
     });
 
@@ -1084,6 +1318,15 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
         if (!user || !user.inventory[data.itemIndex]) return;
         const item = user.inventory[data.itemIndex];
+
+        if (!EQUIP_SLOTS.includes(item.type)) {
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: "Bu malzeme Demirhane'de geliştirilemez."
+            });
+        }
+
         const currentLvl = item.level || 0;
         const nextLvl = currentLvl + 1;
         
@@ -1116,6 +1359,11 @@ io.on('connection', (socket) => {
     socket.on('equipItem', async (data) => {
         const user = users[socket.id];
         if (!user || !user.inventory[data.itemIndex]) return;
+
+        const candidateItem = user.inventory[data.itemIndex];
+        if (!EQUIP_SLOTS.includes(candidateItem.type)) {
+            return socket.emit('statUpdated', user);
+        }
 
         const calculateMaxHp = (u) => {
             let totalVit = u.vit || 5;
