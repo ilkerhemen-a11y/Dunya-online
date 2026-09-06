@@ -6381,6 +6381,36 @@
             return String(name || '').replace(/\s*\+\d+$/, '').trim();
         }
 
+        function isClientBlessingPaper(item) {
+            return Boolean(
+                item &&
+                (
+                    item.baseId === 'blessing_scroll' ||
+                    (
+                        item.type === 'material' &&
+                        item.name === 'Kutsama Kağıdı'
+                    )
+                )
+            );
+        }
+
+        function getClientItemQuantity(item) {
+            if (!isClientBlessingPaper(item)) {
+                return 1;
+            }
+
+            const quantity =
+                Number.parseInt(
+                    item.quantity,
+                    10
+                );
+
+            return Number.isInteger(quantity) &&
+                quantity > 0
+                    ? quantity
+                    : 1;
+        }
+
         function getItemVisualMeta(item) {
             const cleanName = getCleanItemName(item?.name);
             const type = item?.type || 'misc';
@@ -7171,7 +7201,11 @@
                                             <div class="item-info-area">
                                                 <div class="item-icon-box">${renderOverviewItemIcon(item)}</div>
                                                 <div class="item-details">
-                                                    <span class="item-name rarity-${rarity}">${escapeHTML(cleanName)} ${equipable && level > 0 ? '+' + level : ''}</span>
+                                                    <span class="item-name rarity-${rarity}">
+                                                        ${escapeHTML(cleanName)}
+                                                        ${equipable && level > 0 ? '+' + level : ''}
+                                                        ${isClientBlessingPaper(item) ? `<span style="display:inline-block;margin-left:5px;padding:1px 6px;border-radius:999px;background:rgba(59,130,246,.14);border:1px solid rgba(96,165,250,.55);color:#bfdbfe;font-size:9px;">×${getClientItemQuantity(item)}</span>` : ''}
+                                                    </span>
                                                     <span class="item-bonus">${item.type === 'material' ? escapeHTML(item.description || 'Özel malzeme') : `⚔️ +${Number(item.strBonus)||0} • 🛡️ +${Number(item.vitBonus)||0}${item.setName ? ` • 👑 ${escapeHTML(item.setName)}` : ''}`}</span>
                                                     ${item.source ? `<span style="color:#6f6257;font-size:8px;margin-top:2px;">📍 ${escapeHTML(item.source)}</span>` : ''}
                                                 </div>
@@ -7179,7 +7213,7 @@
                                             <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;">
                                                 ${equipable ? `<button class="btn-equip" onclick="socket.emit('equipItem',{itemIndex:${itemIndex}})">Kuşan</button>` : ''}
                                                 ${item.type === 'material' ? `<span style="font-size:9px;color:#60a5fa;border:1px solid #1d4ed8;padding:3px 6px;border-radius:3px;">Malzeme</span>` : ''}
-                                                <button onclick="socket.emit('deleteItem',{itemIndex:${itemIndex}})" style="background:#7f1d1d;color:white;border:1px solid #dc2626;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:10px;">Sil</button>
+                                                <button onclick="socket.emit('deleteItem',{itemIndex:${itemIndex}})" style="background:#7f1d1d;color:white;border:1px solid #dc2626;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:10px;">${isClientBlessingPaper(item) && getClientItemQuantity(item) > 1 ? '1 Sil' : 'Sil'}</button>
                                             </div>
                                         </div>
                                     `;
@@ -9193,13 +9227,16 @@
                 `;
             } else if(activeTab === 'blacksmith') {
                 const blessingPaperCount = Array.isArray(u.inventory)
-                    ? u.inventory.filter(item =>
-                        item &&
-                        (
-                            item.baseId === 'blessing_scroll' ||
-                            (item.type === 'material' && item.name === 'Kutsama Kağıdı')
-                        )
-                    ).length
+                    ? u.inventory.reduce(
+                        (total, item) =>
+                            total +
+                            (
+                                isClientBlessingPaper(item)
+                                    ? getClientItemQuantity(item)
+                                    : 0
+                            ),
+                        0
+                    )
                     : 0;
 
                 const mastery = u.blacksmithMastery || {
@@ -12150,6 +12187,8 @@
                             <p>
                                 Metin tamamen parçalandığında
                                 <strong>Kutsama Kağıdı</strong> kazanılır.
+                                Birden fazla Kutsama Kağıdı çantada ayrı slot kaplamaz;
+                                tek kart altında <strong>×N</strong> şeklinde birikir.
                                 Taht Metini ayrıca
                                 <strong>%4 Hükümdar Seti parçası</strong> ihtimaline sahiptir.
                             </p>
@@ -13290,7 +13329,7 @@
                                 ${myStall.inventory.length > 0 ? myStall.inventory.map((itemObj, idx) => `
                                     <div style="background:#0d0a08; border:1px solid #33241b; padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; font-size:11px;">
                                         <span>
-                                            <span style="display:inline-flex;align-items:center;gap:8px;"><span class="item-icon-box" style="width:32px;height:32px;">${renderOverviewItemIcon(itemObj.item)}</span><span>${escapeHTML(itemObj.item.name)}</span></span>
+                                            <span style="display:inline-flex;align-items:center;gap:8px;"><span class="item-icon-box" style="width:32px;height:32px;">${renderOverviewItemIcon(itemObj.item)}</span><span>${escapeHTML(itemObj.item.name)}${isClientBlessingPaper(itemObj.item) ? ` ×${getClientItemQuantity(itemObj.item)}` : ''}</span></span>
                                             ${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? `<strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong>` : ''}
                                             (<strong style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#f3cf7a'};">${itemObj.price} ${itemObj.currency === 'ruby' ? '💎' : '🪙'}</strong>)
                                         </span>
@@ -13303,7 +13342,7 @@
                             <h5 style="color:#f3cf7a; font-size:12px; margin-bottom:6px;">Envanterden Tezgahına Ürün Koy:</h5>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <select id="inventoryItemSelect" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
-                                    ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${escapeHTML(it.name)}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(it.type) ? ` +${Number(it.level) || 0}` : ''} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
+                                    ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${escapeHTML(it.name)}${isClientBlessingPaper(it) ? ` ×${getClientItemQuantity(it)}` : ''}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(it.type) ? ` +${Number(it.level) || 0}` : ''} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
                                 </select>
                                 <input type="number" id="stallItemPrice" placeholder="Satış Fiyatı" value="100" min="1" style="width:110px; padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
                                 <select id="stallItemCurrency" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
@@ -13333,7 +13372,7 @@
                                         <div style="display:flex; align-items:center; gap:8px;">
                                             <span class="item-icon-box" style="width:32px;height:32px;">${renderOverviewItemIcon(itemObj.item)}</span>
                                             <div>
-                                                <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? ` +${Number(itemObj.item.level) || 0}` : ''}</strong>
+                                                <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)}${isClientBlessingPaper(itemObj.item) ? ` ×${getClientItemQuantity(itemObj.item)}` : ''}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? ` +${Number(itemObj.item.level) || 0}` : ''}</strong>
                                                 <div style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#22c55e'}; font-weight:bold;">
                                                     ${itemObj.price} ${itemObj.currency === 'ruby' ? 'Yakut 💎' : 'Altın 🪙'}
                                                 </div>
