@@ -1860,73 +1860,297 @@ io.on('connection', (socket) => {
 
     socket.on('getArenaOpponents', async () => {
         if (!checkRateLimit(socket.id)) return;
+
         const user = users[socket.id];
         if (!user) return;
+
         checkArenaReset(user);
         await user.save();
+
         try {
-            const opponents = await User.find({ _id: { $ne: user._id } }).select('username level str vit equipped honor').limit(5);
+            const opponents = await User.find({
+                _id: { $ne: user._id }
+            })
+            .select('username level str vit equipped honor')
+            .limit(5);
+
             socket.emit('arenaOpponentsList', opponents);
         } catch (err) {
-            socket.emit('arenaResult', { success: false, message: "Rakipler yüklenemedi." });
+            socket.emit('arenaResult', {
+                success: false,
+                message: "Rakipler yüklenemedi."
+            });
         }
     });
 
     socket.on('attackPlayer', async (data) => {
         if (!checkRateLimit(socket.id)) return;
+
         const attacker = users[socket.id];
         if (!attacker) return;
 
         checkArenaReset(attacker);
+
         if (attacker.arenaLimit <= 0) {
-            return socket.emit('arenaResult', { success: false, userData: attacker, message: "Günlük 5 arena hakkın doldu!" });
+            return socket.emit('arenaResult', {
+                success: false,
+                userData: attacker,
+                message: "Günlük 5 arena hakkın doldu!"
+            });
         }
 
         try {
-            const defender = await User.findById(data.defenderId);
-            if (!defender) return socket.emit('arenaResult', { success: false, message: "Rakip bulunamadı!" });
+            const defenderId = data?.defenderId;
 
-            const calculatePower = (u) => {
-                let strB = u.str || 5, vitB = u.vit || 5;
-                if (u.equipped) {
-                    Object.values(u.equipped).forEach(item => {
-                        if (item) { strB += (item.strBonus || 0); vitB += (item.vitBonus || 0); }
-                    });
-                }
-                return (strB * 2) + vitB;
-            };
-
-            const atkPower = calculatePower(attacker);
-            const defPower = calculatePower(defender);
-
-            const atkRoll = atkPower + (Math.random() * 20);
-            const defRoll = defPower + (Math.random() * 20);
-
-            attacker.arenaLimit -= 1;
-
-            if (atkRoll >= defRoll) {
-                const goldReward = Math.floor(Math.random() * 50) + 30;
-                attacker.balance += goldReward;
-                attacker.honor = (attacker.honor || 0) + 15;
-                await attacker.save();
-                
-                socket.emit('arenaResult', { 
-                    success: true, 
-                    userData: attacker, 
-                    message: `🏆 Zafer! ${defender.username} adlı gladyatörü alt ettin. Ödül: +${goldReward} Altın, +15 Onur!` 
-                });
-            } else {
-                attacker.honor = Math.max(0, (attacker.honor || 0) - 5);
-                await attacker.save();
-
-                socket.emit('arenaResult', { 
-                    success: false, 
-                    userData: attacker, 
-                    message: `💀 Mağlubiyet! ${defender.username} direncini kırdı. 5 Onur kaybettin.` 
+            if (!defenderId || String(defenderId) === String(attacker._id)) {
+                return socket.emit('arenaResult', {
+                    success: false,
+                    userData: attacker,
+                    message: "Geçersiz rakip seçimi!"
                 });
             }
+
+            const defender = await User.findById(defenderId);
+
+            if (!defender) {
+                return socket.emit('arenaResult', {
+                    success: false,
+                    userData: attacker,
+                    message: "Rakip bulunamadı!"
+                });
+            }
+
+            const getArenaStats = (u) => {
+                let totalStr = Number(u.str) || 5;
+                let totalVit = Number(u.vit) || 5;
+
+                if (u.equipped) {
+                    Object.values(u.equipped).forEach(item => {
+                        if (!item) return;
+                        totalStr += Number(item.strBonus) || 0;
+                        totalVit += Number(item.vitBonus) || 0;
+                    });
+                }
+
+                return {
+                    str: Math.max(1, totalStr),
+                    vit: Math.max(1, totalVit),
+                    maxHp: Math.max(100, totalVit * 20),
+                    power: Math.max(1, (totalStr * 2) + totalVit)
+                };
+            };
+
+            const attackerStats = getArenaStats(attacker);
+            const defenderStats = getArenaStats(defender);
+
+            let attackerHp = attackerStats.maxHp;
+            let defenderHp = defenderStats.maxHp;
+
+            const battleActions = [];
+
+            const calculateArenaDamage = (sourceStats, targetStats) => {
+                const variation = 0.85 + (Math.random() * 0.30);
+                const baseDamage =
+                    (sourceStats.str * 3.2) +
+                    (sourceStats.power * 0.30);
+
+                const mitigation = targetStats.vit * 0.55;
+
+                let damage = Math.max(
+                    5,
+                    Math.floor((baseDamage * variation) - mitigation)
+                );
+
+                const critical = Math.random() < 0.15;
+
+                if (critical) {
+                    damage = Math.floor(damage * 1.75);
+                }
+
+                return {
+                    damage: Math.max(1, damage),
+                    critical
+                };
+            };
+
+            const pushAttack = (
+                round,
+                actor,
+                sourceStats,
+                targetStats,
+                targetCurrentHp,
+                finisher = false
+            ) => {
+                const hit = calculateArenaDamage(sourceStats, targetStats);
+
+                let damage = hit.damage;
+
+                if (finisher) {
+                    damage = Math.max(1, targetCurrentHp);
+                } else {
+                    damage = Math.min(damage, targetCurrentHp);
+                }
+
+                const targetHp = Math.max(0, targetCurrentHp - damage);
+
+                battleActions.push({
+                    round,
+                    actor,
+                    target: actor === 'attacker' ? 'defender' : 'attacker',
+                    damage,
+                    critical: finisher ? true : hit.critical,
+                    finisher,
+                    targetHp,
+                    targetMaxHp: targetStats.maxHp
+                });
+
+                return targetHp;
+            };
+
+            // 3 ana tur: iki savaşçı da hayattaysa karşılıklı vuruşur.
+            for (let round = 1; round <= 3; round++) {
+                if (attackerHp <= 0 || defenderHp <= 0) break;
+
+                defenderHp = pushAttack(
+                    round,
+                    'attacker',
+                    attackerStats,
+                    defenderStats,
+                    defenderHp
+                );
+
+                if (defenderHp <= 0) break;
+
+                attackerHp = pushAttack(
+                    round,
+                    'defender',
+                    defenderStats,
+                    attackerStats,
+                    attackerHp
+                );
+            }
+
+            let attackerWon;
+
+            if (defenderHp <= 0) {
+                attackerWon = true;
+            } else if (attackerHp <= 0) {
+                attackerWon = false;
+            } else {
+                // 3 tur sonunda kim daha güçlü durumda kaldıysa bitirici darbeyi vurur.
+                const attackerHealthScore =
+                    attackerHp / attackerStats.maxHp;
+
+                const defenderHealthScore =
+                    defenderHp / defenderStats.maxHp;
+
+                const attackerJudgeScore =
+                    (attackerHealthScore * 100) +
+                    attackerStats.power +
+                    (Math.random() * 10);
+
+                const defenderJudgeScore =
+                    (defenderHealthScore * 100) +
+                    defenderStats.power +
+                    (Math.random() * 10);
+
+                attackerWon = attackerJudgeScore >= defenderJudgeScore;
+
+                if (attackerWon) {
+                    defenderHp = pushAttack(
+                        4,
+                        'attacker',
+                        attackerStats,
+                        defenderStats,
+                        defenderHp,
+                        true
+                    );
+                } else {
+                    attackerHp = pushAttack(
+                        4,
+                        'defender',
+                        defenderStats,
+                        attackerStats,
+                        attackerHp,
+                        true
+                    );
+                }
+            }
+
+            // Arena hakkı gerçek savaş başladıktan sonra tüketilir.
+            attacker.arenaLimit -= 1;
+
+            let goldReward = 0;
+            let honorChange = 0;
+            let resultMessage = '';
+
+            if (attackerWon) {
+                goldReward = Math.floor(Math.random() * 50) + 30;
+                honorChange = 15;
+
+                attacker.balance += goldReward;
+                attacker.honor = (attacker.honor || 0) + honorChange;
+
+                resultMessage =
+                    `🏆 ZAFER! ${defender.username} mağlup edildi. ` +
+                    `Ödül: +${goldReward} Altın 🪙 ve +${honorChange} Onur 🌟!`;
+            } else {
+                honorChange = -5;
+
+                attacker.honor = Math.max(
+                    0,
+                    (attacker.honor || 0) + honorChange
+                );
+
+                resultMessage =
+                    `💀 MAĞLUBİYET! ${defender.username} arena savaşını kazandı. ` +
+                    `5 Onur kaybettin.`;
+            }
+
+            await attacker.save();
+
+            socket.emit('arenaResult', {
+                success: attackerWon,
+                battleCompleted: true,
+                userData: attacker,
+                message: resultMessage,
+                battle: {
+                    attackerWon,
+                    goldReward,
+                    honorChange,
+                    attacker: {
+                        id: String(attacker._id),
+                        username: attacker.username,
+                        level: Math.min(MAX_LEVEL, Number(attacker.level) || 1),
+                        title: getTitleByLevel(attacker.level),
+                        honor: attacker.honor || 0,
+                        str: attackerStats.str,
+                        vit: attackerStats.vit,
+                        power: attackerStats.power,
+                        maxHp: attackerStats.maxHp
+                    },
+                    defender: {
+                        id: String(defender._id),
+                        username: defender.username,
+                        level: Math.min(MAX_LEVEL, Number(defender.level) || 1),
+                        title: getTitleByLevel(defender.level),
+                        honor: defender.honor || 0,
+                        str: defenderStats.str,
+                        vit: defenderStats.vit,
+                        power: defenderStats.power,
+                        maxHp: defenderStats.maxHp
+                    },
+                    actions: battleActions
+                }
+            });
         } catch (err) {
-            socket.emit('arenaResult', { success: false, message: "Savaş sırasında bir hata oluştu." });
+            console.error('Arena savaş hatası:', err);
+
+            socket.emit('arenaResult', {
+                success: false,
+                userData: attacker,
+                message: "Savaş sırasında bir hata oluştu."
+            });
         }
     });
 
