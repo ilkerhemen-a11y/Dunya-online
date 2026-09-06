@@ -3203,6 +3203,9 @@
         let clanLoadTimer = null;
         let serverBuildInfo = null;
 
+        let clanCastleWarState = null;
+        let clanCastleWarCountdownTimer = null;
+
         let barracksState = null;
         let arenaOpponentCache = {};
         let arenaAnimationToken = 0;
@@ -3457,6 +3460,7 @@
 
             socket.emit('getClanData');
             socket.emit('getClanList');
+            socket.emit('getClanCastleWarStatus');
             socket.emit('getGameBuildInfo');
 
             // Önce Socket.IO cevabını bekle. Gelmezse REST fallback kullan.
@@ -6692,6 +6696,29 @@
                     currentUserData.clanRole ||
                     'member';
 
+                const war =
+                    clanCastleWarState;
+
+                const warLeaderboard =
+                    Array.isArray(war?.leaderboard)
+                        ? war.leaderboard
+                        : [];
+
+                const warOwnerText =
+                    war?.owner
+                        ? `[${escapeHTML(war.owner.clanTag)}] ${escapeHTML(war.owner.clanName)}`
+                        : 'Henüz sahibi yok';
+
+                const warStatusText =
+                    war?.active
+                        ? '🔥 SAVAŞ AÇIK'
+                        : '⏳ SAVAŞ KAPALI';
+
+                const warStatusColor =
+                    war?.active
+                        ? '#ef4444'
+                        : '#60a5fa';
+
                 body.innerHTML = `
                     <div style="
                         background:
@@ -7007,27 +7034,308 @@
                             </div>
 
                             <div style="
-                                background:#120e0c;
+                                background:
+                                    linear-gradient(
+                                        145deg,
+                                        #15100d,
+                                        #0b0908
+                                    );
                                 border:1px solid #3b82f6;
-                                border-radius:6px;
+                                border-radius:7px;
                                 padding:12px;
                             ">
-                                <h3 style="
-                                    color:#60a5fa;
-                                    font-size:13px;
-                                ">🏰 Klan Kale Savaşı</h3>
-
-                                <p style="
-                                    font-size:10px;
-                                    color:#9c8e7b;
-                                    margin-top:6px;
-                                    line-height:1.55;
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                    gap:8px;
+                                    flex-wrap:wrap;
                                 ">
-                                    Mevcut bireysel Taht Savaşı sistemi
-                                    korunuyor. Bu klan altyapısı üzerine
-                                    sonraki aşamada 10'a 10 klan kale
-                                    savaşı eklenebilir.
-                                </p>
+                                    <h3 style="
+                                        color:#60a5fa;
+                                        font-size:13px;
+                                    ">🏰 Klan Kale Savaşı</h3>
+
+                                    <span style="
+                                        color:${warStatusColor};
+                                        border:1px solid ${warStatusColor};
+                                        padding:2px 6px;
+                                        border-radius:4px;
+                                        font-size:9px;
+                                        font-weight:bold;
+                                    ">${warStatusText}</span>
+                                </div>
+
+                                ${
+                                    !war
+                                        ? `
+                                            <p style="
+                                                font-size:10px;
+                                                color:#9c8e7b;
+                                                margin-top:8px;
+                                            ">
+                                                Kale Savaşı bilgileri yükleniyor...
+                                            </p>
+                                        `
+                                        : `
+                                            <div style="
+                                                margin-top:8px;
+                                                font-size:10px;
+                                                color:#9c8e7b;
+                                                line-height:1.6;
+                                            ">
+                                                <div>
+                                                    🏰 Kale:
+                                                    <strong style="color:#f3cf7a;">
+                                                        ${escapeHTML(war.castleName || 'Hisar-ı Hümayun')}
+                                                    </strong>
+                                                </div>
+
+                                                <div>
+                                                    👑 Mevcut Sahip:
+                                                    <strong style="color:#f3cf7a;">
+                                                        ${warOwnerText}
+                                                    </strong>
+                                                </div>
+
+                                                <div>
+                                                    🕒 Savaş Saatleri:
+                                                    <strong style="color:#60a5fa;">
+                                                        00:00 • 06:00 • 12:00 • 18:00
+                                                    </strong>
+                                                </div>
+
+                                                <div>
+                                                    ⏱️ Süre:
+                                                    <strong>
+                                                        ${Number(war.durationMinutes || 30)} dakika
+                                                    </strong>
+                                                </div>
+
+                                                <div
+                                                    id="clanWarCountdown"
+                                                    style="
+                                                        margin-top:5px;
+                                                        color:${war.active ? '#fca5a5' : '#93c5fd'};
+                                                        font-weight:bold;
+                                                    "
+                                                >
+                                                    ${
+                                                        war.active
+                                                            ? `Savaş bitişi: ${formatClanWarTime(war.endAt)}`
+                                                            : `Sonraki savaş: ${formatClanWarTime(war.nextStartAt)}`
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div style="
+                                                display:grid;
+                                                grid-template-columns:1fr 1fr;
+                                                gap:6px;
+                                                margin-top:9px;
+                                            ">
+                                                <div style="
+                                                    background:#080605;
+                                                    border:1px solid #33241b;
+                                                    padding:7px;
+                                                    border-radius:4px;
+                                                    font-size:9px;
+                                                    color:#9c8e7b;
+                                                ">
+                                                    🛡️ Klan Hasarı<br>
+                                                    <strong style="
+                                                        color:#22c55e;
+                                                        font-size:12px;
+                                                    ">
+                                                        ${Number(war.myClanDamage || 0).toLocaleString('tr-TR')}
+                                                    </strong>
+                                                </div>
+
+                                                <div style="
+                                                    background:#080605;
+                                                    border:1px solid #33241b;
+                                                    padding:7px;
+                                                    border-radius:4px;
+                                                    font-size:9px;
+                                                    color:#9c8e7b;
+                                                ">
+                                                    ⚔️ Senin Hasarın<br>
+                                                    <strong style="
+                                                        color:#f3cf7a;
+                                                        font-size:12px;
+                                                    ">
+                                                        ${Number(war.myDamage || 0).toLocaleString('tr-TR')}
+                                                    </strong>
+                                                </div>
+
+                                                <div style="
+                                                    background:#080605;
+                                                    border:1px solid #33241b;
+                                                    padding:7px;
+                                                    border-radius:4px;
+                                                    font-size:9px;
+                                                    color:#9c8e7b;
+                                                ">
+                                                    🎯 Saldırı Hakkı<br>
+                                                    <strong style="
+                                                        color:#60a5fa;
+                                                        font-size:12px;
+                                                    ">
+                                                        ${Number(war.myAttacksRemaining || 0)}/${Number(war.attackLimit || 5)}
+                                                    </strong>
+                                                </div>
+
+                                                <div style="
+                                                    background:#080605;
+                                                    border:1px solid #33241b;
+                                                    padding:7px;
+                                                    border-radius:4px;
+                                                    font-size:9px;
+                                                    color:#9c8e7b;
+                                                ">
+                                                    🏗️ Saldırı Gücü<br>
+                                                    <strong style="
+                                                        color:#f97316;
+                                                        font-size:12px;
+                                                    ">
+                                                        ${(Number(war.characterPower || 0) + Number(war.armyPower || 0)).toLocaleString('tr-TR')}
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <p style="
+                                                font-size:9px;
+                                                color:#6b7280;
+                                                margin-top:7px;
+                                                line-height:1.45;
+                                            ">
+                                                Hasar; karakter savaş gücü + tüm ordunun
+                                                gücünden hesaplanır. Mancınıklar da ordu
+                                                gücüne dahildir. Her oyuncu savaş başına
+                                                en fazla ${Number(war.attackLimit || 5)}
+                                                kez saldırabilir.
+                                            </p>
+
+                                            <div
+                                                id="clanWarAttackCooldown"
+                                                style="
+                                                    font-size:9px;
+                                                    color:#9c8e7b;
+                                                    margin-top:6px;
+                                                "
+                                            >
+                                                ${
+                                                    Number(war.cooldownRemainingMs || 0) > 0
+                                                        ? `⏳ Saldırı bekleme: ${Math.ceil(Number(war.cooldownRemainingMs) / 1000)} sn`
+                                                        : '⚔️ Saldırı hazır'
+                                                }
+                                            </div>
+
+                                            <button
+                                                id="clanCastleAttackBtn"
+                                                class="btn-quest"
+                                                style="
+                                                    width:100%;
+                                                    margin-top:7px;
+                                                "
+                                                ${
+                                                    (
+                                                        !war.active ||
+                                                        Number(war.myAttacksRemaining || 0) <= 0 ||
+                                                        Number(war.cooldownRemainingMs || 0) > 0
+                                                    )
+                                                        ? 'disabled'
+                                                        : ''
+                                                }
+                                                onclick="attackClanCastleWarSubmit()"
+                                            >
+                                                ${
+                                                    !war.active
+                                                        ? '⏳ Savaş Kapalı'
+                                                        : (
+                                                            Number(war.myAttacksRemaining || 0) <= 0
+                                                                ? '⛔ Saldırı Hakkı Bitti'
+                                                                : '🏗️ Kaleye Saldır'
+                                                        )
+                                                }
+                                            </button>
+
+                                            <div style="
+                                                margin-top:10px;
+                                                border-top:1px solid #2d2017;
+                                                padding-top:8px;
+                                            ">
+                                                <div style="
+                                                    color:#f3cf7a;
+                                                    font-size:10px;
+                                                    font-weight:bold;
+                                                    margin-bottom:5px;
+                                                ">
+                                                    🏆 Hasar Sıralaması
+                                                </div>
+
+                                                ${
+                                                    warLeaderboard.length > 0
+                                                        ? warLeaderboard
+                                                            .slice(0, 5)
+                                                            .map(entry => `
+                                                                <div style="
+                                                                    display:flex;
+                                                                    justify-content:space-between;
+                                                                    gap:6px;
+                                                                    padding:4px 0;
+                                                                    border-bottom:1px dashed #221912;
+                                                                    font-size:9px;
+                                                                ">
+                                                                    <span style="color:#d4c5b9;">
+                                                                        #${entry.rank}
+                                                                        [${escapeHTML(entry.clanTag)}]
+                                                                        ${escapeHTML(entry.clanName)}
+                                                                    </span>
+
+                                                                    <strong style="color:#22c55e;">
+                                                                        ${Number(entry.totalDamage || 0).toLocaleString('tr-TR')}
+                                                                    </strong>
+                                                                </div>
+                                                            `).join('')
+                                                        : `
+                                                            <div style="
+                                                                font-size:9px;
+                                                                color:#6b7280;
+                                                            ">
+                                                                Henüz hiçbir klan hasar vermedi.
+                                                            </div>
+                                                        `
+                                                }
+                                            </div>
+
+                                            ${
+                                                !war.active &&
+                                                war.lastWar?.winnerClanName
+                                                    ? `
+                                                        <div style="
+                                                            margin-top:8px;
+                                                            padding:7px;
+                                                            background:rgba(212,175,55,.06);
+                                                            border:1px solid #5b4720;
+                                                            border-radius:4px;
+                                                            font-size:9px;
+                                                            color:#9c8e7b;
+                                                        ">
+                                                            🏆 Son Kazanan:
+                                                            <strong style="color:#f3cf7a;">
+                                                                [${escapeHTML(war.lastWar.winnerClanTag || '')}]
+                                                                ${escapeHTML(war.lastWar.winnerClanName)}
+                                                            </strong>
+                                                            —
+                                                            ${Number(war.lastWar.winningDamage || 0).toLocaleString('tr-TR')}
+                                                            Hasar
+                                                        </div>
+                                                    `
+                                                    : ''
+                                            }
+                                        `
+                                }
                             </div>
                         </div>
                     </div>
@@ -7099,6 +7407,8 @@
                     clanChatBox.scrollTop =
                         clanChatBox.scrollHeight;
                 }
+
+                startClanCastleWarCountdown();
 
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
@@ -10390,6 +10700,157 @@
             setTimeout(() => pop.remove(), 1550);
         }
 
+        function formatClanWarTime(timestamp) {
+            if (!timestamp) return '-';
+
+            try {
+                return new Date(timestamp).toLocaleString(
+                    'tr-TR',
+                    {
+                        timeZone: 'Europe/Istanbul',
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }
+                );
+            } catch (_) {
+                return new Date(timestamp).toLocaleString('tr-TR');
+            }
+        }
+
+        function formatClanWarRemaining(ms) {
+            const safeMs = Math.max(0, Number(ms) || 0);
+            const totalSeconds = Math.ceil(safeMs / 1000);
+
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours}s ${minutes}dk ${seconds}sn`;
+            }
+
+            return `${minutes}dk ${seconds}sn`;
+        }
+
+        function requestClanCastleWarStatus() {
+            socket.emit('getClanCastleWarStatus');
+        }
+
+        function attackClanCastleWarSubmit() {
+            const state = clanCastleWarState;
+
+            if (!state?.active) {
+                return alert(
+                    'Klan Kale Savaşı şu anda açık değil.'
+                );
+            }
+
+            if ((state.myAttacksRemaining || 0) <= 0) {
+                return alert(
+                    'Bu savaş için saldırı haklarını kullandın.'
+                );
+            }
+
+            if ((state.cooldownRemainingMs || 0) > 0) {
+                return alert(
+                    `Yeni saldırı için ${Math.ceil(state.cooldownRemainingMs / 1000)} saniye beklemelisin.`
+                );
+            }
+
+            cooldownButton(
+                'clanCastleAttackBtn',
+                1100
+            );
+
+            socket.emit('attackClanCastleWar');
+        }
+
+        function stopClanCastleWarCountdown() {
+            if (clanCastleWarCountdownTimer) {
+                clearInterval(clanCastleWarCountdownTimer);
+                clanCastleWarCountdownTimer = null;
+            }
+        }
+
+        function startClanCastleWarCountdown() {
+            stopClanCastleWarCountdown();
+
+            if (
+                activeTab !== 'clan' ||
+                !currentClanData ||
+                !clanCastleWarState
+            ) {
+                return;
+            }
+
+            const updateCountdown = () => {
+                const state = clanCastleWarState;
+                const el =
+                    document.getElementById(
+                        'clanWarCountdown'
+                    );
+
+                if (!state || !el) return;
+
+                const target =
+                    state.active
+                        ? Number(state.endAt)
+                        : Number(state.nextStartAt);
+
+                const remaining =
+                    Math.max(
+                        0,
+                        target - Date.now()
+                    );
+
+                el.innerText =
+                    state.active
+                        ? `Savaşın bitmesine: ${formatClanWarRemaining(remaining)}`
+                        : `Sonraki savaşa: ${formatClanWarRemaining(remaining)}`;
+
+                // Server cooldown değerini client tarafında da düşür.
+                if (
+                    Number(state.cooldownRemainingMs) > 0
+                ) {
+                    state.cooldownRemainingMs =
+                        Math.max(
+                            0,
+                            Number(state.cooldownRemainingMs) - 1000
+                        );
+
+                    const cooldownEl =
+                        document.getElementById(
+                            'clanWarAttackCooldown'
+                        );
+
+                    if (cooldownEl) {
+                        cooldownEl.innerText =
+                            state.cooldownRemainingMs > 0
+                                ? `⏳ Saldırı bekleme: ${Math.ceil(state.cooldownRemainingMs / 1000)} sn`
+                                : '⚔️ Saldırı hazır';
+                    }
+                }
+
+                if (remaining <= 0) {
+                    stopClanCastleWarCountdown();
+
+                    setTimeout(() => {
+                        requestClanCastleWarStatus();
+                    }, 800);
+                }
+            };
+
+            updateCountdown();
+
+            clanCastleWarCountdownTimer =
+                setInterval(
+                    updateCountdown,
+                    1000
+                );
+        }
+
         function createClanSubmit() {
             const nameInput =
                 document.getElementById('clanNameInput');
@@ -10548,6 +11009,73 @@
             input.value = '';
         }
 
+        socket.on('clanCastleWarStatus', (data) => {
+            clanCastleWarState =
+                data || null;
+
+            if (
+                activeTab === 'clan' &&
+                currentClanData
+            ) {
+                renderPanelContent();
+            }
+        });
+
+        socket.on('clanCastleWarResult', (res) => {
+            if (res?.userData) {
+                updateHeader(res.userData);
+            }
+
+            if (res?.status) {
+                clanCastleWarState =
+                    res.status;
+            }
+
+            if (res?.message) {
+                lastClanMessage =
+                    res.message;
+            }
+
+            if (
+                activeTab === 'clan' &&
+                currentClanData
+            ) {
+                renderPanelContent();
+
+                const logEl =
+                    document.getElementById(
+                        'clanLogResult'
+                    );
+
+                if (logEl && res?.message) {
+                    logEl.innerText =
+                        res.message;
+
+                    logEl.style.fontWeight =
+                        'bold';
+
+                    logEl.style.borderColor =
+                        res.success
+                            ? '#22c55e'
+                            : '#ef4444';
+
+                    logEl.style.color =
+                        res.success
+                            ? '#86efac'
+                            : '#fca5a5';
+                }
+            }
+        });
+
+        socket.on('clanCastleWarRefresh', () => {
+            if (
+                activeTab === 'clan' &&
+                currentClanData
+            ) {
+                requestClanCastleWarStatus();
+            }
+        });
+
         socket.on('clanData', (data) => {
             if (clanLoadTimer) {
                 clearTimeout(clanLoadTimer);
@@ -10563,6 +11091,13 @@
 
             if (data?.userData) {
                 updateHeader(data.userData);
+            }
+
+            if (currentClanData) {
+                requestClanCastleWarStatus();
+            } else {
+                clanCastleWarState = null;
+                stopClanCastleWarCountdown();
             }
 
             if (activeTab === 'clan') {
@@ -11241,6 +11776,8 @@
             clanListData = [];
             clanDataLoaded = false;
             lastClanMessage = '';
+            clanCastleWarState = null;
+            stopClanCastleWarCountdown();
 
             if (clanLoadTimer) {
                 clearTimeout(clanLoadTimer);
