@@ -15,6 +15,10 @@ const MAX_SEFER_LIMITI = 20;
 const REFILL_INTERVAL = 3 * 60 * 1000;
 const MAX_LEVEL = 99;
 
+const BANK_MAX_DEPOSIT = 100000;
+const BANK_INTEREST_RATE = 0.50;
+const BANK_TERM_MS = 24 * 60 * 60 * 1000;
+
 const TITLE_TIERS = [
     { level: 99, title: 'Tahtın Efendisi' },
     { level: 90, title: 'Efsane' },
@@ -247,6 +251,65 @@ function normalizeSiegeMarketState(user) {
 
 function formatArmyLosses(lost) {
     return `🏹 ${lost.archer || 0} Okçu | ⚔️ ${lost.warrior || 0} Savaşçı | 🐎 ${lost.cavalry || 0} Süvari`;
+}
+
+function normalizeBankState(user) {
+    let changed = false;
+
+    if (!user.bankDeposit) {
+        user.bankDeposit = {
+            principal: 0,
+            startedAt: 0,
+            maturesAt: 0
+        };
+        user.markModified('bankDeposit');
+        return true;
+    }
+
+    let principal = Number.parseInt(user.bankDeposit.principal, 10);
+    let startedAt = Number(user.bankDeposit.startedAt) || 0;
+    let maturesAt = Number(user.bankDeposit.maturesAt) || 0;
+
+    if (!Number.isInteger(principal) || principal < 0) {
+        principal = 0;
+        changed = true;
+    }
+
+    principal = Math.min(BANK_MAX_DEPOSIT, principal);
+
+    if (principal <= 0) {
+        principal = 0;
+
+        if (startedAt !== 0 || maturesAt !== 0) {
+            startedAt = 0;
+            maturesAt = 0;
+            changed = true;
+        }
+    } else {
+        if (!startedAt) {
+            startedAt = Date.now();
+            changed = true;
+        }
+
+        if (!maturesAt || maturesAt <= startedAt) {
+            maturesAt = startedAt + BANK_TERM_MS;
+            changed = true;
+        }
+    }
+
+    if (user.bankDeposit.principal !== principal) changed = true;
+    if (user.bankDeposit.startedAt !== startedAt) changed = true;
+    if (user.bankDeposit.maturesAt !== maturesAt) changed = true;
+
+    user.bankDeposit.principal = principal;
+    user.bankDeposit.startedAt = startedAt;
+    user.bankDeposit.maturesAt = maturesAt;
+
+    if (changed) {
+        user.markModified('bankDeposit');
+    }
+
+    return changed;
 }
 
 
@@ -545,6 +608,12 @@ const userSchema = new mongoose.Schema({
         available: { type: Boolean, default: false }
     },
 
+    bankDeposit: {
+        principal: { type: Number, default: 0 },
+        startedAt: { type: Number, default: 0 },
+        maturesAt: { type: Number, default: 0 }
+    },
+
     equipped: { 
         helmet: { type: Object, default: null }, 
         necklace: { type: Object, default: null }, 
@@ -746,6 +815,7 @@ io.on('connection', (socket) => {
             normalizeMetinState(dbUser);
             normalizeArmy(dbUser);
             normalizeSiegeMarketState(dbUser);
+            normalizeBankState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -774,6 +844,7 @@ io.on('connection', (socket) => {
             normalizeMetinState(dbUser);
             normalizeArmy(dbUser);
             normalizeSiegeMarketState(dbUser);
+            normalizeBankState(dbUser);
             await dbUser.save();
             
             users[socket.id] = dbUser;
@@ -2678,6 +2749,152 @@ io.on('connection', (socket) => {
                 `🏹 +${restored.archer} Okçu | ` +
                 `⚔️ +${restored.warrior} Savaşçı | ` +
                 `🐎 +${restored.cavalry} Süvari.`
+        });
+    });
+
+    socket.on('depositBankGold', async (data) => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeBankState(user);
+
+        const amount = Number.parseInt(data?.amount, 10);
+
+        if (!Number.isInteger(amount) || amount <= 0) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🏦 Banka: Yatırılacak Altın miktarı geçersiz."
+            });
+        }
+
+        if (amount > BANK_MAX_DEPOSIT) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message:
+                    `🏦 Banka: Tek vadeli hesapta en fazla ` +
+                    `${BANK_MAX_DEPOSIT.toLocaleString('tr-TR')} Altın yatırabilirsin.`
+            });
+        }
+
+        if ((user.bankDeposit.principal || 0) > 0) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message:
+                    `🏦 Banka: Zaten aktif bir vadeli hesabın var. ` +
+                    `Mevcut anapara: ${user.bankDeposit.principal.toLocaleString('tr-TR')} Altın.`
+            });
+        }
+
+        if ((user.balance || 0) < amount) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message:
+                    `🪙 Banka: ${amount.toLocaleString('tr-TR')} Altın yatırmak için yeterli bakiyen yok.`
+            });
+        }
+
+        const now = Date.now();
+        const maturesAt = now + BANK_TERM_MS;
+        const expectedInterest = Math.floor(amount * BANK_INTEREST_RATE);
+        const expectedPayout = amount + expectedInterest;
+
+        user.balance -= amount;
+        user.bankDeposit = {
+            principal: amount,
+            startedAt: now,
+            maturesAt
+        };
+        user.markModified('bankDeposit');
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            bankAction: {
+                type: 'deposit',
+                principal: amount,
+                interest: expectedInterest,
+                payout: expectedPayout,
+                maturesAt
+            },
+            message:
+                `🏦 Vadeli hesap açıldı! ` +
+                `${amount.toLocaleString('tr-TR')} Altın yatırdın. ` +
+                `24 saat sonunda %50 faiz ile ` +
+                `${expectedPayout.toLocaleString('tr-TR')} Altın tahsil edebilirsin.`
+        });
+    });
+
+    socket.on('collectBankInterest', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        normalizeBankState(user);
+
+        const principal = Number(user.bankDeposit.principal) || 0;
+        const maturesAt = Number(user.bankDeposit.maturesAt) || 0;
+
+        if (principal <= 0 || !maturesAt) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "🏦 Banka: Aktif vadeli hesabın bulunmuyor."
+            });
+        }
+
+        const now = Date.now();
+
+        if (now < maturesAt) {
+            const remainingMs = maturesAt - now;
+            const remainingMinutes = Math.ceil(remainingMs / 60000);
+            const hours = Math.floor(remainingMinutes / 60);
+            const minutes = remainingMinutes % 60;
+
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message:
+                    `⏳ Banka: Vade henüz dolmadı. ` +
+                    `Yaklaşık ${hours} saat ${minutes} dakika kaldı.`
+            });
+        }
+
+        const interest = Math.floor(principal * BANK_INTEREST_RATE);
+        const payout = principal + interest;
+
+        user.balance = (user.balance || 0) + payout;
+        user.bankDeposit = {
+            principal: 0,
+            startedAt: 0,
+            maturesAt: 0
+        };
+        user.markModified('bankDeposit');
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            bankAction: {
+                type: 'collect',
+                principal,
+                interest,
+                payout
+            },
+            message:
+                `💰 Vade tamamlandı! ` +
+                `${principal.toLocaleString('tr-TR')} Altın anapara + ` +
+                `${interest.toLocaleString('tr-TR')} Altın faiz = ` +
+                `${payout.toLocaleString('tr-TR')} Altın hesabına eklendi.`
         });
     });
 
