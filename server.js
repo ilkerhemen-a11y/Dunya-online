@@ -2681,6 +2681,64 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on('exchangeRubyForGold', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        const rubyCost = 1;
+        const goldReward = 100;
+
+        if ((user.rubies || 0) < rubyCost) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: "💎 Sarraf: Bu işlem için en az 1 Yakut gerekiyor."
+            });
+        }
+
+        user.rubies -= rubyCost;
+        user.balance = (user.balance || 0) + goldReward;
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message: `💰 Sarraf işlemi tamamlandı: -1 Yakut 💎 → +${goldReward} Altın 🪙`
+        });
+    });
+
+    socket.on('exchangeGoldForRuby', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        const goldCost = 1000;
+        const rubyReward = 1;
+
+        if ((user.balance || 0) < goldCost) {
+            return socket.emit('marketResult', {
+                success: false,
+                userData: user,
+                message: `🪙 Sarraf: Bu işlem için ${goldCost.toLocaleString('tr-TR')} Altın gerekiyor.`
+            });
+        }
+
+        user.balance -= goldCost;
+        user.rubies = (user.rubies || 0) + rubyReward;
+
+        await user.save();
+
+        socket.emit('marketResult', {
+            success: true,
+            userData: user,
+            message: `💰 Sarraf işlemi tamamlandı: -${goldCost.toLocaleString('tr-TR')} Altın 🪙 → +1 Yakut 💎`
+        });
+    });
+
     socket.on('buyMysteryBox', async () => {
         if (!checkRateLimit(socket.id)) return;
 
