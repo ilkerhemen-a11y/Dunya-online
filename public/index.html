@@ -9652,10 +9652,8 @@
                         </div>
                     `;
 
-                    socket.emit(
-                        'getAdventureHubStatus'
-                    );
-
+                    // Status isteği switchTab('adventure') tarafından
+                    // tek kez gönderilir. Buradan tekrar emit etmiyoruz.
                     return;
                 }
 
@@ -10492,10 +10490,8 @@
                         </div>
                     `;
 
-                    socket.emit(
-                        'getWorldBossStatus'
-                    );
-
+                    // Status isteği switchTab('worldBoss') tarafından
+                    // tek kez gönderilir. Buradan tekrar emit etmiyoruz.
                     return;
                 }
 
@@ -15659,9 +15655,12 @@
                 );
             }
 
-            socket.emit(
-                'getAdventureHubStatus'
-            );
+            if (
+                activeTab === 'adventure' &&
+                adventureState
+            ) {
+                renderPanelContent();
+            }
         });
 
         socket.on('worldFeedRefresh', () => {
