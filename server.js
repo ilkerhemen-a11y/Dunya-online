@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-clan-catapult-fix-v2';
+const GAME_BUILD_ID = '2026-09-06-clan-castle-war-v1';
 
 const app = express();
 const server = http.createServer(app);
@@ -1407,6 +1407,16 @@ const CLAN_CREATE_COST = 10000;
 const CLAN_BASE_MAX_MEMBERS = 15;
 const CLAN_CHAT_HISTORY_LIMIT = 50;
 
+// --- KLAN KALE SAVAŞI V1 ---
+// Türkiye saatiyle her 6 saatte bir savaş açılır:
+// 00:00, 06:00, 12:00, 18:00
+// Her savaş penceresi 30 dakika sürer.
+const CLAN_CASTLE_WAR_INTERVAL_HOURS = 6;
+const CLAN_CASTLE_WAR_DURATION_MINUTES = 30;
+const CLAN_CASTLE_WAR_ATTACK_LIMIT = 5;
+const CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS = 10 * 1000;
+const CLAN_CASTLE_NAME = 'Hisar-ı Hümayun';
+
 const clanMemberSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     role: { type: String, enum: ['leader', 'officer', 'member'], default: 'member' },
@@ -1438,6 +1448,43 @@ const clanSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Clan = mongoose.model('Clan', clanSchema);
+
+// ============================================================
+// KLAN KALE SAVAŞI V1
+// ============================================================
+const clanCastleWarMemberSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    username: { type: String, required: true },
+    damage: { type: Number, default: 0 },
+    attacks: { type: Number, default: 0 },
+    lastAttackAt: { type: Number, default: 0 }
+}, { _id: false });
+
+const clanCastleWarEntrySchema = new mongoose.Schema({
+    clanId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clan', required: true },
+    clanName: { type: String, required: true },
+    clanTag: { type: String, required: true },
+    totalDamage: { type: Number, default: 0 },
+    attackCount: { type: Number, default: 0 },
+    firstDamageAt: { type: Number, default: 0 },
+    lastDamageAt: { type: Number, default: 0 },
+    members: { type: [clanCastleWarMemberSchema], default: [] }
+}, { _id: false });
+
+const clanCastleWarSchema = new mongoose.Schema({
+    warKey: { type: String, required: true, unique: true, index: true },
+    startAt: { type: Number, required: true },
+    endAt: { type: Number, required: true },
+    finalized: { type: Boolean, default: false },
+    finalizedAt: { type: Number, default: 0 },
+    winnerClanId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clan', default: null },
+    winnerClanName: { type: String, default: '' },
+    winnerClanTag: { type: String, default: '' },
+    winningDamage: { type: Number, default: 0 },
+    entries: { type: [clanCastleWarEntrySchema], default: [] }
+}, { timestamps: true });
+
+const ClanCastleWar = mongoose.model('ClanCastleWar', clanCastleWarSchema);
 
 // Ana Kale / Taht durumu — tüm oyuncular için tek global kayıt
 const castleSchema = new mongoose.Schema({
@@ -1771,6 +1818,387 @@ async function sendClanData(socket, user) {
 }
 
 
+const TURKEY_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+function getClanCastleWarWindow(now = Date.now()) {
+    // Türkiye UTC+3. Savaş saatlerini 00/06/12/18 olarak sabitliyoruz.
+    const shifted = new Date(now + TURKEY_OFFSET_MS);
+
+    const year = shifted.getUTCFullYear();
+    const month = shifted.getUTCMonth();
+    const day = shifted.getUTCDate();
+    const hour = shifted.getUTCHours();
+
+    const slotHour =
+        Math.floor(hour / CLAN_CASTLE_WAR_INTERVAL_HOURS) *
+        CLAN_CASTLE_WAR_INTERVAL_HOURS;
+
+    const localSlotAsUtc = Date.UTC(
+        year,
+        month,
+        day,
+        slotHour,
+        0,
+        0,
+        0
+    );
+
+    const startAt = localSlotAsUtc - TURKEY_OFFSET_MS;
+    const endAt =
+        startAt +
+        (CLAN_CASTLE_WAR_DURATION_MINUTES * 60 * 1000);
+
+    const active =
+        now >= startAt &&
+        now < endAt;
+
+    const nextStartAt =
+        active
+            ? startAt
+            : (
+                now < startAt
+                    ? startAt
+                    : startAt +
+                      (CLAN_CASTLE_WAR_INTERVAL_HOURS * 60 * 60 * 1000)
+            );
+
+    const localStart = new Date(startAt + TURKEY_OFFSET_MS);
+
+    const warKey = [
+        localStart.getUTCFullYear(),
+        String(localStart.getUTCMonth() + 1).padStart(2, '0'),
+        String(localStart.getUTCDate()).padStart(2, '0'),
+        String(localStart.getUTCHours()).padStart(2, '0')
+    ].join('-');
+
+    return {
+        warKey,
+        startAt,
+        endAt,
+        active,
+        nextStartAt
+    };
+}
+
+function sortClanCastleWarEntries(entries = []) {
+    return [...entries].sort((a, b) => {
+        const damageDiff =
+            (Number(b.totalDamage) || 0) -
+            (Number(a.totalDamage) || 0);
+
+        if (damageDiff !== 0) return damageDiff;
+
+        const aFirst = Number(a.firstDamageAt) || Number.MAX_SAFE_INTEGER;
+        const bFirst = Number(b.firstDamageAt) || Number.MAX_SAFE_INTEGER;
+
+        return aFirst - bFirst;
+    });
+}
+
+async function ensureClanCastleWar(windowInfo) {
+    if (!windowInfo?.warKey) return null;
+
+    return ClanCastleWar.findOneAndUpdate(
+        { warKey: windowInfo.warKey },
+        {
+            $setOnInsert: {
+                warKey: windowInfo.warKey,
+                startAt: windowInfo.startAt,
+                endAt: windowInfo.endAt,
+                finalized: false,
+                entries: []
+            }
+        },
+        {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true
+        }
+    );
+}
+
+async function getCurrentClanCastleOwner() {
+    const ownerClan = await Clan.findOne({
+        castleId: CLAN_CASTLE_NAME
+    })
+        .select('name tag')
+        .lean();
+
+    if (!ownerClan) return null;
+
+    return {
+        clanId: String(ownerClan._id),
+        clanName: ownerClan.name,
+        clanTag: ownerClan.tag
+    };
+}
+
+async function finalizeClanCastleWar(war) {
+    if (!war || war.finalized) return war;
+
+    const leaderboard =
+        sortClanCastleWarEntries(war.entries || []);
+
+    const winner =
+        leaderboard.length > 0 &&
+        (Number(leaderboard[0].totalDamage) || 0) > 0
+            ? leaderboard[0]
+            : null;
+
+    // Aynı savaşın iki kez sonuçlandırılmasını engelle.
+    const claimed = await ClanCastleWar.findOneAndUpdate(
+        {
+            _id: war._id,
+            finalized: false
+        },
+        {
+            $set: {
+                finalized: true,
+                finalizedAt: Date.now(),
+                winnerClanId: winner?.clanId || null,
+                winnerClanName: winner?.clanName || '',
+                winnerClanTag: winner?.clanTag || '',
+                winningDamage: Number(winner?.totalDamage) || 0
+            }
+        },
+        { new: true }
+    );
+
+    if (!claimed) {
+        return ClanCastleWar.findById(war._id);
+    }
+
+    if (winner) {
+        // Önce eski sahibin kale işaretini kaldır.
+        await Clan.updateMany(
+            {
+                castleId: CLAN_CASTLE_NAME,
+                _id: { $ne: winner.clanId }
+            },
+            {
+                $set: { castleId: null }
+            }
+        );
+
+        // Kazanan klana kale + galibiyet.
+        await Clan.updateOne(
+            { _id: winner.clanId },
+            {
+                $set: { castleId: CLAN_CASTLE_NAME },
+                $inc: { wins: 1 }
+            }
+        );
+
+        // Savaşa katılan diğer klanlara mağlubiyet.
+        const loserIds = leaderboard
+            .slice(1)
+            .map(entry => entry.clanId)
+            .filter(Boolean);
+
+        if (loserIds.length > 0) {
+            await Clan.updateMany(
+                { _id: { $in: loserIds } },
+                { $inc: { losses: 1 } }
+            );
+        }
+
+        broadcastClanRefresh(
+            winner.clanId,
+            `🏰 ${CLAN_CASTLE_NAME} ele geçirildi! En yüksek toplam hasarı [${winner.clanTag}] ${winner.clanName} verdi.`
+        );
+    }
+
+    io.emit('clanCastleWarRefresh', {
+        warKey: claimed.warKey,
+        finalized: true
+    });
+
+    return claimed;
+}
+
+async function finalizeExpiredClanCastleWars() {
+    const now = Date.now();
+
+    const expired = await ClanCastleWar.find({
+        finalized: false,
+        endAt: { $lte: now }
+    }).limit(20);
+
+    for (const war of expired) {
+        try {
+            await finalizeClanCastleWar(war);
+        } catch (err) {
+            console.error(
+                'Klan Kale Savaşı sonuçlandırma hatası:',
+                err
+            );
+        }
+    }
+}
+
+async function buildClanCastleWarStatus(user) {
+    await finalizeExpiredClanCastleWars();
+
+    const now = Date.now();
+    const windowInfo = getClanCastleWarWindow(now);
+
+    let activeWar = null;
+
+    if (windowInfo.active) {
+        activeWar = await ensureClanCastleWar(windowInfo);
+    }
+
+    const lastWar = await ClanCastleWar.findOne({
+        finalized: true
+    })
+        .sort({ endAt: -1 })
+        .lean();
+
+    const sourceWar = activeWar || lastWar || null;
+
+    let leaderboard = [];
+    let myClanEntry = null;
+    let myMemberEntry = null;
+
+    if (sourceWar) {
+        leaderboard = sortClanCastleWarEntries(
+            sourceWar.entries || []
+        ).map((entry, index) => ({
+            rank: index + 1,
+            clanId: String(entry.clanId),
+            clanName: entry.clanName,
+            clanTag: entry.clanTag,
+            totalDamage: Math.max(
+                0,
+                Number(entry.totalDamage) || 0
+            ),
+            attackCount: Math.max(
+                0,
+                Number(entry.attackCount) || 0
+            )
+        }));
+    }
+
+    if (activeWar && user?.clanId) {
+        myClanEntry = (activeWar.entries || []).find(
+            entry =>
+                String(entry.clanId) ===
+                String(user.clanId)
+        ) || null;
+
+        if (myClanEntry) {
+            myMemberEntry =
+                (myClanEntry.members || []).find(
+                    member =>
+                        String(member.userId) ===
+                        String(user._id)
+                ) || null;
+        }
+    }
+
+    const owner = await getCurrentClanCastleOwner();
+
+    const myAttackCount =
+        Math.max(
+            0,
+            Number(myMemberEntry?.attacks) || 0
+        );
+
+    const lastAttackAt =
+        Math.max(
+            0,
+            Number(myMemberEntry?.lastAttackAt) || 0
+        );
+
+    const cooldownRemainingMs =
+        lastAttackAt > 0
+            ? Math.max(
+                0,
+                CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS -
+                (now - lastAttackAt)
+            )
+            : 0;
+
+    const characterPower =
+        user
+            ? getCharacterCombatPower(user)
+            : 0;
+
+    const armyPower =
+        user
+            ? getArmyPower(user.army)
+            : 0;
+
+    const setBonus =
+        user
+            ? getHukumdarSetBonusState(user)
+            : { castleAttackPercent: 0 };
+
+    return {
+        castleName: CLAN_CASTLE_NAME,
+        active: Boolean(windowInfo.active),
+        warKey: windowInfo.warKey,
+        startAt: windowInfo.startAt,
+        endAt: windowInfo.endAt,
+        nextStartAt: windowInfo.active
+            ? windowInfo.endAt
+            : windowInfo.nextStartAt,
+        intervalHours: CLAN_CASTLE_WAR_INTERVAL_HOURS,
+        durationMinutes: CLAN_CASTLE_WAR_DURATION_MINUTES,
+        attackLimit: CLAN_CASTLE_WAR_ATTACK_LIMIT,
+        attackCooldownMs: CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS,
+        owner,
+        leaderboard,
+        myClanDamage: Math.max(
+            0,
+            Number(myClanEntry?.totalDamage) || 0
+        ),
+        myDamage: Math.max(
+            0,
+            Number(myMemberEntry?.damage) || 0
+        ),
+        myAttacksUsed: myAttackCount,
+        myAttacksRemaining: Math.max(
+            0,
+            CLAN_CASTLE_WAR_ATTACK_LIMIT -
+            myAttackCount
+        ),
+        cooldownRemainingMs,
+        characterPower,
+        armyPower,
+        castleAttackBonusPercent:
+            Number(setBonus.castleAttackPercent) || 0,
+        canAttack:
+            Boolean(
+                windowInfo.active &&
+                user?.clanId &&
+                myAttackCount <
+                    CLAN_CASTLE_WAR_ATTACK_LIMIT &&
+                cooldownRemainingMs <= 0
+            ),
+        lastWar: lastWar
+            ? {
+                warKey: lastWar.warKey,
+                startAt: lastWar.startAt,
+                endAt: lastWar.endAt,
+                winnerClanId: lastWar.winnerClanId
+                    ? String(lastWar.winnerClanId)
+                    : null,
+                winnerClanName:
+                    lastWar.winnerClanName || '',
+                winnerClanTag:
+                    lastWar.winnerClanTag || '',
+                winningDamage:
+                    Math.max(
+                        0,
+                        Number(lastWar.winningDamage) || 0
+                    )
+            }
+            : null
+    };
+}
+
+
 function getRequestBearerToken(req) {
     const auth = String(req.headers?.authorization || '');
     if (auth.toLowerCase().startsWith('bearer ')) {
@@ -1794,6 +2222,7 @@ app.get('/api/build', (req, res) => {
         ok: true,
         build: GAME_BUILD_ID,
         clanV1: true,
+        clanCastleWarV1: true,
         catapult: true,
         onlineCounter: true,
         mongoReadyState: mongoose.connection.readyState
@@ -1935,6 +2364,7 @@ io.on('connection', (socket) => {
         socket.emit('gameBuildInfo', {
             build: GAME_BUILD_ID,
             clanV1: true,
+            clanCastleWarV1: true,
             catapult: true,
             onlineCounter: true
         });
@@ -5333,6 +5763,313 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('getClanCastleWarStatus', async () => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            socket.emit(
+                'clanCastleWarStatus',
+                await buildClanCastleWarStatus(user)
+            );
+        } catch (err) {
+            console.error(
+                'getClanCastleWarStatus hatası:',
+                err
+            );
+
+            socket.emit('clanCastleWarResult', {
+                success: false,
+                message:
+                    'Klan Kale Savaşı bilgileri yüklenemedi.'
+            });
+        }
+    });
+
+    socket.on('attackClanCastleWar', async () => {
+        if (!checkRateLimit(socket.id)) return;
+
+        const user = users[socket.id];
+        if (!user) return;
+
+        if (!user.clanId) {
+            return socket.emit('clanCastleWarResult', {
+                success: false,
+                userData: user,
+                status: await buildClanCastleWarStatus(user),
+                message:
+                    '🏰 Kale Savaşına katılmak için bir klana üye olmalısın.'
+            });
+        }
+
+        try {
+            const now = Date.now();
+            const windowInfo =
+                getClanCastleWarWindow(now);
+
+            if (!windowInfo.active) {
+                return socket.emit(
+                    'clanCastleWarResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await buildClanCastleWarStatus(user),
+                        message:
+                            '⏳ Klan Kale Savaşı şu anda kapalı. Bir sonraki savaş saatini beklemelisin.'
+                    }
+                );
+            }
+
+            const clan =
+                await Clan.findById(user.clanId);
+
+            if (!clan) {
+                user.clanId = null;
+                user.clanRole = null;
+                await user.save();
+
+                return socket.emit(
+                    'clanCastleWarResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await buildClanCastleWarStatus(user),
+                        message:
+                            'Klan kaydın bulunamadı.'
+                    }
+                );
+            }
+
+            const membership =
+                (clan.members || []).find(
+                    member =>
+                        String(member.userId) ===
+                        String(user._id)
+                );
+
+            if (!membership) {
+                return socket.emit(
+                    'clanCastleWarResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await buildClanCastleWarStatus(user),
+                        message:
+                            'Klan üyeliğin doğrulanamadı.'
+                    }
+                );
+            }
+
+            normalizeArmy(user);
+
+            const war =
+                await ensureClanCastleWar(
+                    windowInfo
+                );
+
+            let clanEntry =
+                (war.entries || []).find(
+                    entry =>
+                        String(entry.clanId) ===
+                        String(clan._id)
+                );
+
+            if (!clanEntry) {
+                war.entries.push({
+                    clanId: clan._id,
+                    clanName: clan.name,
+                    clanTag: clan.tag,
+                    totalDamage: 0,
+                    attackCount: 0,
+                    firstDamageAt: 0,
+                    lastDamageAt: 0,
+                    members: []
+                });
+
+                clanEntry =
+                    war.entries[
+                        war.entries.length - 1
+                    ];
+            }
+
+            let memberEntry =
+                (clanEntry.members || []).find(
+                    member =>
+                        String(member.userId) ===
+                        String(user._id)
+                );
+
+            if (!memberEntry) {
+                clanEntry.members.push({
+                    userId: user._id,
+                    username: user.username,
+                    damage: 0,
+                    attacks: 0,
+                    lastAttackAt: 0
+                });
+
+                memberEntry =
+                    clanEntry.members[
+                        clanEntry.members.length - 1
+                    ];
+            }
+
+            const attacksUsed =
+                Math.max(
+                    0,
+                    Number(memberEntry.attacks) || 0
+                );
+
+            if (
+                attacksUsed >=
+                CLAN_CASTLE_WAR_ATTACK_LIMIT
+            ) {
+                return socket.emit(
+                    'clanCastleWarResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await buildClanCastleWarStatus(user),
+                        message:
+                            `⛔ Bu savaş için ${CLAN_CASTLE_WAR_ATTACK_LIMIT} saldırı hakkını kullandın.`
+                    }
+                );
+            }
+
+            const lastAttackAt =
+                Math.max(
+                    0,
+                    Number(memberEntry.lastAttackAt) || 0
+                );
+
+            const cooldownRemaining =
+                Math.max(
+                    0,
+                    CLAN_CASTLE_WAR_ATTACK_COOLDOWN_MS -
+                    (now - lastAttackAt)
+                );
+
+            if (cooldownRemaining > 0) {
+                return socket.emit(
+                    'clanCastleWarResult',
+                    {
+                        success: false,
+                        userData: user,
+                        status:
+                            await buildClanCastleWarStatus(user),
+                        message:
+                            `⏳ Yeni saldırı için ${Math.ceil(cooldownRemaining / 1000)} saniye beklemelisin.`
+                    }
+                );
+            }
+
+            const characterPower =
+                getCharacterCombatPower(user);
+
+            const armyPower =
+                getArmyPower(user.army);
+
+            const setBonus =
+                getHukumdarSetBonusState(user);
+
+            const siegeBonusMultiplier =
+                1 +
+                (
+                    (
+                        Number(
+                            setBonus.castleAttackPercent
+                        ) || 0
+                    ) / 100
+                );
+
+            const randomMultiplier =
+                0.90 +
+                (Math.random() * 0.20);
+
+            const totalAttackPower =
+                Math.max(
+                    1,
+                    characterPower +
+                    armyPower
+                );
+
+            const damage =
+                Math.max(
+                    1,
+                    Math.floor(
+                        totalAttackPower *
+                        siegeBonusMultiplier *
+                        randomMultiplier
+                    )
+                );
+
+            clanEntry.totalDamage =
+                (Number(clanEntry.totalDamage) || 0) +
+                damage;
+
+            clanEntry.attackCount =
+                (Number(clanEntry.attackCount) || 0) +
+                1;
+
+            if (!clanEntry.firstDamageAt) {
+                clanEntry.firstDamageAt = now;
+            }
+
+            clanEntry.lastDamageAt = now;
+
+            memberEntry.damage =
+                (Number(memberEntry.damage) || 0) +
+                damage;
+
+            memberEntry.attacks =
+                attacksUsed + 1;
+
+            memberEntry.lastAttackAt = now;
+
+            war.markModified('entries');
+            await war.save();
+
+            const status =
+                await buildClanCastleWarStatus(user);
+
+            socket.emit('clanCastleWarResult', {
+                success: true,
+                userData: user,
+                damage,
+                status,
+                message:
+                    `🏰 Kale bombardımanı! ` +
+                    `Klanına +${damage.toLocaleString('tr-TR')} hasar yazıldı. ` +
+                    `⚔️ Karakter Gücü: ${characterPower.toLocaleString('tr-TR')} | ` +
+                    `🪖 Ordu Gücü: ${armyPower.toLocaleString('tr-TR')} | ` +
+                    `🎯 Kalan saldırı: ${status.myAttacksRemaining}/${CLAN_CASTLE_WAR_ATTACK_LIMIT}`
+            });
+
+            io.emit('clanCastleWarRefresh', {
+                warKey: windowInfo.warKey
+            });
+        } catch (err) {
+            console.error(
+                'attackClanCastleWar hatası:',
+                err
+            );
+
+            socket.emit(
+                'clanCastleWarResult',
+                {
+                    success: false,
+                    userData: user,
+                    message:
+                        'Kale saldırısı sırasında bir hata oluştu.'
+                }
+            );
+        }
+    });
+
     socket.on('createClan', async (data) => {
         if (!checkRateLimit(socket.id)) return;
 
@@ -6179,8 +6916,20 @@ setInterval(async () => {
     }
 }, 60000);
 
+// Klan Kale Savaşlarını süre bittiğinde otomatik sonuçlandır.
+setInterval(async () => {
+    try {
+        await finalizeExpiredClanCastleWars();
+    } catch (err) {
+        console.error(
+            'Klan Kale Savaşı otomatik sonuçlandırma hatası:',
+            err
+        );
+    }
+}, 30000);
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Sunucu aktif: ${PORT}`);
-    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Klan V1: AKTİF | Mancınık: AKTİF`);
+    console.log(`OYUN BUILD: ${GAME_BUILD_ID} | Klan V1: AKTİF | Klan Kale Savaşı: AKTİF | Mancınık: AKTİF`);
 });
