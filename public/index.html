@@ -3138,6 +3138,7 @@
 
     <header class="game-header">
         <div class="header-section">
+            <div class="resource-item" style="color:#4ade80;">🟢 Online: <span id="headerOnlineCount">0</span></div>
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
             <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">0</span> Yakut</div>
             <div class="resource-item" style="color: #f3cf7a;">🔑 <span id="headerKeys">0</span> Altın Anahtar</div>
@@ -3338,6 +3339,12 @@
             } else {
                 document.getElementById('authMessage').innerText = "";
             }
+        });
+
+        socket.on('onlinePlayerCount', (data) => {
+            const count = Math.max(0, Number(data?.count) || 0);
+            const el = document.getElementById('headerOnlineCount');
+            if (el) el.innerText = count.toLocaleString('tr-TR');
         });
 
         function switchAuthTab(tab) {
@@ -3759,7 +3766,7 @@
                     totalStr: localStats.totalStr,
                     totalVit: localStats.totalVit,
                     combatPower: localStats.combatPower,
-                    armyPower: ((Number(u.army?.archer) || 0) * 10) + ((Number(u.army?.warrior) || 0) * 20) + ((Number(u.army?.cavalry) || 0) * 35) + localStats.totalStr,
+                    armyPower: ((Number(u.army?.archer) || 0) * 10) + ((Number(u.army?.warrior) || 0) * 20) + ((Number(u.army?.cavalry) || 0) * 35) + ((Number(u.army?.catapult) || 0) * 100) + localStats.totalStr,
                     maxHp: localStats.totalVit * 20
                 };
 
@@ -4193,7 +4200,8 @@
                 const lastLossTotal =
                     (Number(lastLosses.archer) || 0) +
                     (Number(lastLosses.warrior) || 0) +
-                    (Number(lastLosses.cavalry) || 0);
+                    (Number(lastLosses.cavalry) || 0) +
+                    (Number(lastLosses.catapult) || 0);
 
                 body.innerHTML = `
                     <div style="
@@ -4364,6 +4372,7 @@
                                             🏹 ${Number(lastLosses.archer || 0)}
                                             • ⚔️ ${Number(lastLosses.warrior || 0)}
                                             • 🐎 ${Number(lastLosses.cavalry || 0)}
+                                            • 🏗️ ${Number(lastLosses.catapult || 0)}
                                         </div>
 
                                         <span class="forge-cost">
@@ -5298,7 +5307,8 @@
                 const army = u.army || {
                     archer: 0,
                     warrior: 0,
-                    cavalry: 0
+                    cavalry: 0,
+                    catapult: 0
                 };
 
                 const troopDefs = barracksState?.troops || {
@@ -5319,6 +5329,12 @@
                         icon:'🐎',
                         cost:1000,
                         power:35
+                    },
+                    catapult: {
+                        name:'Mancınık',
+                        icon:'🏗️',
+                        cost:3000,
+                        power:100
                     }
                 };
 
@@ -5342,7 +5358,8 @@
                 const myArmyCount =
                     (Number(army.archer) || 0) +
                     (Number(army.warrior) || 0) +
-                    (Number(army.cavalry) || 0);
+                    (Number(army.cavalry) || 0) +
+                    (Number(army.catapult) || 0);
 
                 if (!barracksState?.castle) {
                     body.innerHTML = `
@@ -5466,7 +5483,7 @@
                                         margin-top:3px;
                                     ">
                                         ⚔️ Güç:
-                                        ${troop.power} / asker
+                                        ${troop.power} / birlik
                                     </div>
 
                                     <div style="
@@ -5476,7 +5493,7 @@
                                     ">
                                         🪙
                                         ${troop.cost.toLocaleString('tr-TR')}
-                                        Altın / asker
+                                        Altın / birlik
                                     </div>
 
                                     <select
@@ -5491,10 +5508,10 @@
                                             padding:5px;
                                         "
                                     >
-                                        <option value="1">1 asker</option>
-                                        <option value="10">10 asker</option>
-                                        <option value="50">50 asker</option>
-                                        <option value="100">100 asker</option>
+                                        <option value="1">${type === 'catapult' ? '1 mancınık' : '1 asker'}</option>
+                                        <option value="10">${type === 'catapult' ? '10 mancınık' : '10 asker'}</option>
+                                        <option value="50">${type === 'catapult' ? '50 mancınık' : '50 asker'}</option>
+                                        <option value="100">${type === 'catapult' ? '100 mancınık' : '100 asker'}</option>
                                     </select>
 
                                     <button
@@ -5506,7 +5523,7 @@
                                             'trainBtn_${type}'
                                         )"
                                     >
-                                        Yetiştir
+                                        ${type === 'catapult' ? 'İnşa Et' : 'Yetiştir'}
                                     </button>
                                 </div>
                             `;
@@ -5556,7 +5573,16 @@
                         </div>
 
                         <div class="stat-row">
-                            <span>Toplam Asker:</span>
+                            <span>🏗️ Mancınık:</span>
+                            <span>
+                                ${Number(
+                                    army.catapult || 0
+                                ).toLocaleString('tr-TR')}
+                            </span>
+                        </div>
+
+                        <div class="stat-row">
+                            <span>Toplam Birlik:</span>
                             <span>
                                 ${myArmyCount.toLocaleString('tr-TR')}
                             </span>
@@ -5635,6 +5661,10 @@
                                     🐎 ${Number(
                                         army.cavalry || 0
                                     ).toLocaleString('tr-TR')}
+                                    •
+                                    🏗️ ${Number(
+                                        army.catapult || 0
+                                    ).toLocaleString('tr-TR')}
                                 </div>
 
                                 <div class="castle-power-line">
@@ -5698,6 +5728,10 @@
                                     🐎 ${Number(
                                         castle.defenderArmy?.cavalry || 0
                                     ).toLocaleString('tr-TR')}
+                                    •
+                                    🏗️ ${Number(
+                                        castle.defenderArmy?.catapult || 0
+                                    ).toLocaleString('tr-TR')}
                                 </div>
 
                                 <div class="castle-power-line">
@@ -5736,7 +5770,7 @@
                             class="castle-siege-feed"
                         >
                             🏰 Ordunu hazırlayıp kaleyi kuşat.
-                            Savaş başladığında okçular, piyadeler ve süvariler burada canlanacak.
+                            Savaş başladığında okçular, mancınıklar, piyadeler ve süvariler burada canlanacak.
                         </div>
 
                         <div
@@ -5804,7 +5838,12 @@
                             ${Number(
                                 castle.defenderArmy?.cavalry || 0
                             ).toLocaleString('tr-TR')}
-                            Süvari
+                            Süvari •
+                            🏗️
+                            ${Number(
+                                castle.defenderArmy?.catapult || 0
+                            ).toLocaleString('tr-TR')}
+                            Mancınık
                         </div>
 
                         <div style="
@@ -9007,7 +9046,8 @@
             return (
                 (Number(army?.archer) || 0) +
                 (Number(army?.warrior) || 0) +
-                (Number(army?.cavalry) || 0)
+                (Number(army?.cavalry) || 0) +
+                (Number(army?.catapult) || 0)
             );
         }
 
@@ -9379,6 +9419,29 @@
                     );
                 }
 
+                if (step.id === 'catapult') {
+                    spawnCastleFire();
+
+                    defenderSide.classList.add(
+                        'castle-hit'
+                    );
+
+                    addCastleFeedLine(
+                        `🏗️ Mancınıklar surları dövüyor! ` +
+                        `${Number(
+                            step.attackerUnits || 0
+                        ).toLocaleString('tr-TR')} saldıran mancınık ` +
+                        `vs ${Number(
+                            step.defenderUnits || 0
+                        ).toLocaleString('tr-TR')} savunan mancınık.`
+                    );
+
+                    spawnCastleLoss(
+                        'defender',
+                        '💥 Taş Atışı!'
+                    );
+                }
+
                 if (step.id === 'infantry') {
                     attackerSide.classList.add(
                         'charge-right'
@@ -9551,14 +9614,16 @@
                 `💀 Saldıran kayıpları: ` +
                 `🏹 ${battle.attacker?.losses?.archer || 0} • ` +
                 `⚔️ ${battle.attacker?.losses?.warrior || 0} • ` +
-                `🐎 ${battle.attacker?.losses?.cavalry || 0}`
+                `🐎 ${battle.attacker?.losses?.cavalry || 0} • ` +
+                `🏗️ ${battle.attacker?.losses?.catapult || 0}`
             );
 
             addCastleFeedLine(
                 `💀 Savunan kayıpları: ` +
                 `🏹 ${battle.defender?.losses?.archer || 0} • ` +
                 `⚔️ ${battle.defender?.losses?.warrior || 0} • ` +
-                `🐎 ${battle.defender?.losses?.cavalry || 0}`
+                `🐎 ${battle.defender?.losses?.cavalry || 0} • ` +
+                `🏗️ ${battle.defender?.losses?.catapult || 0}`
             );
 
             if (banner) {
