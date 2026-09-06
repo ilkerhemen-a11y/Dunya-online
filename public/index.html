@@ -4252,6 +4252,10 @@
 
         let clanCastleWarState = null;
         let clanCastleWarCountdownTimer = null;
+        let clanCastleWarAnimating = false;
+        let clanCastleWarAnimationToken = 0;
+        let clanCastleWarRefreshPending = false;
+        let clanCastleWarAttackFallbackTimer = null;
 
         let barracksState = null;
         let arenaOpponentCache = {};
@@ -5028,58 +5032,648 @@
             }
         }
 
-        function playClanCastleAttackAnimation(
-            damage = 0
-        ) {
-            document.querySelectorAll(
-                '.siege-cinematic-overlay'
-            ).forEach(el => el.remove());
+        function addClanCastleFeedLine(html) {
+            const feed =
+                document.getElementById(
+                    'clanCastleSiegeFeed'
+                );
 
-            const overlay =
+            if (!feed) return;
+
+            const line =
                 document.createElement('div');
 
-            overlay.className =
-                'siege-cinematic-overlay';
+            line.innerHTML = html;
 
-            overlay.innerHTML = `
-                <div class="siege-cinematic-stage">
-                    <div class="siege-cinematic-title">
-                        🏰 HİSAR-I HÜMAYUN BOMBARDIMANI
-                    </div>
+            feed.appendChild(line);
+            feed.scrollTop =
+                feed.scrollHeight;
+        }
 
-                    <div class="siege-catapult-actor">
-                        ${renderCatapultIconSvg(145)}
-                    </div>
+        function setClanCastleForce(
+            side,
+            percent,
+            label
+        ) {
+            const safe =
+                Math.max(
+                    0,
+                    Math.min(
+                        100,
+                        Number(percent) || 0
+                    )
+                );
 
-                    <div class="siege-rock"></div>
+            const fill =
+                document.getElementById(
+                    side === 'attacker'
+                        ? 'clanCastleForceAttacker'
+                        : 'clanCastleForceDefender'
+                );
 
-                    <div class="siege-castle-target">
-                        <div class="tower left"></div>
-                        <div class="keep">
-                            <div class="gate"></div>
-                        </div>
-                        <div class="tower right"></div>
-                    </div>
+            const text =
+                document.getElementById(
+                    side === 'attacker'
+                        ? 'clanCastleForceTextAttacker'
+                        : 'clanCastleForceTextDefender'
+                );
 
-                    <div class="siege-impact"></div>
-                    <div class="siege-dust"></div>
+            if (fill) {
+                fill.style.width =
+                    `${safe}%`;
+            }
 
-                    <div class="siege-damage-number">
-                        -${Math.max(0, Number(damage) || 0).toLocaleString('tr-TR')}
-                    </div>
-                </div>
-            `;
+            if (text) {
+                text.innerText =
+                    label || `${Math.round(safe)}%`;
+            }
+        }
 
-            document.body.appendChild(
-                overlay
-            );
+        function spawnClanCastleLoss(
+            side,
+            text,
+            strong = false
+        ) {
+            const target =
+                document.getElementById(
+                    side === 'attacker'
+                        ? 'clanCastleAttackerSide'
+                        : 'clanCastleDefenderSide'
+                );
 
-            playGameSfx('catapult');
+            if (!target) return;
+
+            const pop =
+                document.createElement('div');
+
+            pop.className =
+                'castle-floating-loss';
+
+            if (strong) {
+                pop.style.color =
+                    '#facc15';
+
+                pop.style.fontSize =
+                    '18px';
+            }
+
+            pop.innerText = text;
+            target.appendChild(pop);
 
             setTimeout(
-                () => overlay.remove(),
-                1900
+                () => pop.remove(),
+                950
             );
+        }
+
+        function spawnClanCastleArrows() {
+            const stage =
+                document.getElementById(
+                    'clanCastleSiegeStage'
+                );
+
+            if (!stage) return;
+
+            for (
+                let i = 0;
+                i < 6;
+                i++
+            ) {
+                setTimeout(
+                    () => {
+                        const arrow =
+                            document.createElement(
+                                'div'
+                            );
+
+                        arrow.className =
+                            'castle-projectile';
+
+                        arrow.innerText =
+                            '➶';
+
+                        arrow.style.top =
+                            `${28 + Math.random() * 24}%`;
+
+                        arrow.style.animationDelay =
+                            `${Math.random() * .08}s`;
+
+                        stage.appendChild(
+                            arrow
+                        );
+
+                        setTimeout(
+                            () => arrow.remove(),
+                            900
+                        );
+                    },
+                    i * 85
+                );
+            }
+        }
+
+        function spawnClanCastleFire() {
+            const stage =
+                document.getElementById(
+                    'clanCastleSiegeStage'
+                );
+
+            if (!stage) return;
+
+            for (
+                let i = 0;
+                i < 3;
+                i++
+            ) {
+                setTimeout(
+                    () => {
+                        const fire =
+                            document.createElement(
+                                'div'
+                            );
+
+                        fire.className =
+                            'castle-fire';
+
+                        fire.innerText =
+                            '🔥';
+
+                        fire.style.right =
+                            `${12 + (i * 6)}%`;
+
+                        stage.appendChild(
+                            fire
+                        );
+
+                        setTimeout(
+                            () => fire.remove(),
+                            1200
+                        );
+                    },
+                    i * 180
+                );
+            }
+        }
+
+        async function playClanCastleAttackAnimation(
+            damage = 0,
+            status = null,
+            finalMessage = ''
+        ) {
+            if (
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            const token =
+                ++clanCastleWarAnimationToken;
+
+            clanCastleWarAnimating =
+                true;
+
+            const phase =
+                document.getElementById(
+                    'clanCastleSiegePhase'
+                );
+
+            const attackerSide =
+                document.getElementById(
+                    'clanCastleAttackerSide'
+                );
+
+            const defenderSide =
+                document.getElementById(
+                    'clanCastleDefenderSide'
+                );
+
+            const banner =
+                document.getElementById(
+                    'clanCastleSiegeBanner'
+                );
+
+            const btn =
+                document.getElementById(
+                    'clanCastleAttackBtn'
+                );
+
+            if (
+                !phase ||
+                !attackerSide ||
+                !defenderSide
+            ) {
+                clanCastleWarAnimating = false;
+                requestClanCastleWarStatus();
+                return;
+            }
+
+            if (
+                clanCastleWarAttackFallbackTimer
+            ) {
+                clearTimeout(
+                    clanCastleWarAttackFallbackTimer
+                );
+
+                clanCastleWarAttackFallbackTimer =
+                    null;
+            }
+
+            attackerSide.className =
+                'castle-side attacker';
+
+            defenderSide.className =
+                'castle-side defender';
+
+            if (banner) {
+                banner.className =
+                    'castle-siege-banner';
+
+                banner.innerHTML = '';
+            }
+
+            setClanCastleForce(
+                'attacker',
+                100,
+                `🔥 ${Number(
+                    (
+                        Number(status?.characterPower) ||
+                        Number(clanCastleWarState?.characterPower) ||
+                        0
+                    ) +
+                    (
+                        Number(status?.armyPower) ||
+                        Number(clanCastleWarState?.armyPower) ||
+                        0
+                    )
+                ).toLocaleString('tr-TR')}`
+            );
+
+            setClanCastleForce(
+                'defender',
+                100,
+                '🛡️ Hisar Savunması'
+            );
+
+            const feed =
+                document.getElementById(
+                    'clanCastleSiegeFeed'
+                );
+
+            if (feed) {
+                feed.innerHTML = '';
+            }
+
+            phase.innerText =
+                '🥁 ORDU İLERLİYOR';
+
+            attackerSide.classList.add(
+                'charge-right'
+            );
+
+            addClanCastleFeedLine(
+                `🥁 <strong>Klan ordusu</strong> sancaklarını açtı ve ` +
+                `<strong>Hisar-ı Hümayun</strong>'a doğru ilerliyor...`
+            );
+
+            await sleepCastle(650);
+
+            attackerSide.classList.remove(
+                'charge-right'
+            );
+
+            if (
+                token !== clanCastleWarAnimationToken ||
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            phase.innerText =
+                '🏹 OKÇU YAYLIMI';
+
+            spawnClanCastleArrows();
+
+            defenderSide.classList.add(
+                'castle-hit'
+            );
+
+            addClanCastleFeedLine(
+                `🏹 Okçular surların üzerindeki muhafızlara yaylım ateşi açtı.`
+            );
+
+            spawnClanCastleLoss(
+                'defender',
+                '🏹 Yaylım!'
+            );
+
+            setClanCastleForce(
+                'defender',
+                90,
+                'Sur Baskısı %90'
+            );
+
+            await sleepCastle(850);
+
+            defenderSide.classList.remove(
+                'castle-hit'
+            );
+
+            if (
+                token !== clanCastleWarAnimationToken ||
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            phase.innerText =
+                '🏗️ MANCINIK BOMBARDIMANI';
+
+            spawnClanCastleFire();
+            playGameSfx('catapult');
+
+            defenderSide.classList.add(
+                'castle-hit'
+            );
+
+            addClanCastleFeedLine(
+                `🏗️ Mancınıklar ateşlendi! Dev taşlar kale surlarına çarpıyor.`
+            );
+
+            spawnClanCastleLoss(
+                'defender',
+                '💥 TAŞ ATIŞI!',
+                true
+            );
+
+            setClanCastleForce(
+                'defender',
+                78,
+                'Sur Baskısı %78'
+            );
+
+            await sleepCastle(950);
+
+            defenderSide.classList.remove(
+                'castle-hit'
+            );
+
+            if (
+                token !== clanCastleWarAnimationToken ||
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            phase.innerText =
+                '⚔️ PİYADE HÜCUMU';
+
+            attackerSide.classList.add(
+                'charge-right'
+            );
+
+            defenderSide.classList.add(
+                'counter-charge'
+            );
+
+            addClanCastleFeedLine(
+                `⚔️ Piyadeler merdivenlerle surlara yükleniyor. Kale muhafızları karşı hücuma geçti!`
+            );
+
+            spawnClanCastleLoss(
+                'defender',
+                '⚔️ Çarpışma!'
+            );
+
+            setClanCastleForce(
+                'attacker',
+                93,
+                'Taarruz %93'
+            );
+
+            setClanCastleForce(
+                'defender',
+                67,
+                'Sur Baskısı %67'
+            );
+
+            await sleepCastle(900);
+
+            attackerSide.classList.remove(
+                'charge-right'
+            );
+
+            defenderSide.classList.remove(
+                'counter-charge'
+            );
+
+            if (
+                token !== clanCastleWarAnimationToken ||
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            phase.innerText =
+                '🐎 SÜVARİ TAARRUZU';
+
+            attackerSide.classList.add(
+                'charge-right'
+            );
+
+            defenderSide.classList.add(
+                'castle-hit'
+            );
+
+            addClanCastleFeedLine(
+                `🐎 Süvariler kale önündeki savunma hattına son hızla hücum etti!`
+            );
+
+            spawnClanCastleLoss(
+                'defender',
+                '🐎 HÜCUM!',
+                true
+            );
+
+            setClanCastleForce(
+                'attacker',
+                88,
+                'Taarruz %88'
+            );
+
+            setClanCastleForce(
+                'defender',
+                54,
+                'Sur Baskısı %54'
+            );
+
+            await sleepCastle(900);
+
+            attackerSide.classList.remove(
+                'charge-right'
+            );
+
+            defenderSide.classList.remove(
+                'castle-hit'
+            );
+
+            if (
+                token !== clanCastleWarAnimationToken ||
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            phase.innerText =
+                '💥 SON TAARRUZ';
+
+            spawnClanCastleFire();
+
+            attackerSide.classList.add(
+                'charge-right'
+            );
+
+            defenderSide.classList.add(
+                'castle-hit'
+            );
+
+            addClanCastleFeedLine(
+                `🧱 Son taarruz! Koçbaşları kapıya, mancınıklar surlara vuruyor.`
+            );
+
+            spawnClanCastleLoss(
+                'defender',
+                `💥 +${Math.max(
+                    0,
+                    Number(damage) || 0
+                ).toLocaleString('tr-TR')} HASAR`,
+                true
+            );
+
+            setClanCastleForce(
+                'attacker',
+                84,
+                'Taarruz Tamamlandı'
+            );
+
+            setClanCastleForce(
+                'defender',
+                42,
+                'Hisar Sarsıldı'
+            );
+
+            await sleepCastle(1050);
+
+            attackerSide.classList.remove(
+                'charge-right'
+            );
+
+            defenderSide.classList.remove(
+                'castle-hit'
+            );
+
+            if (
+                token !== clanCastleWarAnimationToken ||
+                activeTab !== 'clanWar'
+            ) {
+                clanCastleWarAnimating = false;
+                return;
+            }
+
+            attackerSide.classList.add(
+                'castle-winner'
+            );
+
+            phase.innerText =
+                '🔥 KLAN HASARI YAZILDI';
+
+            addClanCastleFeedLine(
+                `🔥 <strong>+${Math.max(
+                    0,
+                    Number(damage) || 0
+                ).toLocaleString('tr-TR')}</strong> ` +
+                `klan hasarı kaydedildi.`
+            );
+
+            if (finalMessage) {
+                addClanCastleFeedLine(
+                    `📜 ${escapeHTML(finalMessage)}`
+                );
+            }
+
+            if (banner) {
+                banner.className =
+                    'castle-siege-banner show win';
+
+                banner.innerHTML = `
+                    ⚔️ SALDIRI TAMAMLANDI
+                    <div style="
+                        font-size:13px;
+                        margin-top:6px;
+                        color:#86efac;
+                    ">
+                        +${Math.max(
+                            0,
+                            Number(damage) || 0
+                        ).toLocaleString('tr-TR')}
+                        KLAN HASARI
+                    </div>
+                `;
+            }
+
+            playGameSfx('victory');
+
+            const logEl =
+                document.getElementById(
+                    'clanWarLogResult'
+                );
+
+            if (logEl && finalMessage) {
+                logEl.innerText =
+                    finalMessage;
+
+                logEl.style.fontWeight =
+                    'bold';
+
+                logEl.style.borderColor =
+                    '#22c55e';
+
+                logEl.style.color =
+                    '#86efac';
+
+                logEl.style.background =
+                    'rgba(34,197,94,.07)';
+            }
+
+            if (btn) {
+                btn.disabled = true;
+            }
+
+            await sleepCastle(1500);
+
+            if (
+                token === clanCastleWarAnimationToken
+            ) {
+                clanCastleWarAnimating =
+                    false;
+
+                clanCastleWarRefreshPending =
+                    false;
+
+                if (
+                    activeTab === 'clanWar'
+                ) {
+                    requestClanCastleWarStatus();
+                }
+            } else {
+                clanCastleWarAnimating =
+                    false;
+            }
         }
 
         function playWorldBossAttackAnimation(
@@ -11783,6 +12377,8 @@
                         <div class="howto-content">
                             <p>
                                 Klan Kale Savaşı bireysel Taht Savaşından ayrı bir sistemdir.
+                                Kale saldırıları görsel olarak Taht Savaşı kuşatmalarındaki gibi
+                                okçu yaylımı, mancınık bombardımanı, piyade ve süvari hücumu aşamalarını gösterir.
                                 Burada oyuncular tek tek kale sahibi olmaya değil,
                                 <strong>klanlarının toplam hasarını yükseltmeye</strong> çalışır.
                                 Süre sonunda en yüksek toplam hasarı veren klan
@@ -12348,6 +12944,128 @@
                             <button class="btn-quest" style="margin-top:8px;" onclick="switchTab('clan')">Klan Merkezine Git</button>
                         </div>
                     ` : ''}
+
+                    <div
+                        id="clanCastleSiegeStage"
+                        class="castle-siege-stage"
+                        style="margin-bottom:14px;"
+                    >
+                        <div
+                            id="clanCastleSiegePhase"
+                            class="castle-siege-phase"
+                        >
+                            ${war.active ? '⚔️ KLAN KUŞATMASI HAZIR' : '🏰 HİSAR-I HÜMAYUN'}
+                        </div>
+
+                        <div class="castle-siege-grid">
+                            <div
+                                id="clanCastleAttackerSide"
+                                class="castle-side attacker"
+                            >
+                                <div class="castle-side-icon">
+                                    🛡️⚔️
+                                </div>
+
+                                <div class="castle-side-title">
+                                    ${hasClan ? clanNameText : 'Klanın'}
+                                </div>
+
+                                <div class="castle-army-icons">
+                                    🏹 ${Number(currentUserData?.army?.archer || 0).toLocaleString('tr-TR')}
+                                    •
+                                    ⚔️ ${Number(currentUserData?.army?.warrior || 0).toLocaleString('tr-TR')}
+                                    •
+                                    🐎 ${Number(currentUserData?.army?.cavalry || 0).toLocaleString('tr-TR')}
+                                    •
+                                    🏗️ ${Number(currentUserData?.army?.catapult || 0).toLocaleString('tr-TR')}
+                                </div>
+
+                                <div class="castle-power-line">
+                                    ⚔️ ${Number(war.characterPower || 0).toLocaleString('tr-TR')}
+                                    +
+                                    🪖 ${Number(war.armyPower || 0).toLocaleString('tr-TR')}
+                                    =
+                                    🔥 ${(Number(war.characterPower || 0) + Number(war.armyPower || 0)).toLocaleString('tr-TR')}
+                                </div>
+
+                                <div class="castle-force-shell">
+                                    <div
+                                        id="clanCastleForceAttacker"
+                                        class="castle-force-fill attacker"
+                                        style="width:100%;"
+                                    ></div>
+
+                                    <div
+                                        id="clanCastleForceTextAttacker"
+                                        class="castle-force-text"
+                                    >
+                                        ${war.active ? 'Taarruz Hazır' : 'Savaş Bekleniyor'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="castle-battle-center">
+                                ⚔️<br>
+                                <span style="font-size:11px;">
+                                    VS
+                                </span>
+                            </div>
+
+                            <div
+                                id="clanCastleDefenderSide"
+                                class="castle-side defender"
+                            >
+                                <div
+                                    id="clanCastleDefenderIcon"
+                                    class="castle-side-icon"
+                                >
+                                    🏰
+                                </div>
+
+                                <div class="castle-side-title">
+                                    ${escapeHTML(war.castleName || 'Hisar-ı Hümayun')}
+                                </div>
+
+                                <div class="castle-army-icons">
+                                    👑 Kale Sahibi:
+                                    ${ownerText}
+                                </div>
+
+                                <div class="castle-power-line">
+                                    🧱 Hisar surları • 🏹 Muhafızlar • 🛡️ Kale savunması
+                                </div>
+
+                                <div class="castle-force-shell">
+                                    <div
+                                        id="clanCastleForceDefender"
+                                        class="castle-force-fill defender"
+                                        style="width:100%;"
+                                    ></div>
+
+                                    <div
+                                        id="clanCastleForceTextDefender"
+                                        class="castle-force-text"
+                                    >
+                                        Hisar Hazır
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            id="clanCastleSiegeFeed"
+                            class="castle-siege-feed"
+                        >
+                            🏰 Klan ordusu hazır. Saldırı başladığında okçular,
+                            mancınıklar, piyadeler ve süvariler Taht Savaşı'ndaki
+                            gibi burada canlanacak.
+                        </div>
+
+                        <div
+                            id="clanCastleSiegeBanner"
+                            class="castle-siege-banner"
+                        ></div>
+                    </div>
 
                     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.75fr);gap:12px;">
                         <div style="background:#120e0c;border:1px solid #433222;border-radius:8px;padding:13px;">
@@ -14540,6 +15258,10 @@
         function attackClanCastleWarSubmit() {
             const state = clanCastleWarState;
 
+            if (clanCastleWarAnimating) {
+                return;
+            }
+
             if (!state?.active) {
                 return alert(
                     'Klan Kale Savaşı şu anda açık değil.'
@@ -14558,10 +15280,97 @@
                 );
             }
 
+            const phase =
+                document.getElementById(
+                    'clanCastleSiegePhase'
+                );
+
+            const feed =
+                document.getElementById(
+                    'clanCastleSiegeFeed'
+                );
+
+            const attackerSide =
+                document.getElementById(
+                    'clanCastleAttackerSide'
+                );
+
+            const btn =
+                document.getElementById(
+                    'clanCastleAttackBtn'
+                );
+
+            clanCastleWarAnimating =
+                true;
+
+            clanCastleWarRefreshPending =
+                false;
+
+            if (phase) {
+                phase.innerText =
+                    '🥁 ORDU İLERLİYOR';
+            }
+
+            if (feed) {
+                feed.innerHTML = `
+                    <div>
+                        🥁 Klan sancakları açıldı. Ordu Hisar-ı Hümayun'a doğru ilerliyor...
+                    </div>
+                `;
+            }
+
+            if (attackerSide) {
+                attackerSide.classList.add(
+                    'charge-right'
+                );
+
+                setTimeout(
+                    () => {
+                        attackerSide.classList.remove(
+                            'charge-right'
+                        );
+                    },
+                    600
+                );
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText =
+                    '⚔️ Klan Ordusu İlerliyor...';
+            }
+
             cooldownButton(
                 'clanCastleAttackBtn',
                 1100
             );
+
+            if (
+                clanCastleWarAttackFallbackTimer
+            ) {
+                clearTimeout(
+                    clanCastleWarAttackFallbackTimer
+                );
+            }
+
+            clanCastleWarAttackFallbackTimer =
+                setTimeout(
+                    () => {
+                        clanCastleWarAttackFallbackTimer =
+                            null;
+
+                        if (
+                            clanCastleWarAnimating &&
+                            activeTab === 'clanWar'
+                        ) {
+                            clanCastleWarAnimating =
+                                false;
+
+                            requestClanCastleWarStatus();
+                        }
+                    },
+                    9000
+                );
 
             socket.emit('attackClanCastleWar');
         }
@@ -14826,23 +15635,30 @@
             clanCastleWarState =
                 data || null;
 
-            if (activeTab === 'clanWar') {
+            if (
+                activeTab === 'clanWar' &&
+                !clanCastleWarAnimating
+            ) {
                 renderPanelContent();
             }
         });
 
         socket.on('clanCastleWarResult', (res) => {
             if (
-                res?.success &&
-                Number(res?.damage) > 0
+                clanCastleWarAttackFallbackTimer
             ) {
-                playClanCastleAttackAnimation(
-                    Number(res.damage)
+                clearTimeout(
+                    clanCastleWarAttackFallbackTimer
                 );
+
+                clanCastleWarAttackFallbackTimer =
+                    null;
             }
 
             if (res?.userData) {
-                updateHeader(res.userData);
+                updateHeader(
+                    res.userData
+                );
             }
 
             if (res?.status) {
@@ -14855,41 +15671,83 @@
                     res.message;
             }
 
+            const successfulAttack =
+                Boolean(
+                    res?.success &&
+                    Number(res?.damage) > 0
+                );
+
             if (
                 activeTab === 'clanWar' &&
                 currentClanData
             ) {
-                renderPanelContent();
+                if (successfulAttack) {
+                    // Yeni status ile sahneyi önce tazele, ardından
+                    // Taht Savaşı tipi çok aşamalı animasyonu başlat.
+                    renderPanelContent();
 
-                const logEl =
-                    document.getElementById(
-                        'clanWarLogResult'
+                    clanCastleWarAnimating =
+                        true;
+
+                    setTimeout(
+                        () => {
+                            playClanCastleAttackAnimation(
+                                Number(res.damage),
+                                res.status || clanCastleWarState,
+                                res.message || ''
+                            );
+                        },
+                        70
                     );
+                } else {
+                    clanCastleWarAnimating =
+                        false;
 
-                if (logEl && res?.message) {
-                    logEl.innerText =
-                        res.message;
+                    renderPanelContent();
 
-                    logEl.style.fontWeight =
-                        'bold';
+                    const logEl =
+                        document.getElementById(
+                            'clanWarLogResult'
+                        );
 
-                    logEl.style.borderColor =
-                        res.success
-                            ? '#22c55e'
-                            : '#ef4444';
+                    if (
+                        logEl &&
+                        res?.message
+                    ) {
+                        logEl.innerText =
+                            res.message;
 
-                    logEl.style.color =
-                        res.success
-                            ? '#86efac'
-                            : '#fca5a5';
+                        logEl.style.fontWeight =
+                            'bold';
+
+                        logEl.style.borderColor =
+                            '#ef4444';
+
+                        logEl.style.color =
+                            '#fca5a5';
+                    }
                 }
+            } else {
+                clanCastleWarAnimating =
+                    false;
             }
         });
 
         socket.on('clanCastleWarRefresh', () => {
-            if (activeTab === 'clanWar') {
-                requestClanCastleWarStatus();
+            if (
+                activeTab !== 'clanWar'
+            ) {
+                return;
             }
+
+            if (clanCastleWarAnimating) {
+                clanCastleWarRefreshPending =
+                    true;
+
+                return;
+            }
+
+            requestClanCastleWarStatus();
         });
 
         socket.on('clanCastleReward', (res) => {
@@ -15792,6 +16650,15 @@
             stopAdventureCountdowns();
 
             clanCastleWarState = null;
+            clanCastleWarAnimating = false;
+            clanCastleWarRefreshPending = false;
+            clanCastleWarAnimationToken++;
+
+            if (clanCastleWarAttackFallbackTimer) {
+                clearTimeout(clanCastleWarAttackFallbackTimer);
+                clanCastleWarAttackFallbackTimer = null;
+            }
+
             stopClanCastleWarCountdown();
 
             if (clanLoadTimer) {
