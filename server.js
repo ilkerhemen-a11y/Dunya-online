@@ -1343,9 +1343,20 @@ io.on('connection', (socket) => {
 
     socket.on('upgradeItem', async (data) => {
         if (!checkRateLimit(socket.id)) return;
+
         const user = users[socket.id];
-        if (!user || !user.inventory[data.itemIndex]) return;
-        const item = user.inventory[data.itemIndex];
+        const itemIndex = Number.parseInt(data?.itemIndex, 10);
+
+        if (
+            !user ||
+            !Number.isInteger(itemIndex) ||
+            itemIndex < 0 ||
+            !user.inventory[itemIndex]
+        ) {
+            return;
+        }
+
+        const item = user.inventory[itemIndex];
 
         if (!EQUIP_SLOTS.includes(item.type)) {
             return socket.emit('forgeResult', {
@@ -1355,33 +1366,151 @@ io.on('connection', (socket) => {
             });
         }
 
-        const currentLvl = item.level || 0;
+        const currentLvl = Number(item.level) || 0;
         const nextLvl = currentLvl + 1;
-        
+
         const goldCost = nextLvl * 150;
-        const rubyCost = nextLvl * 1; 
+        const rubyCost = nextLvl;
 
         if (user.balance < goldCost || (user.rubies || 0) < rubyCost) {
-            return socket.emit('forgeResult', { 
-                success: false, 
-                userData: user, 
-                message: `Yetersiz Altın veya Yakut! Gerekli: ${goldCost} Altın 🪙 ve ${rubyCost} Yakut 💎` 
+            return socket.emit('forgeResult', {
+                success: false,
+                userData: user,
+                message: `Yetersiz Altın veya Yakut! Gerekli: ${goldCost} Altın 🪙 ve ${rubyCost} Yakut 💎`
             });
         }
 
+        // +10, +20, +30... seviyelerinde Kutsama Kağıdı zorunludur.
+        const isBlessingMilestone = nextLvl % 10 === 0;
+
+        if (isBlessingMilestone) {
+            const blessingCount = Number.parseInt(data?.blessingCount, 10);
+
+            if (
+                !Number.isInteger(blessingCount) ||
+                blessingCount < 1 ||
+                blessingCount > 4
+            ) {
+                return socket.emit('forgeResult', {
+                    success: false,
+                    userData: user,
+                    message: `📜 +${nextLvl} için 1 ile 4 arasında Kutsama Kağıdı seçmelisin.`
+                });
+            }
+
+            const blessingPaperIndices = [];
+
+            user.inventory.forEach((invItem, index) => {
+                if (
+                    invItem &&
+                    (
+                        invItem.baseId === 'blessing_scroll' ||
+                        (invItem.type === 'material' && invItem.name === 'Kutsama Kağıdı')
+                    )
+                ) {
+                    blessingPaperIndices.push(index);
+                }
+            });
+
+            if (blessingPaperIndices.length < blessingCount) {
+                return socket.emit('forgeResult', {
+                    success: false,
+                    userData: user,
+                    message:
+                        `📜 Yeterli Kutsama Kağıdın yok! ` +
+                        `Seçilen: ${blessingCount}, Envanterde: ${blessingPaperIndices.length}.`
+                });
+            }
+
+            // Kutsama denemesinde altın, yakut ve seçilen kağıtlar tüketilir.
+            user.balance -= goldCost;
+            user.rubies -= rubyCost;
+
+            let remainingToRemove = blessingCount;
+            user.inventory = user.inventory.filter(invItem => {
+                if (
+                    remainingToRemove > 0 &&
+                    invItem &&
+                    (
+                        invItem.baseId === 'blessing_scroll' ||
+                        (invItem.type === 'material' && invItem.name === 'Kutsama Kağıdı')
+                    )
+                ) {
+                    remainingToRemove -= 1;
+                    return false;
+                }
+                return true;
+            });
+
+            // Her Kutsama Kağıdı %25 başarı verir. 4 adet = kesin başarı.
+            const successChance = blessingCount * 25;
+            const roll = Math.random() * 100;
+            const blessingSuccess = blessingCount >= 4 || roll < successChance;
+
+            if (!blessingSuccess) {
+                user.markModified('inventory');
+                await user.save();
+
+                return socket.emit('forgeResult', {
+                    success: false,
+                    blessingAttempt: true,
+                    userData: user,
+                    message:
+                        `❌ Kutsama başarısız! +${nextLvl} geçmedi. ` +
+                        `📜 ${blessingCount} Kutsama Kağıdı kullanıldı (%${successChance} şans). ` +
+                        `Eşyan yanmadı ve +${currentLvl} seviyesinde kaldı.`
+                });
+            }
+
+            // Kağıtlar filtrelenirken item objesi bellekte korunur; başarıda yükseltilir.
+            item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
+            item.level = nextLvl;
+
+            const statBoost = item.rarity === 'Epik'
+                ? 4
+                : (item.rarity === 'Nadir' ? 3 : 2);
+
+            item.strBonus = (item.strBonus || 0) + statBoost;
+            item.vitBonus = (item.vitBonus || 0) + statBoost;
+
+            user.markModified('inventory');
+            await user.save();
+
+            return socket.emit('forgeResult', {
+                success: true,
+                blessingAttempt: true,
+                userData: user,
+                message:
+                    `✨ Kutsama başarılı! Eşya +${nextLvl} seviyesine geçti. ` +
+                    `📜 ${blessingCount} Kutsama Kağıdı kullanıldı (%${successChance} şans). ` +
+                    `${goldCost} Altın 🪙 ve ${rubyCost} Yakut 💎 harcandı.`
+            });
+        }
+
+        // +10 katları dışındaki geliştirmeler eskisi gibi kesin başarılıdır.
         user.balance -= goldCost;
         user.rubies -= rubyCost;
+
         item.name = (item.name || 'Eşya').replace(/\s*\+\d+$/, '');
         item.level = nextLvl;
-        
-        const statBoost = item.rarity === 'Epik' ? 4 : (item.rarity === 'Nadir' ? 3 : 2);
-        
+
+        const statBoost = item.rarity === 'Epik'
+            ? 4
+            : (item.rarity === 'Nadir' ? 3 : 2);
+
         item.strBonus = (item.strBonus || 0) + statBoost;
         item.vitBonus = (item.vitBonus || 0) + statBoost;
-        
+
         user.markModified('inventory');
         await user.save();
-        socket.emit('forgeResult', { success: true, userData: user, message: `Eşya +${item.level} seviyesine geliştirildi! (${goldCost} Altın, ${rubyCost} Yakut harcandı)` });
+
+        socket.emit('forgeResult', {
+            success: true,
+            userData: user,
+            message:
+                `Eşya +${item.level} seviyesine geliştirildi! ` +
+                `(${goldCost} Altın, ${rubyCost} Yakut harcandı)`
+        });
     });
 
     socket.on('equipItem', async (data) => {
