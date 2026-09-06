@@ -2634,7 +2634,397 @@
         @keyframes throneBadgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.045)} }
         @keyframes legendarySparkOrbit { 0%{transform:translate(0,0) rotate(0deg) scale(.8);opacity:.25} 50%{transform:translate(12px,-18px) rotate(180deg) scale(1.25);opacity:1} 100%{transform:translate(0,0) rotate(360deg) scale(.8);opacity:.25} }
         @keyframes crownFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-        @media (max-width:760px) { .character-showcase-v2{grid-template-columns:1fr}.showcase-slot-column{grid-template-columns:repeat(2,1fr)}.showcase-slot-column.right .showcase-tooltip,.showcase-tooltip{left:5px;right:5px;top:calc(100% + 5px);width:auto}.showcase-character-center{order:-1;min-height:300px} }
+
+        /* === SES & SİNEMATİK EFEKTLER V1 === */
+        .game-audio-toggle {
+            background:#0f0b08;
+            border:1px solid #433222;
+            color:#f3cf7a;
+            border-radius:5px;
+            min-width:34px;
+            height:28px;
+            padding:0 8px;
+            cursor:pointer;
+            font-size:13px;
+            transition:transform .15s ease,border-color .15s ease,background .15s ease;
+        }
+
+        .game-audio-toggle:hover {
+            transform:translateY(-1px);
+            border-color:#d4af37;
+            background:#20170f;
+        }
+
+        .game-audio-toggle.muted {
+            color:#9c8e7b;
+            border-color:#33241b;
+            opacity:.78;
+        }
+
+        .siege-cinematic-overlay {
+            position:fixed;
+            inset:0;
+            z-index:9997;
+            pointer-events:none;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:radial-gradient(circle at 50% 55%,rgba(126,34,206,.08),rgba(0,0,0,.38) 60%,rgba(0,0,0,.58));
+            animation:siegeOverlayIn 1.85s ease forwards;
+            overflow:hidden;
+        }
+
+        .siege-cinematic-stage {
+            position:relative;
+            width:min(820px,96vw);
+            height:min(420px,62vh);
+            border:1px solid rgba(212,175,55,.20);
+            border-radius:14px;
+            overflow:hidden;
+            background:
+                radial-gradient(circle at 50% 82%,rgba(249,115,22,.08),transparent 30%),
+                linear-gradient(to bottom,#120f18 0%,#11100f 58%,#21150c 100%);
+            box-shadow:0 18px 60px rgba(0,0,0,.65),inset 0 0 45px rgba(0,0,0,.55);
+        }
+
+        .siege-cinematic-stage::before {
+            content:"";
+            position:absolute;
+            left:-10%;
+            right:-10%;
+            bottom:0;
+            height:23%;
+            background:linear-gradient(to bottom,#291b10,#0b0805);
+            clip-path:polygon(0 42%,12% 20%,25% 46%,38% 18%,50% 40%,62% 17%,76% 43%,90% 15%,100% 38%,100% 100%,0 100%);
+            opacity:.9;
+        }
+
+        .siege-cinematic-title {
+            position:absolute;
+            top:14px;
+            left:50%;
+            transform:translateX(-50%);
+            color:#f3cf7a;
+            font-size:13px;
+            font-weight:900;
+            letter-spacing:1.5px;
+            text-transform:uppercase;
+            text-shadow:0 2px 12px rgba(0,0,0,.8),0 0 16px rgba(212,175,55,.20);
+            white-space:nowrap;
+        }
+
+        .siege-catapult-actor {
+            position:absolute;
+            left:5%;
+            bottom:14%;
+            width:150px;
+            transform-origin:50% 90%;
+            animation:siegeCatapultRecoil 1.15s ease-out both;
+            filter:drop-shadow(0 9px 8px rgba(0,0,0,.55));
+        }
+
+        .siege-castle-target {
+            position:absolute;
+            right:8%;
+            bottom:15%;
+            width:205px;
+            height:205px;
+            animation:siegeCastleShake .48s ease .88s both;
+            filter:drop-shadow(0 12px 10px rgba(0,0,0,.6));
+        }
+
+        .siege-castle-target .keep {
+            position:absolute;
+            left:50%;
+            bottom:0;
+            width:105px;
+            height:145px;
+            transform:translateX(-50%);
+            background:linear-gradient(to right,#302c2b,#514a44,#282421);
+            border:2px solid #71675e;
+            box-shadow:inset 0 0 25px rgba(0,0,0,.38);
+        }
+
+        .siege-castle-target .tower {
+            position:absolute;
+            bottom:0;
+            width:56px;
+            height:118px;
+            background:linear-gradient(to right,#2a2725,#4b4540,#26221f);
+            border:2px solid #655d56;
+        }
+
+        .siege-castle-target .tower.left { left:0; }
+        .siege-castle-target .tower.right { right:0; }
+
+        .siege-castle-target .tower::before,
+        .siege-castle-target .keep::before {
+            content:"";
+            position:absolute;
+            left:-5px;
+            right:-5px;
+            top:-13px;
+            height:15px;
+            background:repeating-linear-gradient(90deg,#504943 0 13px,transparent 13px 20px);
+        }
+
+        .siege-castle-target .gate {
+            position:absolute;
+            left:50%;
+            bottom:0;
+            width:35px;
+            height:50px;
+            transform:translateX(-50%);
+            border-radius:18px 18px 0 0;
+            background:#0a0807;
+            border:2px solid #29231f;
+        }
+
+        .siege-rock {
+            position:absolute;
+            left:24%;
+            bottom:38%;
+            width:25px;
+            height:25px;
+            border-radius:50%;
+            background:radial-gradient(circle at 32% 28%,#9ca3af,#4b5563 45%,#1f2937 100%);
+            box-shadow:0 0 11px rgba(255,255,255,.12),0 0 22px rgba(249,115,22,.14);
+            animation:siegeRockFlight 1.02s cubic-bezier(.24,.55,.36,.92) .15s both;
+        }
+
+        .siege-impact {
+            position:absolute;
+            right:20%;
+            bottom:48%;
+            width:16px;
+            height:16px;
+            border-radius:50%;
+            opacity:0;
+            background:#fff7d6;
+            box-shadow:
+                0 0 15px 7px rgba(250,204,21,.88),
+                0 0 38px 18px rgba(249,115,22,.55),
+                0 0 70px 33px rgba(239,68,68,.20);
+            animation:siegeImpactFlash .6s ease .91s both;
+        }
+
+        .siege-dust {
+            position:absolute;
+            right:13%;
+            bottom:15%;
+            width:160px;
+            height:90px;
+            opacity:0;
+            background:
+                radial-gradient(circle at 20% 70%,rgba(161,98,7,.58),transparent 35%),
+                radial-gradient(circle at 55% 60%,rgba(180,119,49,.52),transparent 38%),
+                radial-gradient(circle at 80% 72%,rgba(120,83,45,.52),transparent 35%);
+            filter:blur(5px);
+            animation:siegeDustBurst .8s ease .92s both;
+        }
+
+        .siege-damage-number {
+            position:absolute;
+            right:16%;
+            top:22%;
+            color:#fca5a5;
+            font-size:30px;
+            font-weight:1000;
+            text-shadow:0 3px 8px rgba(0,0,0,.85),0 0 15px rgba(239,68,68,.42);
+            opacity:0;
+            animation:siegeDamageFloat .75s ease 1.02s both;
+        }
+
+        .legendary-drop-overlay {
+            position:fixed;
+            inset:0;
+            z-index:9998;
+            pointer-events:none;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:radial-gradient(circle at 50% 50%,rgba(250,204,21,.09),rgba(0,0,0,.18) 42%,rgba(0,0,0,.52));
+            animation:legendaryOverlayLife 2.7s ease forwards;
+        }
+
+        .legendary-drop-card {
+            position:relative;
+            width:min(390px,90vw);
+            padding:20px 18px 18px;
+            text-align:center;
+            border:1px solid #d4af37;
+            border-radius:12px;
+            background:
+                radial-gradient(circle at 50% 0%,rgba(250,204,21,.17),transparent 40%),
+                linear-gradient(145deg,#211708,#0c0906 72%);
+            box-shadow:
+                0 0 30px rgba(250,204,21,.18),
+                0 18px 60px rgba(0,0,0,.7),
+                inset 0 0 35px rgba(250,204,21,.05);
+            animation:legendaryCardReveal 2.6s ease forwards;
+            overflow:hidden;
+        }
+
+        .legendary-drop-card::before {
+            content:"";
+            position:absolute;
+            inset:-70%;
+            background:linear-gradient(110deg,transparent 43%,rgba(255,250,200,.22) 49%,transparent 55%);
+            animation:legendarySweep 1.7s ease .25s both;
+        }
+
+        .legendary-drop-title {
+            position:relative;
+            z-index:2;
+            color:#facc15;
+            font-size:12px;
+            font-weight:1000;
+            letter-spacing:2px;
+            margin-bottom:10px;
+            text-shadow:0 0 12px rgba(250,204,21,.38);
+        }
+
+        .legendary-drop-icon {
+            position:relative;
+            z-index:2;
+            width:86px;
+            height:86px;
+            margin:0 auto 10px;
+            border-radius:14px;
+            border:1px solid #d4af37;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:#0b0805;
+            box-shadow:0 0 22px rgba(250,204,21,.22);
+            animation:legendaryIconPulse 1.25s ease-in-out infinite;
+        }
+
+        .legendary-drop-icon .item-art-tile,
+        .legendary-drop-icon img {
+            width:82px;
+            height:82px;
+            border-radius:12px;
+        }
+
+        .legendary-drop-name {
+            position:relative;
+            z-index:2;
+            color:#fff1a8;
+            font-size:18px;
+            font-weight:900;
+            text-shadow:0 0 12px rgba(250,204,21,.28);
+        }
+
+        .legendary-drop-source {
+            position:relative;
+            z-index:2;
+            margin-top:6px;
+            color:#9c8e7b;
+            font-size:10px;
+        }
+
+        .overview-inventory-card.rarity-Efsanevi::after {
+            content:"";
+            position:absolute;
+            inset:0;
+            border-radius:7px;
+            pointer-events:none;
+            background:linear-gradient(115deg,transparent 35%,rgba(255,245,170,.12) 48%,transparent 61%);
+            transform:translateX(-120%);
+            animation:legendaryInventoryShine 3.2s ease-in-out infinite;
+        }
+
+        @keyframes siegeOverlayIn {
+            0%{opacity:0}
+            10%{opacity:1}
+            82%{opacity:1}
+            100%{opacity:0}
+        }
+
+        @keyframes siegeCatapultRecoil {
+            0%{transform:translateX(-8px) rotate(-2deg) scale(.96)}
+            25%{transform:translateX(0) rotate(3deg) scale(1)}
+            42%{transform:translateX(-6px) rotate(-6deg) scale(.98)}
+            60%{transform:translateX(2px) rotate(1deg) scale(1)}
+            100%{transform:translateX(0) rotate(0) scale(1)}
+        }
+
+        @keyframes siegeRockFlight {
+            0%{transform:translate(0,0) scale(.72) rotate(0deg);opacity:1}
+            38%{transform:translate(180px,-128px) scale(.9) rotate(240deg);opacity:1}
+            74%{transform:translate(350px,-95px) scale(1.02) rotate(470deg);opacity:1}
+            100%{transform:translate(470px,14px) scale(1.14) rotate(680deg);opacity:0}
+        }
+
+        @keyframes siegeCastleShake {
+            0%,100%{transform:translateX(0) rotate(0)}
+            20%{transform:translateX(-7px) rotate(-1deg)}
+            40%{transform:translateX(8px) rotate(1deg)}
+            60%{transform:translateX(-5px) rotate(-.6deg)}
+            80%{transform:translateX(4px) rotate(.5deg)}
+        }
+
+        @keyframes siegeImpactFlash {
+            0%{opacity:0;transform:scale(.2)}
+            30%{opacity:1;transform:scale(2.1)}
+            100%{opacity:0;transform:scale(4)}
+        }
+
+        @keyframes siegeDustBurst {
+            0%{opacity:0;transform:translateY(12px) scale(.55)}
+            35%{opacity:.9}
+            100%{opacity:0;transform:translateY(-34px) scale(1.45)}
+        }
+
+        @keyframes siegeDamageFloat {
+            0%{opacity:0;transform:translateY(15px) scale(.7)}
+            25%{opacity:1;transform:translateY(0) scale(1.14)}
+            100%{opacity:0;transform:translateY(-42px) scale(1)}
+        }
+
+        @keyframes legendaryOverlayLife {
+            0%{opacity:0}
+            12%{opacity:1}
+            78%{opacity:1}
+            100%{opacity:0}
+        }
+
+        @keyframes legendaryCardReveal {
+            0%{opacity:0;transform:scale(.72) translateY(25px)}
+            18%{opacity:1;transform:scale(1.04) translateY(0)}
+            30%{transform:scale(1)}
+            82%{opacity:1;transform:scale(1)}
+            100%{opacity:0;transform:scale(.98) translateY(-10px)}
+        }
+
+        @keyframes legendarySweep {
+            0%{transform:translateX(-28%) rotate(7deg)}
+            100%{transform:translateX(28%) rotate(7deg)}
+        }
+
+        @keyframes legendaryIconPulse {
+            0%,100%{transform:scale(1);box-shadow:0 0 18px rgba(250,204,21,.17)}
+            50%{transform:scale(1.06);box-shadow:0 0 32px rgba(250,204,21,.33)}
+        }
+
+        @keyframes legendaryInventoryShine {
+            0%,55%{transform:translateX(-130%);opacity:0}
+            70%{opacity:1}
+            100%{transform:translateX(130%);opacity:0}
+        }
+
+        @media (max-width:760px) {
+            .character-showcase-v2{grid-template-columns:1fr}
+            .showcase-slot-column{grid-template-columns:repeat(2,1fr)}
+            .showcase-slot-column.right .showcase-tooltip,.showcase-tooltip{left:5px;right:5px;top:calc(100% + 5px);width:auto}
+            .showcase-character-center{order:-1;min-height:300px}
+            .siege-cinematic-stage{height:330px}
+            .siege-catapult-actor{left:1%;width:115px}
+            .siege-castle-target{right:3%;transform:scale(.78);transform-origin:bottom right}
+            .siege-rock{left:20%}
+            .siege-damage-number{right:9%;font-size:24px}
+        }
 
         /* === NASIL OYNANIR / OYUN REHBERİ === */
         .howto-hero {
@@ -3142,6 +3532,15 @@
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
             <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">0</span> Yakut</div>
             <div class="resource-item" style="color: #f3cf7a;">🔑 <span id="headerKeys">0</span> Altın Anahtar</div>
+            <button
+                id="gameAudioToggle"
+                class="game-audio-toggle"
+                type="button"
+                data-no-click-sfx="1"
+                onclick="toggleGameAudio()"
+                title="Oyun seslerini aç / kapat"
+                aria-label="Oyun seslerini aç veya kapat"
+            >🔊</button>
         </div>
         <div class="header-section">
             <div class="bar-container">
@@ -3219,6 +3618,22 @@
         let timarAnimationToken = 0;
         let overviewState = null;
 
+        // Ses ve görsel efekt durumu
+        let gameAudioEnabled =
+            localStorage.getItem('throne_audio_enabled') !== '0';
+
+        let gameAudioVolume = Math.max(
+            0.05,
+            Math.min(
+                0.70,
+                Number(localStorage.getItem('throne_audio_volume')) || 0.34
+            )
+        );
+
+        let gameAudioContext = null;
+        let legendaryTrackingReady = false;
+        let knownLegendaryItemIds = new Set();
+
         const BANK_MAX_DEPOSIT = 100000;
         const BANK_INTEREST_RATE = 0.50;
         const BANK_TERM_MS = 24 * 60 * 60 * 1000;
@@ -3230,6 +3645,686 @@
             if (!str) return "";
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
+
+        function updateGameAudioButton() {
+            const btn =
+                document.getElementById(
+                    'gameAudioToggle'
+                );
+
+            if (!btn) return;
+
+            btn.innerText =
+                gameAudioEnabled
+                    ? '🔊'
+                    : '🔇';
+
+            btn.classList.toggle(
+                'muted',
+                !gameAudioEnabled
+            );
+
+            btn.title =
+                gameAudioEnabled
+                    ? 'Oyun sesleri açık — kapatmak için tıkla'
+                    : 'Oyun sesleri kapalı — açmak için tıkla';
+        }
+
+        function ensureGameAudioContext() {
+            if (!gameAudioEnabled) return null;
+
+            try {
+                if (!gameAudioContext) {
+                    const AudioCtx =
+                        window.AudioContext ||
+                        window.webkitAudioContext;
+
+                    if (!AudioCtx) return null;
+
+                    gameAudioContext =
+                        new AudioCtx();
+                }
+
+                if (
+                    gameAudioContext.state ===
+                    'suspended'
+                ) {
+                    gameAudioContext
+                        .resume()
+                        .catch(() => {});
+                }
+
+                return gameAudioContext;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function playGameTone(
+            frequency,
+            duration = 0.1,
+            options = {}
+        ) {
+            if (!gameAudioEnabled) return;
+
+            const ctx =
+                ensureGameAudioContext();
+
+            if (!ctx) return;
+
+            const start =
+                ctx.currentTime +
+                Math.max(
+                    0,
+                    Number(options.delay) || 0
+                );
+
+            const safeDuration =
+                Math.max(
+                    0.025,
+                    Number(duration) || 0.1
+                );
+
+            const oscillator =
+                ctx.createOscillator();
+
+            const gain =
+                ctx.createGain();
+
+            oscillator.type =
+                options.type || 'sine';
+
+            oscillator.frequency.setValueAtTime(
+                Math.max(
+                    45,
+                    Number(frequency) || 440
+                ),
+                start
+            );
+
+            if (options.slideTo) {
+                oscillator.frequency.exponentialRampToValueAtTime(
+                    Math.max(
+                        45,
+                        Number(options.slideTo)
+                    ),
+                    start + safeDuration
+                );
+            }
+
+            const peak =
+                gameAudioVolume *
+                Math.max(
+                    0.04,
+                    Math.min(
+                        0.45,
+                        Number(options.gain) || 0.15
+                    )
+                );
+
+            gain.gain.setValueAtTime(
+                0.0001,
+                start
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                Math.max(
+                    0.0002,
+                    peak
+                ),
+                start + 0.012
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                start + safeDuration
+            );
+
+            oscillator.connect(gain);
+            gain.connect(ctx.destination);
+
+            oscillator.start(start);
+            oscillator.stop(
+                start +
+                safeDuration +
+                0.02
+            );
+        }
+
+        function playGameNoise(
+            duration = 0.16,
+            options = {}
+        ) {
+            if (!gameAudioEnabled) return;
+
+            const ctx =
+                ensureGameAudioContext();
+
+            if (!ctx) return;
+
+            const safeDuration =
+                Math.max(
+                    0.04,
+                    Number(duration) || 0.16
+                );
+
+            const start =
+                ctx.currentTime +
+                Math.max(
+                    0,
+                    Number(options.delay) || 0
+                );
+
+            const buffer =
+                ctx.createBuffer(
+                    1,
+                    Math.floor(
+                        ctx.sampleRate *
+                        safeDuration
+                    ),
+                    ctx.sampleRate
+                );
+
+            const data =
+                buffer.getChannelData(0);
+
+            for (
+                let i = 0;
+                i < data.length;
+                i++
+            ) {
+                data[i] =
+                    (Math.random() * 2 - 1) *
+                    (1 - (i / data.length));
+            }
+
+            const source =
+                ctx.createBufferSource();
+
+            source.buffer = buffer;
+
+            const filter =
+                ctx.createBiquadFilter();
+
+            filter.type =
+                options.filterType ||
+                'lowpass';
+
+            filter.frequency.value =
+                Number(options.frequency) ||
+                520;
+
+            const gain =
+                ctx.createGain();
+
+            const peak =
+                gameAudioVolume *
+                Math.max(
+                    0.03,
+                    Math.min(
+                        0.45,
+                        Number(options.gain) || 0.16
+                    )
+                );
+
+            gain.gain.setValueAtTime(
+                Math.max(0.0002, peak),
+                start
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                start + safeDuration
+            );
+
+            source.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+
+            source.start(start);
+        }
+
+        function playGameSfx(kind) {
+            if (!gameAudioEnabled) return;
+
+            switch (kind) {
+                case 'click':
+                    playGameTone(
+                        360,
+                        0.045,
+                        {
+                            type:'square',
+                            gain:0.045,
+                            slideTo:310
+                        }
+                    );
+                    break;
+
+                case 'coin':
+                    playGameTone(
+                        760,
+                        0.08,
+                        {
+                            type:'triangle',
+                            gain:0.10
+                        }
+                    );
+
+                    playGameTone(
+                        1040,
+                        0.10,
+                        {
+                            type:'triangle',
+                            gain:0.08,
+                            delay:0.07
+                        }
+                    );
+                    break;
+
+                case 'ruby':
+                    playGameTone(
+                        620,
+                        0.12,
+                        {
+                            type:'sine',
+                            gain:0.11
+                        }
+                    );
+
+                    playGameTone(
+                        930,
+                        0.13,
+                        {
+                            type:'sine',
+                            gain:0.10,
+                            delay:0.08
+                        }
+                    );
+
+                    playGameTone(
+                        1280,
+                        0.16,
+                        {
+                            type:'sine',
+                            gain:0.08,
+                            delay:0.16
+                        }
+                    );
+                    break;
+
+                case 'level':
+                    [440, 554, 659, 880].forEach(
+                        (freq, index) => {
+                            playGameTone(
+                                freq,
+                                0.18,
+                                {
+                                    type:'triangle',
+                                    gain:0.11,
+                                    delay:index * 0.09
+                                }
+                            );
+                        }
+                    );
+                    break;
+
+                case 'legendary':
+                    [392, 523, 659, 784, 1047].forEach(
+                        (freq, index) => {
+                            playGameTone(
+                                freq,
+                                0.28,
+                                {
+                                    type:
+                                        index < 3
+                                            ? 'triangle'
+                                            : 'sine',
+                                    gain:
+                                        index === 4
+                                            ? 0.13
+                                            : 0.09,
+                                    delay:index * 0.085
+                                }
+                            );
+                        }
+                    );
+                    break;
+
+                case 'catapult':
+                    playGameTone(
+                        112,
+                        0.26,
+                        {
+                            type:'sawtooth',
+                            gain:0.14,
+                            slideTo:76
+                        }
+                    );
+
+                    playGameNoise(
+                        0.18,
+                        {
+                            gain:0.15,
+                            frequency:430
+                        }
+                    );
+
+                    playGameNoise(
+                        0.30,
+                        {
+                            gain:0.25,
+                            frequency:250,
+                            delay:0.88
+                        }
+                    );
+
+                    playGameTone(
+                        68,
+                        0.34,
+                        {
+                            type:'sine',
+                            gain:0.22,
+                            delay:0.90,
+                            slideTo:48
+                        }
+                    );
+                    break;
+
+                case 'victory':
+                    [523, 659, 784, 1047].forEach(
+                        (freq, index) => {
+                            playGameTone(
+                                freq,
+                                0.24,
+                                {
+                                    type:'triangle',
+                                    gain:0.12,
+                                    delay:index * 0.11
+                                }
+                            );
+                        }
+                    );
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        function toggleGameAudio() {
+            gameAudioEnabled =
+                !gameAudioEnabled;
+
+            localStorage.setItem(
+                'throne_audio_enabled',
+                gameAudioEnabled
+                    ? '1'
+                    : '0'
+            );
+
+            updateGameAudioButton();
+
+            if (gameAudioEnabled) {
+                ensureGameAudioContext();
+                playGameSfx('ruby');
+            }
+        }
+
+        function getLegendaryTrackingId(
+            item,
+            index = 0,
+            slot = ''
+        ) {
+            if (!item) return '';
+
+            return String(
+                item.id ||
+                item._id ||
+                [
+                    slot,
+                    item.name || 'item',
+                    item.source || '',
+                    Number(item.level) || 0,
+                    index
+                ].join('|')
+            );
+        }
+
+        function collectLegendaryItems(user) {
+            const found = [];
+
+            if (
+                Array.isArray(user?.inventory)
+            ) {
+                user.inventory.forEach(
+                    (item, index) => {
+                        if (
+                            item?.rarity ===
+                            'Efsanevi'
+                        ) {
+                            found.push({
+                                item,
+                                key:
+                                    getLegendaryTrackingId(
+                                        item,
+                                        index,
+                                        'inventory'
+                                    )
+                            });
+                        }
+                    }
+                );
+            }
+
+            if (user?.equipped) {
+                Object.entries(
+                    user.equipped
+                ).forEach(
+                    ([slot, item]) => {
+                        if (
+                            item?.rarity ===
+                            'Efsanevi'
+                        ) {
+                            found.push({
+                                item,
+                                key:
+                                    getLegendaryTrackingId(
+                                        item,
+                                        0,
+                                        slot
+                                    )
+                            });
+                        }
+                    }
+                );
+            }
+
+            return found;
+        }
+
+        function showLegendaryDropEffect(item) {
+            if (!item) return;
+
+            document.querySelectorAll(
+                '.legendary-drop-overlay'
+            ).forEach(el => el.remove());
+
+            const overlay =
+                document.createElement('div');
+
+            overlay.className =
+                'legendary-drop-overlay';
+
+            const visual =
+                typeof renderOverviewItemIcon ===
+                'function'
+                    ? renderOverviewItemIcon(item)
+                    : `<span style="font-size:42px;">${escapeHTML(item.icon || '✨')}</span>`;
+
+            overlay.innerHTML = `
+                <div class="legendary-drop-card">
+                    <div class="legendary-drop-title">
+                        ✨ EFSANEVİ EŞYA ✨
+                    </div>
+
+                    <div class="legendary-drop-icon">
+                        ${visual}
+                    </div>
+
+                    <div class="legendary-drop-name">
+                        ${escapeHTML(getCleanItemName(item.name || 'Efsanevi Eşya'))}
+                        ${Number(item.level) > 0 ? ` +${Number(item.level)}` : ''}
+                    </div>
+
+                    <div class="legendary-drop-source">
+                        ${item.source ? `📍 ${escapeHTML(item.source)}` : 'Nadir bir ganimet elde edildi.'}
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(
+                overlay
+            );
+
+            playGameSfx('legendary');
+
+            setTimeout(
+                () => overlay.remove(),
+                2800
+            );
+        }
+
+        function detectNewLegendaryItems(user) {
+            const legends =
+                collectLegendaryItems(user);
+
+            if (!legendaryTrackingReady) {
+                knownLegendaryItemIds =
+                    new Set(
+                        legends.map(
+                            entry => entry.key
+                        )
+                    );
+
+                legendaryTrackingReady = true;
+                return;
+            }
+
+            let newLegendary = null;
+
+            legends.forEach(entry => {
+                if (
+                    !knownLegendaryItemIds.has(
+                        entry.key
+                    ) &&
+                    !newLegendary
+                ) {
+                    newLegendary =
+                        entry.item;
+                }
+
+                knownLegendaryItemIds.add(
+                    entry.key
+                );
+            });
+
+            if (newLegendary) {
+                showLegendaryDropEffect(
+                    newLegendary
+                );
+            }
+        }
+
+        function playClanCastleAttackAnimation(
+            damage = 0
+        ) {
+            document.querySelectorAll(
+                '.siege-cinematic-overlay'
+            ).forEach(el => el.remove());
+
+            const overlay =
+                document.createElement('div');
+
+            overlay.className =
+                'siege-cinematic-overlay';
+
+            overlay.innerHTML = `
+                <div class="siege-cinematic-stage">
+                    <div class="siege-cinematic-title">
+                        🏰 HİSAR-I HÜMAYUN BOMBARDIMANI
+                    </div>
+
+                    <div class="siege-catapult-actor">
+                        ${renderCatapultIconSvg(145)}
+                    </div>
+
+                    <div class="siege-rock"></div>
+
+                    <div class="siege-castle-target">
+                        <div class="tower left"></div>
+                        <div class="keep">
+                            <div class="gate"></div>
+                        </div>
+                        <div class="tower right"></div>
+                    </div>
+
+                    <div class="siege-impact"></div>
+                    <div class="siege-dust"></div>
+
+                    <div class="siege-damage-number">
+                        -${Math.max(0, Number(damage) || 0).toLocaleString('tr-TR')}
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(
+                overlay
+            );
+
+            playGameSfx('catapult');
+
+            setTimeout(
+                () => overlay.remove(),
+                1900
+            );
+        }
+
+        // Tarayıcı ses politikası gereği ilk kullanıcı etkileşiminde
+        // AudioContext'i hazır hale getir.
+        document.addEventListener(
+            'pointerdown',
+            () => {
+                if (gameAudioEnabled) {
+                    ensureGameAudioContext();
+                }
+            },
+            { passive:true }
+        );
+
+        document.addEventListener(
+            'click',
+            event => {
+                const target =
+                    event.target.closest(
+                        'button,.menu-btn,.btn-quest,.btn-stat,.btn-equip'
+                    );
+
+                if (
+                    !target ||
+                    target.dataset.noClickSfx === '1' ||
+                    target.disabled
+                ) {
+                    return;
+                }
+
+                playGameSfx('click');
+            }
+        );
+
+        setTimeout(
+            updateGameAudioButton,
+            0
+        );
 
         const MAX_LEVEL = 99;
         const TITLE_TIERS = [
@@ -3561,7 +4656,57 @@
 
         function updateHeader(data) {
             if(!data) return;
+
+            const previousUser =
+                currentUserData
+                    ? {
+                        balance:
+                            Number(
+                                currentUserData.balance
+                            ) || 0,
+                        rubies:
+                            Number(
+                                currentUserData.rubies
+                            ) || 0,
+                        level:
+                            Number(
+                                currentUserData.level
+                            ) || 1
+                    }
+                    : null;
+
             currentUserData = data;
+
+            detectNewLegendaryItems(data);
+
+            if (previousUser) {
+                const nextLevel =
+                    Number(data.level) || 1;
+
+                const nextRubies =
+                    Number(data.rubies) || 0;
+
+                const nextGold =
+                    Number(data.balance) || 0;
+
+                if (
+                    nextLevel >
+                    previousUser.level
+                ) {
+                    playGameSfx('level');
+                } else if (
+                    nextRubies >
+                    previousUser.rubies
+                ) {
+                    playGameSfx('ruby');
+                } else if (
+                    nextGold >
+                    previousUser.balance
+                ) {
+                    playGameSfx('coin');
+                }
+            }
+
             document.getElementById('headerGold').innerText = (data.balance || 0).toLocaleString('tr-TR');
             document.getElementById('headerRubies').innerText = (data.rubies || 0).toLocaleString('tr-TR');
             document.getElementById('headerKeys').innerText = (data.goldKeys || 0).toLocaleString('tr-TR');
@@ -11246,6 +12391,15 @@
         });
 
         socket.on('clanCastleWarResult', (res) => {
+            if (
+                res?.success &&
+                Number(res?.damage) > 0
+            ) {
+                playClanCastleAttackAnimation(
+                    Number(res.damage)
+                );
+            }
+
             if (res?.userData) {
                 updateHeader(res.userData);
             }
@@ -11298,6 +12452,8 @@
         });
 
         socket.on('clanCastleReward', (res) => {
+            playGameSfx('victory');
+
             if (res?.userData) {
                 updateHeader(res.userData);
             }
@@ -12046,6 +13202,9 @@
             clanListData = [];
             clanDataLoaded = false;
             lastClanMessage = '';
+
+            legendaryTrackingReady = false;
+            knownLegendaryItemIds = new Set();
             clanCastleWarState = null;
             stopClanCastleWarCountdown();
 
