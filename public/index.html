@@ -125,7 +125,284 @@
         .btn-primary { width: 100%; padding: 10px; border: 1px solid #ffdf73; border-radius: 4px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #d4af37 0%, #997415 100%); color: #0b0908; font-size: 14px; }
 
         @media (max-width: 768px) { .main-wrapper { grid-template-columns: 1fr; } .character-screen { grid-template-columns: 1fr; } .game-header { flex-direction: column; gap: 8px; padding: 10px; } }
-    </style>
+    
+        /* === PvP ARENA SAVAŞ SAHNESİ === */
+        .arena-stage {
+            position: relative;
+            overflow: hidden;
+            min-height: 270px;
+            border: 1px solid #6b4f35;
+            border-radius: 9px;
+            margin-bottom: 15px;
+            padding: 14px;
+            background:
+                radial-gradient(circle at 50% 80%, rgba(127,29,29,.28), transparent 38%),
+                linear-gradient(to bottom, #17100c 0%, #0a0705 68%, #24130d 100%);
+            box-shadow: inset 0 -24px 45px rgba(0,0,0,.48), 0 6px 18px rgba(0,0,0,.45);
+        }
+
+        .arena-stage::before {
+            content: "";
+            position: absolute;
+            left: -10%;
+            right: -10%;
+            bottom: 34px;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #6b4f35, #d4af37, #6b4f35, transparent);
+            opacity: .55;
+        }
+
+        .arena-stage-grid {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1fr 74px 1fr;
+            gap: 10px;
+            align-items: center;
+            min-height: 205px;
+        }
+
+        .arena-fighter {
+            position: relative;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid #433222;
+            border-radius: 8px;
+            background: rgba(10,7,5,.82);
+            transition: transform .18s ease, opacity .35s ease, filter .25s ease;
+            will-change: transform, filter;
+        }
+
+        .arena-fighter.attacker { border-color: #2563eb; }
+        .arena-fighter.defender { border-color: #991b1b; }
+
+        .arena-fighter-avatar {
+            font-size: 38px;
+            text-align: center;
+            filter: drop-shadow(0 4px 7px rgba(0,0,0,.7));
+            margin-bottom: 5px;
+        }
+
+        .arena-fighter-name {
+            color: #f3cf7a;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .arena-fighter-title {
+            text-align: center;
+            color: #c4b5fd;
+            font-size: 9px;
+            margin-top: 3px;
+        }
+
+        .arena-fighter-stats {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 7px;
+            font-size: 9px;
+            color: #9c8e7b;
+        }
+
+        .arena-hp-shell {
+            position: relative;
+            height: 16px;
+            margin-top: 9px;
+            background: #080605;
+            border: 1px solid #33241b;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .arena-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, #16a34a, #22c55e);
+            transition: width .48s cubic-bezier(.22,.75,.32,1);
+        }
+
+        .arena-hp-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px #000;
+        }
+
+        .arena-vs {
+            text-align: center;
+            color: #f3cf7a;
+            font-weight: 900;
+            font-size: 22px;
+            text-shadow: 0 0 12px rgba(243,207,122,.42);
+        }
+
+        .arena-round-label {
+            position: absolute;
+            top: 7px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            min-width: 88px;
+            text-align: center;
+            border: 1px solid #6b4f35;
+            background: rgba(8,6,5,.92);
+            color: #f3cf7a;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .arena-damage-pop {
+            position: absolute;
+            z-index: 20;
+            left: 50%;
+            top: 20%;
+            pointer-events: none;
+            color: #f87171;
+            font-size: 17px;
+            font-weight: 900;
+            text-shadow: 0 2px 4px #000;
+            animation: arenaDamageFloat .78s ease-out forwards;
+        }
+
+        .arena-damage-pop.critical {
+            color: #facc15;
+            font-size: 21px;
+        }
+
+        .arena-battle-feed {
+            position: relative;
+            z-index: 3;
+            min-height: 38px;
+            max-height: 78px;
+            overflow: hidden;
+            margin-top: 5px;
+            padding: 7px 9px;
+            border-radius: 5px;
+            background: rgba(0,0,0,.30);
+            font-size: 10px;
+            color: #d4c5b9;
+            line-height: 1.5;
+        }
+
+        .arena-result-banner {
+            position: absolute;
+            z-index: 30;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(.7);
+            opacity: 0;
+            pointer-events: none;
+            width: min(78%, 390px);
+            padding: 14px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            background: rgba(8,6,5,.95);
+        }
+
+        .arena-result-banner.show {
+            animation: arenaBannerIn .45s ease-out forwards;
+        }
+
+        .arena-result-banner.win {
+            color: #f3cf7a;
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 30px rgba(212,175,55,.28);
+        }
+
+        .arena-result-banner.lose {
+            color: #fca5a5;
+            border: 2px solid #991b1b;
+            box-shadow: 0 0 30px rgba(153,27,27,.30);
+        }
+
+        .arena-fighter.lunge-right { animation: arenaLungeRight .42s ease; }
+        .arena-fighter.lunge-left  { animation: arenaLungeLeft .42s ease; }
+        .arena-fighter.hit         { animation: arenaHit .36s ease; }
+        .arena-fighter.winner      { animation: arenaWinnerPulse .75s ease 2; }
+        .arena-fighter.loser       { opacity: .38; filter: grayscale(.72) brightness(.65); transform: translateY(8px); }
+
+        @keyframes arenaLungeRight {
+            0%,100% { transform: translateX(0); }
+            45% { transform: translateX(30px) scale(1.04); }
+        }
+
+        @keyframes arenaLungeLeft {
+            0%,100% { transform: translateX(0); }
+            45% { transform: translateX(-30px) scale(1.04); }
+        }
+
+        @keyframes arenaHit {
+            0%,100% { transform: translateX(0); filter: none; }
+            25% { transform: translateX(-8px); filter: brightness(1.8) saturate(1.8); }
+            55% { transform: translateX(7px); }
+            75% { transform: translateX(-4px); }
+        }
+
+        @keyframes arenaDamageFloat {
+            0% { opacity: 0; transform: translate(-50%, 10px) scale(.75); }
+            18% { opacity: 1; transform: translate(-50%, 0) scale(1.12); }
+            100% { opacity: 0; transform: translate(-50%, -42px) scale(1); }
+        }
+
+        @keyframes arenaBannerIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(.70); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes arenaWinnerPulse {
+            0%,100% { box-shadow: 0 0 0 rgba(212,175,55,0); }
+            50% { box-shadow: 0 0 24px rgba(212,175,55,.38); }
+        }
+
+        @media (max-width: 640px) {
+            .arena-stage-grid {
+                grid-template-columns: 1fr 42px 1fr;
+                gap: 5px;
+            }
+
+            .arena-stage {
+                padding: 9px 6px;
+            }
+
+            .arena-fighter {
+                padding: 8px 5px;
+            }
+
+            .arena-fighter-avatar {
+                font-size: 30px;
+            }
+
+            .arena-fighter-name {
+                font-size: 10px;
+            }
+
+            .arena-vs {
+                font-size: 16px;
+            }
+
+            .arena-fighter-stats {
+                gap: 4px;
+                font-size: 8px;
+            }
+        }
+
+</style>
 </head>
 <body>
 
@@ -208,6 +485,8 @@
         let currentUserData = null;
         let activeTab = 'overview';
         let barracksState = null;
+        let arenaOpponentCache = {};
+        let arenaAnimationToken = 0;
 
         function escapeHTML(str) {
             if (!str) return "";
@@ -1222,19 +1501,96 @@
                 });
             } else if(activeTab === 'arena') {
                 const arenaLimit = u.arenaLimit !== undefined ? u.arenaLimit : 5;
+
                 body.innerHTML = `
-                    <div style="text-align: center; margin-bottom: 15px; background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 10px;">
-                        <h3 style="color: #f3cf7a; font-size: 14px;">Meydan Okuma Arenası (Onur Puanın: ${u.honor || 0} 🌟)</h3>
-                        <p style="color: #9c8e7b; font-size: 11px; margin-top: 4px;">Günlük Arena Hakkı: <span style="color: #22c55e; font-weight: bold;">${arenaLimit}/5</span> | Rakiplerini alt et, adını şanlı tarihe yazdır!</p>
+                    <div style="
+                        text-align:center;
+                        margin-bottom:12px;
+                        background:#120e0c;
+                        border:1px solid #6b4f35;
+                        border-radius:7px;
+                        padding:10px;
+                    ">
+                        <h3 style="color:#f3cf7a; font-size:14px;">🏟️ Taht Arenası</h3>
+
+                        <div style="
+                            display:flex;
+                            justify-content:center;
+                            flex-wrap:wrap;
+                            gap:14px;
+                            margin-top:5px;
+                            font-size:11px;
+                        ">
+                            <span>🌟 Onur: <strong id="arenaHonorValue">${u.honor || 0}</strong></span>
+                            <span>
+                                ⚔️ Günlük Hak:
+                                <strong id="arenaLimitValue" style="color:#22c55e;">${arenaLimit}/5</strong>
+                            </span>
+                            <span>🏅 ${getTitleByLevel(u.level || 1)}</span>
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-                        <button class="btn-quest" onclick="socket.emit('getArenaOpponents')">🔄 Rakip Listesini Yenile</button>
+
+                    <div id="arenaBattleStage" class="arena-stage">
+                        <div id="arenaRoundLabel" class="arena-round-label">ARENA HAZIR</div>
+
+                        <div class="arena-stage-grid">
+                            <div id="arenaAttackerCard" class="arena-fighter attacker">
+                                <div class="arena-fighter-avatar">🛡️</div>
+                                <div class="arena-fighter-name">${escapeHTML(u.username || 'Savaşçı')}</div>
+                                <div class="arena-fighter-title">🏅 ${getTitleByLevel(u.level || 1)}</div>
+                                <div style="text-align:center; color:#9c8e7b; font-size:10px; margin-top:7px;">
+                                    Rakibini seç ve savaşı başlat.
+                                </div>
+                            </div>
+
+                            <div class="arena-vs">⚔️<br>VS</div>
+
+                            <div id="arenaDefenderCard" class="arena-fighter defender">
+                                <div class="arena-fighter-avatar">❓</div>
+                                <div class="arena-fighter-name">RAKİP</div>
+                                <div class="arena-fighter-title">Meydan okuma bekleniyor</div>
+                                <div style="text-align:center; color:#9c8e7b; font-size:10px; margin-top:7px;">
+                                    Aşağıdaki savaşçılardan birini seç.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="arenaBattleFeed" class="arena-battle-feed">
+                            ⚔️ Arena savaş kaydı burada canlanacak...
+                        </div>
+
+                        <div id="arenaResultBanner" class="arena-result-banner"></div>
                     </div>
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:8px;
+                        flex-wrap:wrap;
+                        margin-bottom:10px;
+                    ">
+                        <div style="color:#9c8e7b; font-size:11px;">
+                            Rakipler • Savaş sonucu sunucu tarafından belirlenir.
+                        </div>
+
+                        <button
+                            class="btn-quest"
+                            onclick="socket.emit('getArenaOpponents')"
+                        >🔄 Rakipleri Yenile</button>
+                    </div>
+
                     <div id="arenaOpponentsList" class="quest-list">
-                        <p style="color:#9c8e7b; font-size:12px; text-align:center;">Rakipleri görmek için yukarıdaki butona tıklayın.</p>
+                        <p style="color:#9c8e7b; font-size:12px; text-align:center;">
+                            Rakipler yükleniyor...
+                        </p>
                     </div>
-                    <div id="arenaLogResult" class="quest-log" style="margin-top: 15px;">Arena savaş raporları burada görünecektir...</div>
+
+                    <div id="arenaLogResult" class="quest-log" style="margin-top:15px;">
+                        Arena savaş raporları burada görünecektir...
+                    </div>
                 `;
+
                 socket.emit('getArenaOpponents');
             } else if(activeTab === 'chat') {
                 body.innerHTML = `
@@ -1655,6 +2011,315 @@
             });
         }
 
+        function sleepArena(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function calculateClientArenaStats(player) {
+            let totalStr = Number(player?.str) || 5;
+            let totalVit = Number(player?.vit) || 5;
+
+            if (player?.equipped) {
+                Object.values(player.equipped).forEach(item => {
+                    if (!item) return;
+                    totalStr += Number(item.strBonus) || 0;
+                    totalVit += Number(item.vitBonus) || 0;
+                });
+            }
+
+            return {
+                str: totalStr,
+                vit: totalVit,
+                power: (totalStr * 2) + totalVit
+            };
+        }
+
+        function startArenaChallenge(defenderId, btnId) {
+            if (!defenderId || !currentUserData) return;
+
+            if ((Number(currentUserData.arenaLimit) || 0) <= 0) {
+                const logEl = document.getElementById('arenaLogResult');
+                if (logEl) logEl.innerText = '⏳ Günlük Arena hakkın kalmadı.';
+                return;
+            }
+
+            document.querySelectorAll('#arenaOpponentsList button').forEach(btn => {
+                btn.disabled = true;
+            });
+
+            const selected = arenaOpponentCache[defenderId];
+
+            const roundLabel = document.getElementById('arenaRoundLabel');
+            const feed = document.getElementById('arenaBattleFeed');
+
+            if (roundLabel) roundLabel.innerText = '⚔️ SAVAŞ BAŞLIYOR';
+            if (feed) {
+                feed.innerText = selected
+                    ? `${currentUserData.username} ile ${selected.username} arenaya çıkıyor...`
+                    : 'Savaşçılar arenaya çıkıyor...';
+            }
+
+            cooldownButton(btnId, 1300);
+
+            socket.emit('attackPlayer', {
+                defenderId
+            });
+        }
+
+        function createArenaFighterHTML(fighter, side) {
+            const icon = side === 'attacker' ? '🛡️' : '⚔️';
+
+            return `
+                <div class="arena-fighter-avatar">${icon}</div>
+                <div class="arena-fighter-name">${escapeHTML(fighter.username)}</div>
+                <div class="arena-fighter-title">🏅 ${escapeHTML(fighter.title || getTitleByLevel(fighter.level || 1))}</div>
+
+                <div class="arena-fighter-stats">
+                    <span>Lv ${fighter.level || 1}</span>
+                    <span>⚔️ ${fighter.str || 0}</span>
+                    <span>🛡️ ${fighter.vit || 0}</span>
+                    <span>🔥 Güç ${fighter.power || 0}</span>
+                </div>
+
+                <div class="arena-hp-shell">
+                    <div
+                        id="arenaHpFill_${side}"
+                        class="arena-hp-fill"
+                        style="width:100%;"
+                    ></div>
+
+                    <div
+                        id="arenaHpText_${side}"
+                        class="arena-hp-text"
+                    >${fighter.maxHp}/${fighter.maxHp}</div>
+                </div>
+            `;
+        }
+
+        function setArenaHp(side, hp, maxHp) {
+            const safeMax = Math.max(1, Number(maxHp) || 1);
+            const safeHp = Math.max(0, Math.min(safeMax, Number(hp) || 0));
+            const percent = (safeHp / safeMax) * 100;
+
+            const fill = document.getElementById(`arenaHpFill_${side}`);
+            const text = document.getElementById(`arenaHpText_${side}`);
+
+            if (fill) {
+                fill.style.width = `${percent}%`;
+
+                if (percent <= 25) {
+                    fill.style.background = 'linear-gradient(to right,#991b1b,#ef4444)';
+                } else if (percent <= 55) {
+                    fill.style.background = 'linear-gradient(to right,#a16207,#eab308)';
+                }
+            }
+
+            if (text) {
+                text.innerText = `${safeHp}/${safeMax}`;
+            }
+        }
+
+        function spawnArenaDamage(targetCard, damage, critical, finisher) {
+            if (!targetCard) return;
+
+            const pop = document.createElement('div');
+            pop.className = `arena-damage-pop ${critical ? 'critical' : ''}`;
+
+            pop.innerText = finisher
+                ? `💥 SON DARBE -${damage}`
+                : critical
+                    ? `⚡ KRİTİK! -${damage}`
+                    : `-${damage}`;
+
+            targetCard.appendChild(pop);
+
+            setTimeout(() => {
+                pop.remove();
+            }, 850);
+        }
+
+        async function playArenaBattle(battle, finalMessage) {
+            if (!battle || activeTab !== 'arena') return;
+
+            const token = ++arenaAnimationToken;
+
+            const attackerCard = document.getElementById('arenaAttackerCard');
+            const defenderCard = document.getElementById('arenaDefenderCard');
+            const roundLabel = document.getElementById('arenaRoundLabel');
+            const feed = document.getElementById('arenaBattleFeed');
+            const banner = document.getElementById('arenaResultBanner');
+
+            if (!attackerCard || !defenderCard || !feed) return;
+
+            attackerCard.className = 'arena-fighter attacker';
+            defenderCard.className = 'arena-fighter defender';
+
+            attackerCard.innerHTML = createArenaFighterHTML(
+                battle.attacker,
+                'attacker'
+            );
+
+            defenderCard.innerHTML = createArenaFighterHTML(
+                battle.defender,
+                'defender'
+            );
+
+            if (banner) {
+                banner.className = 'arena-result-banner';
+                banner.innerHTML = '';
+            }
+
+            feed.innerHTML = `
+                <div>⚔️ ${escapeHTML(battle.attacker.username)} vs ${escapeHTML(battle.defender.username)}</div>
+            `;
+
+            await sleepArena(650);
+
+            for (const action of battle.actions || []) {
+                if (
+                    token !== arenaAnimationToken ||
+                    activeTab !== 'arena'
+                ) {
+                    return;
+                }
+
+                const actorSide = action.actor;
+                const targetSide = action.target;
+
+                const actorCard = document.getElementById(
+                    actorSide === 'attacker'
+                        ? 'arenaAttackerCard'
+                        : 'arenaDefenderCard'
+                );
+
+                const targetCard = document.getElementById(
+                    targetSide === 'attacker'
+                        ? 'arenaAttackerCard'
+                        : 'arenaDefenderCard'
+                );
+
+                if (!actorCard || !targetCard) return;
+
+                if (roundLabel) {
+                    roundLabel.innerText = action.finisher
+                        ? '💥 SON DARBE'
+                        : `⚔️ TUR ${action.round}`;
+                }
+
+                actorCard.classList.remove('lunge-right', 'lunge-left');
+                targetCard.classList.remove('hit');
+
+                void actorCard.offsetWidth;
+                void targetCard.offsetWidth;
+
+                actorCard.classList.add(
+                    actorSide === 'attacker'
+                        ? 'lunge-right'
+                        : 'lunge-left'
+                );
+
+                await sleepArena(210);
+
+                targetCard.classList.add('hit');
+
+                spawnArenaDamage(
+                    targetCard,
+                    action.damage,
+                    action.critical,
+                    action.finisher
+                );
+
+                setArenaHp(
+                    targetSide,
+                    action.targetHp,
+                    action.targetMaxHp
+                );
+
+                const actorName = actorSide === 'attacker'
+                    ? battle.attacker.username
+                    : battle.defender.username;
+
+                const targetName = targetSide === 'attacker'
+                    ? battle.attacker.username
+                    : battle.defender.username;
+
+                const line = document.createElement('div');
+
+                line.innerHTML =
+                    `${action.critical ? '⚡ ' : '⚔️ '}` +
+                    `<strong>${escapeHTML(actorName)}</strong> → ` +
+                    `${escapeHTML(targetName)}: ` +
+                    `<span style="color:${action.critical ? '#facc15' : '#f87171'};">-${action.damage} HP</span>` +
+                    `${action.finisher ? ' <strong style="color:#f3cf7a;">SON DARBE!</strong>' : ''}`;
+
+                feed.appendChild(line);
+                feed.scrollTop = feed.scrollHeight;
+
+                await sleepArena(action.finisher ? 900 : 720);
+
+                actorCard.classList.remove('lunge-right', 'lunge-left');
+                targetCard.classList.remove('hit');
+            }
+
+            if (
+                token !== arenaAnimationToken ||
+                activeTab !== 'arena'
+            ) {
+                return;
+            }
+
+            const winnerCard = battle.attackerWon
+                ? attackerCard
+                : defenderCard;
+
+            const loserCard = battle.attackerWon
+                ? defenderCard
+                : attackerCard;
+
+            winnerCard.classList.add('winner');
+            loserCard.classList.add('loser');
+
+            if (roundLabel) {
+                roundLabel.innerText = battle.attackerWon
+                    ? '🏆 ZAFER'
+                    : '💀 MAĞLUBİYET';
+            }
+
+            if (banner) {
+                banner.className =
+                    `arena-result-banner show ${battle.attackerWon ? 'win' : 'lose'}`;
+
+                banner.innerHTML = battle.attackerWon
+                    ? `🏆 ZAFER<div style="font-size:11px; margin-top:5px;">+${battle.goldReward || 0} Altın 🪙 • +${Math.max(0, battle.honorChange || 0)} Onur 🌟</div>`
+                    : `💀 MAĞLUBİYET<div style="font-size:11px; margin-top:5px;">${battle.honorChange || -5} Onur 🌟</div>`;
+            }
+
+            const logEl = document.getElementById('arenaLogResult');
+
+            if (logEl) {
+                logEl.innerText = finalMessage || 'Arena savaşı tamamlandı.';
+                logEl.style.fontWeight = 'bold';
+                logEl.style.borderColor = battle.attackerWon
+                    ? '#d4af37'
+                    : '#991b1b';
+                logEl.style.color = battle.attackerWon
+                    ? '#f3cf7a'
+                    : '#fca5a5';
+                logEl.style.background = battle.attackerWon
+                    ? 'rgba(212,175,55,.08)'
+                    : 'rgba(153,27,27,.10)';
+            }
+
+            await sleepArena(1500);
+
+            if (
+                token === arenaAnimationToken &&
+                activeTab === 'arena'
+            ) {
+                socket.emit('getArenaOpponents');
+            }
+        }
+
         function sendChat() {
             const input = document.getElementById('chatInputMsg');
             if(!input || !input.value.trim()) return;
@@ -1848,27 +2513,109 @@
         
         socket.on('arenaOpponentsList', (opponents) => {
             const listEl = document.getElementById('arenaOpponentsList');
+
             if (!listEl) return;
+
+            arenaOpponentCache = {};
+
             if (!opponents || opponents.length === 0) {
-                listEl.innerHTML = `<p style="color:#9c8e7b; font-size:12px; text-align:center;">Şu an aktif başka rakip bulunamadı.</p>`;
+                listEl.innerHTML = `
+                    <p style="color:#9c8e7b; font-size:12px; text-align:center;">
+                        Şu an başka rakip bulunamadı.
+                    </p>
+                `;
                 return;
             }
-            listEl.innerHTML = opponents.map(op => `
-                <div class="quest-card">
-                    <div class="quest-info">
-                        <h4>⚔️ ${escapeHTML(op.username)} (Seviye ${Math.min(MAX_LEVEL, op.level || 1)})</h4>
-                        <p><span class="title-badge">🏅 ${getTitleByLevel(op.level || 1)}</span> &nbsp; Onur: ${op.honor || 0} 🌟</p>
+
+            opponents.forEach(op => {
+                arenaOpponentCache[String(op._id)] = op;
+            });
+
+            listEl.innerHTML = opponents.map(op => {
+                const stats = calculateClientArenaStats(op);
+                const canFight = (Number(currentUserData?.arenaLimit) || 0) > 0;
+
+                return `
+                    <div class="quest-card" style="border-left:3px solid #991b1b;">
+                        <div style="font-size:27px; width:36px; text-align:center;">⚔️</div>
+
+                        <div class="quest-info" style="flex:1;">
+                            <h4>
+                                ${escapeHTML(op.username)}
+                                <span style="color:#9c8e7b; font-size:10px;">
+                                    Lv ${Math.min(MAX_LEVEL, op.level || 1)}
+                                </span>
+                            </h4>
+
+                            <p>
+                                <span class="title-badge">
+                                    🏅 ${getTitleByLevel(op.level || 1)}
+                                </span>
+                                &nbsp; 🌟 Onur: ${op.honor || 0}
+                            </p>
+
+                            <div style="
+                                display:flex;
+                                gap:9px;
+                                flex-wrap:wrap;
+                                margin-top:4px;
+                                font-size:9px;
+                            ">
+                                <span style="color:#f97316;">⚔️ STR ${stats.str}</span>
+                                <span style="color:#60a5fa;">🛡️ VIT ${stats.vit}</span>
+                                <span style="color:#facc15;">🔥 Savaş Gücü ${stats.power}</span>
+                            </div>
+                        </div>
+
+                        <button
+                            id="atkBtn_${op._id}"
+                            class="btn-quest"
+                            ${canFight ? '' : 'disabled'}
+                            style="
+                                background:#991b1b;
+                                color:white;
+                                border-color:#ef4444;
+                            "
+                            onclick="startArenaChallenge('${op._id}', 'atkBtn_${op._id}')"
+                        >⚔️ SAVAŞ</button>
                     </div>
-                    <button id="atkBtn_${op._id}" class="btn-quest" style="background: #ef4444; color: white; border-color: #f87171;" onclick="doAction('attackPlayer', { defenderId: '${op._id}' }, 'atkBtn_${op._id}')">Saldır</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         });
 
         socket.on('arenaResult', (res) => {
-            if (res.userData) updateHeader(res.userData);
+            if (res.userData) {
+                updateHeader(res.userData);
+
+                const honorEl = document.getElementById('arenaHonorValue');
+                const limitEl = document.getElementById('arenaLimitValue');
+
+                if (honorEl) {
+                    honorEl.innerText = res.userData.honor || 0;
+                }
+
+                if (limitEl) {
+                    limitEl.innerText = `${res.userData.arenaLimit ?? 0}/5`;
+                }
+            }
+
+            if (res.battleCompleted && res.battle && activeTab === 'arena') {
+                playArenaBattle(res.battle, res.message);
+                return;
+            }
+
             const logEl = document.getElementById('arenaLogResult');
-            if (logEl) logEl.innerText = res.message;
-            if (activeTab === 'arena') renderPanelContent();
+
+            if (logEl) {
+                logEl.innerText = res.message || 'Arena işlemi tamamlandı.';
+                logEl.style.fontWeight = 'bold';
+                logEl.style.borderColor = res.success ? '#22c55e' : '#ef4444';
+                logEl.style.color = res.success ? '#86efac' : '#fca5a5';
+            }
+
+            if (activeTab === 'arena') {
+                socket.emit('getArenaOpponents');
+            }
         });
 
         socket.on('receiveChatMessage', (data) => {
