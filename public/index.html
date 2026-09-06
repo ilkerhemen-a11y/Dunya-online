@@ -186,6 +186,7 @@
             <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
             <button class="menu-btn" onclick="switchTab('arena')">🏟️ PvP Arena</button>
             <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
+            <button class="menu-btn" onclick="switchTab('metin')">🪨 Metin Taşı Kes</button>
             <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
             <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
             <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
@@ -372,10 +373,15 @@
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
                 'chat': 'Diyar Meclisi (Sohbet)',
-                'dungeon': 'Zindan Adası'
+                'dungeon': 'Zindan Adası',
+                'metin': 'Metin Taşı Kes'
             };
             document.getElementById('panelHeaderTitle').innerText = titles[tab] || 'İmparatorluk';
             renderPanelContent();
+
+            if (tab === 'metin') {
+                socket.emit('getMetinStatus');
+            }
         }
 
         function renderPanelContent() {
@@ -447,11 +453,12 @@
                                         <div class="item-icon-box">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}">` : (item.icon || '📦')}</div>
                                         <div class="item-details">
                                             <span class="item-name ${rarityClass}">${cleanName} ${item.level ? '+' + item.level : ''}</span>
-                                            <span class="item-bonus">${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}</span>
+                                            <span class="item-bonus">${item.type === 'material' ? escapeHTML(item.description || 'Özel malzeme') : `${item.strBonus ? 'Güç: +' + item.strBonus : ''} ${item.vitBonus ? '| Vit: +' + item.vitBonus : ''}`}</span>
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 5px;">
-                                        ${item.type !== 'key' ? `<button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>` : ''}
+                                        ${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(item.type) ? `<button class="btn-equip" onclick="socket.emit('equipItem', { itemIndex: ${index} })">Kuşan</button>` : ''}
+                                        ${item.type === 'material' ? `<span style="font-size:10px; color:#60a5fa; border:1px solid #1d4ed8; padding:3px 6px; border-radius:3px;">Malzeme</span>` : ''}
                                         <button onclick="socket.emit('deleteItem', { itemIndex: ${index} })" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Sil</button>
                                     </div>
                                 </div>
@@ -581,7 +588,7 @@
                     </div>
                     <div class="forge-list">
                         ${u.inventory && u.inventory.length > 0 ? u.inventory.map((item, index) => {
-                            if (item.type === 'key') return '';
+                            if (item.type === 'key' || item.type === 'material') return '';
                             const currentLvl = item.level || 0;
                             const nextLvl = currentLvl + 1;
                             const goldCost = nextLvl * 150;
@@ -726,6 +733,96 @@
                     </div>
                     <div id="dungeonLogResult" class="quest-log" style="margin-top:15px;">Zindan savaş sonucu burada görünecek...</div>
                 `;
+            } else if(activeTab === 'metin') {
+                const metinDefinitions = [
+                    { id:1, name:'Savaş Metini', icon:'🪨', requiredLevel:1,  maxHp:500,   respawnMin:2,  papers:'1 Kutsama Kağıdı' },
+                    { id:2, name:'Gölge Metini', icon:'🌑', requiredLevel:20, maxHp:2000,  respawnMin:3,  papers:'1 Kutsama Kağıdı' },
+                    { id:3, name:'Ruh Metini', icon:'💠', requiredLevel:40, maxHp:6000,  respawnMin:4,  papers:'1-2 Kutsama Kağıdı' },
+                    { id:4, name:'Kıyamet Metini', icon:'🔥', requiredLevel:60, maxHp:15000, respawnMin:5,  papers:'1-2 Kutsama Kağıdı' },
+                    { id:5, name:'Taht Metini', icon:'👑', requiredLevel:80, maxHp:35000, respawnMin:10, papers:'2-3 Kutsama Kağıdı' }
+                ];
+
+                let metinBonusStr = 0;
+                if (u.equipped) {
+                    Object.values(u.equipped).forEach(item => {
+                        if (item) metinBonusStr += Number(item.strBonus) || 0;
+                    });
+                }
+
+                const metinTotalStr = (Number(u.str) || 5) + metinBonusStr;
+                const hpList = Array.isArray(u.metinStoneHp) ? u.metinStoneHp : [];
+                const respawnList = Array.isArray(u.metinStoneRespawnAt) ? u.metinStoneRespawnAt : [];
+                const now = Date.now();
+
+                body.innerHTML = `
+                    <div style="background:#120e0c; border:1px solid #6b4f35; border-radius:7px; padding:12px; margin-bottom:15px; text-align:center;">
+                        <h3 style="color:#f3cf7a; font-size:15px;">🪨 Metin Taşı Kes</h3>
+                        <p style="color:#9c8e7b; font-size:11px; margin-top:5px;">
+                            Metin taşlarına saldır, HP'lerini sıfırla ve
+                            <strong style="color:#60a5fa;">📜 Kutsama Kağıdı</strong> düşür.
+                        </p>
+                        <p style="color:#f97316; font-size:12px; font-weight:bold; margin-top:5px;">
+                            ⚔️ Toplam Saldırı Gücün: ${metinTotalStr} STR
+                        </p>
+                        <p style="color:#9c8e7b; font-size:10px; margin-top:4px;">
+                            Her vuruş toplam STR ×4 civarında hasar verir. Taşların canı sunucuda saklanır.
+                        </p>
+                    </div>
+
+                    <div class="quest-list">
+                        ${metinDefinitions.map(stone => {
+                            let currentHp = Number(hpList[stone.id - 1]);
+                            if (!Number.isFinite(currentHp)) currentHp = stone.maxHp;
+
+                            const respawnAt = Number(respawnList[stone.id - 1]) || 0;
+                            const waiting = currentHp <= 0 && respawnAt > now;
+                            const playerLevel = Number(u.level) || 1;
+                            const levelLocked = playerLevel < stone.requiredLevel;
+                            const hpPercent = Math.max(0, Math.min(100, (currentHp / stone.maxHp) * 100));
+                            const secondsLeft = waiting ? Math.max(0, Math.ceil((respawnAt - now) / 1000)) : 0;
+
+                            let buttonText = '⚔️ Metine Vur';
+                            if (levelLocked) buttonText = `🔒 Lv ${stone.requiredLevel} Gerekli`;
+                            if (waiting) buttonText = `⏳ ${secondsLeft} sn`;
+
+                            const minDamage = Math.max(1, Math.floor(metinTotalStr * 4 * 0.85));
+                            const maxDamage = Math.max(1, Math.floor(metinTotalStr * 4 * 1.15));
+
+                            return `
+                                <div class="quest-card" style="align-items:stretch; gap:12px; ${levelLocked ? 'opacity:.65;' : ''}">
+                                    <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                                        <div style="font-size:34px; width:46px; text-align:center;">${stone.icon}</div>
+
+                                        <div class="quest-info" style="flex:1;">
+                                            <h4>${stone.name}</h4>
+                                            <p>Gerekli Seviye: ${stone.requiredLevel} • Yenilenme: ${stone.respawnMin} dk • Ganimet: 📜 ${stone.papers}</p>
+
+                                            <div style="height:12px; background:#080605; border:1px solid #3d2f23; border-radius:4px; overflow:hidden; margin:7px 0 4px;">
+                                                <div style="height:100%; width:${hpPercent}%; background:linear-gradient(to right,#ef4444,#991b1b); transition:width .25s ease;"></div>
+                                            </div>
+
+                                            <div style="display:flex; justify-content:space-between; gap:8px; font-size:10px; flex-wrap:wrap;">
+                                                <span style="color:#fca5a5;">❤️ ${waiting ? 'Yenileniyor' : `${currentHp}/${stone.maxHp}`}</span>
+                                                <span style="color:#f97316;">⚔️ Hasar: ${minDamage}-${maxDamage}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        id="metinBtn${stone.id}"
+                                        class="btn-quest"
+                                        ${levelLocked || waiting ? 'disabled' : ''}
+                                        onclick="doAction('attackMetinStone', { stoneId: ${stone.id} }, 'metinBtn${stone.id}')"
+                                    >${buttonText}</button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div id="metinLogResult" class="quest-log" style="margin-top:15px;">
+                        Metin taşı savaş raporu burada görünecek...
+                    </div>
+                `;
 
             }
         }
@@ -789,7 +886,7 @@
                                     <div style="background:#0d0a08; border:1px solid #33241b; padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; font-size:11px;">
                                         <span>
                                             ${itemObj.item.icon || '📦'} ${escapeHTML(itemObj.item.name)}
-                                            <strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong>
+                                            ${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? `<strong style="color:#f3cf7a;">+${Number(itemObj.item.level) || 0}</strong>` : ''}
                                             (<strong style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#f3cf7a'};">${itemObj.price} ${itemObj.currency === 'ruby' ? '💎' : '🪙'}</strong>)
                                         </span>
                                         <button onclick="socket.emit('removeItemFromStall', { stallItemIndex: ${idx} })" style="background:#dc2626; color:white; border:none; padding:2px 6px; border-radius:3px; cursor:pointer;">Geri Al</button>
@@ -801,7 +898,7 @@
                             <h5 style="color:#f3cf7a; font-size:12px; margin-bottom:6px;">Envanterden Tezgahına Ürün Koy:</h5>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <select id="inventoryItemSelect" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
-                                    ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${escapeHTML(it.name)} +${Number(it.level) || 0} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
+                                    ${currentUserData.inventory && currentUserData.inventory.length > 0 ? currentUserData.inventory.map((it, i) => it.type !== 'key' ? `<option value="${i}">${escapeHTML(it.name)}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(it.type) ? ` +${Number(it.level) || 0}` : ''} (${it.rarity || 'Sıradan'})</option>` : '').join('') : '<option>Envanter boş</option>'}
                                 </select>
                                 <input type="number" id="stallItemPrice" placeholder="Satış Fiyatı" value="100" min="1" style="width:110px; padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
                                 <select id="stallItemCurrency" style="padding:6px; background:#080605; color:#f3cf7a; border:1px solid #3d2f23; border-radius:4px; font-size:11px;">
@@ -831,7 +928,7 @@
                                         <div style="display:flex; align-items:center; gap:8px;">
                                             <span>${itemObj.item.icon || '📦'}</span>
                                             <div>
-                                                <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)} +${Number(itemObj.item.level) || 0}</strong>
+                                                <strong class="rarity-${itemObj.item.rarity || 'Sıradan'}">${escapeHTML(itemObj.item.name)}${['helmet','necklace','armor','weapon','shield','ring','gloves','boots'].includes(itemObj.item.type) ? ` +${Number(itemObj.item.level) || 0}` : ''}</strong>
                                                 <div style="color:${itemObj.currency === 'ruby' ? '#ef4444' : '#22c55e'}; font-weight:bold;">
                                                     ${itemObj.price} ${itemObj.currency === 'ruby' ? 'Yakut 💎' : 'Altın 🪙'}
                                                 </div>
@@ -892,6 +989,30 @@
         socket.on('marketResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('marketLogResult').innerText = res.message; if(activeTab === 'market') renderPanelContent(); });
         socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
         socket.on('forgeResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('forgeLogResult').innerText = res.message; if(activeTab === 'blacksmith') renderPanelContent(); });
+        socket.on('metinStatus', (res) => {
+            if (res.userData) updateHeader(res.userData);
+            if (activeTab === 'metin') renderPanelContent();
+        });
+
+        socket.on('metinResult', (res) => {
+            if (res.userData) updateHeader(res.userData);
+
+            if (activeTab === 'metin') {
+                renderPanelContent();
+            }
+
+            const logEl = document.getElementById('metinLogResult');
+            if (logEl) {
+                logEl.innerText = res.message || 'Metin taşı sonucu alındı.';
+                logEl.style.fontWeight = 'bold';
+                logEl.style.borderColor = res.destroyed ? '#a855f7' : (res.success ? '#f97316' : '#ef4444');
+                logEl.style.color = res.destroyed ? '#e9d5ff' : (res.success ? '#fdba74' : '#fca5a5');
+                logEl.style.background = res.destroyed
+                    ? 'rgba(168,85,247,0.08)'
+                    : (res.success ? 'rgba(249,115,22,0.08)' : 'rgba(239,68,68,0.08)');
+            }
+        });
+
         socket.on('dungeonResult', (res) => {
             if (res.userData) updateHeader(res.userData);
             if (activeTab === 'dungeon') renderPanelContent();
