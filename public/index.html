@@ -4570,7 +4570,7 @@
             }
             .game-header .header-section:first-child { flex: 1 1 52%; width: auto; gap: 10px; }
             .game-header .header-section:last-child { flex: 1 1 42%; width: auto; gap: 4px; }
-            .game-header .bar-container > span { font-size: 9px !important; }
+            .game-header .bar-container > span { font-size: 10px !important; color: #c4b5a4 !important; }
             .mobile-topbar { padding: 4px; }
             .mobile-menu-toggle { min-height: 40px; }
             .mobile-dashboard.is-visible { padding: 10px 12px; }
@@ -4600,6 +4600,7 @@
                 padding: 8px 2px;
                 background: #1b1410;
             }
+            #myUsernameDisplay { display: none; }
             .mobile-bottom-nav {
                 inset: 42px auto 0 0;
                 width: calc(66px + env(safe-area-inset-left));
@@ -4616,16 +4617,17 @@
             .overview-hero { padding: 9px; margin-bottom: 7px; }
             .overview-player-name { font-size: 16px; }
             .overview-power-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 7px; }
-            .overview-power-card { padding: 5px 3px; font-size: 10px; }
+            .overview-power-card { padding: 5px 3px; font-size: 11px; color: #c4b5a4; }
             .overview-power-card strong { font-size: 14px; }
             .character-showcase-v2 { grid-template-columns: 1fr; gap: 5px; padding: 7px; margin-bottom: 8px; }
             .showcase-character-center { display: none; }
             .showcase-slot-column { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
             .showcase-eq-slot { min-width: 0; min-height: 48px; grid-template-columns: 32px minmax(0, 1fr); gap: 5px; padding: 4px; }
             .showcase-eq-slot > div:nth-child(3), .showcase-eq-slot > div:nth-child(2) { min-width: 0; }
+            .showcase-eq-slot .rarity-orbit { display: none; }
             .showcase-slot-icon { height: 32px; font-size: 20px; }
-            .showcase-slot-name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .showcase-slot-label { font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .showcase-slot-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .showcase-slot-label { font-size: 10px; color: #ad9a87; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
             #panelContentBody .mobile-battle-summary {
                 display: grid;
