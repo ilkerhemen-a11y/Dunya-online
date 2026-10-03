@@ -4660,6 +4660,172 @@
         @media (prefers-reduced-motion: reduce) {
             .sidebar-menu, .mobile-menu-backdrop { transition: none; }
         }
+
+        /* The city is a real navigation surface: art stays separate from touch targets. */
+        .kingdom-hub {
+            position: relative;
+            isolation: isolate;
+            width: 100%;
+            min-height: 440px;
+            aspect-ratio: 2 / 1;
+            overflow: hidden;
+            border: 1px solid #a5793c;
+            border-radius: 13px;
+            background: #16372f url('/icons/kingdom-hub-v1.png') center / 100% 100% no-repeat;
+            box-shadow: 0 16px 36px rgba(0,0,0,.45);
+        }
+        .hub-heading {
+            position: absolute;
+            z-index: 4;
+            top: 8px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .hub-heading-title {
+            max-width: 65%;
+            padding: 6px 10px;
+            border: 1px solid rgba(239,198,109,.78);
+            border-radius: 9px;
+            background: rgba(25,15,10,.88);
+            box-shadow: 0 3px 12px rgba(0,0,0,.45);
+            color: #ffe2a1;
+            font-size: clamp(11px,1.25vw,15px);
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .hub-heading-title span { color: #e9d7ba; font-weight: 600; }
+        .hub-menu-button { display: none; }
+        .hub-spot {
+            position: absolute;
+            z-index: 2;
+            display: block;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            border: 0;
+            border-radius: 14px;
+            background: transparent;
+            color: #fff0c9;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .hub-spot::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 2px solid #ffdf8a;
+            border-radius: 13px;
+            background: rgba(255,213,117,.11);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .16s ease;
+        }
+        .hub-spot:hover::after, .hub-spot:focus-visible::after, .hub-spot:active::after { opacity: 1; }
+        .hub-spot:focus-visible, .hub-dock button:focus-visible, .hub-menu-button:focus-visible { outline: 3px solid #fff3b3; outline-offset: 2px; }
+        .hub-spot-label {
+            position: absolute;
+            z-index: 1;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            display: block;
+            max-width: max-content;
+            padding: 5px 8px;
+            border: 1px solid rgba(245,201,111,.9);
+            border-radius: 7px;
+            background: rgba(29,17,11,.93);
+            box-shadow: 0 3px 10px rgba(0,0,0,.7);
+            color: #ffe6ad;
+            font-size: clamp(10px,1.1vw,14px);
+            font-weight: 850;
+            line-height: 1.1;
+            text-shadow: 0 1px 2px #000;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .hub-lower .hub-spot-label { top: 0; bottom: auto; }
+        .hub-forge { left: 2%; top: 6%; width: 20%; height: 26%; }
+        .hub-guild { left: 39%; top: 6%; width: 19%; height: 27%; }
+        .hub-arena { left: 73%; top: 8%; width: 25%; height: 32%; }
+        .hub-castle { left: 15%; top: 24%; width: 25%; height: 34%; }
+        .hub-market { left: 40%; top: 37%; width: 24%; height: 26%; }
+        .hub-barracks { left: 64%; top: 35%; width: 22%; height: 22%; }
+        .hub-dungeon { left: 2%; top: 55%; width: 21%; height: 30%; }
+        .hub-clan { left: 35%; top: 66%; width: 24%; height: 23%; }
+        .hub-tower { left: 65%; top: 60%; width: 17%; height: 26%; }
+        .hub-metin { left: 82%; top: 60%; width: 17%; height: 26%; }
+        .hub-dock {
+            position: absolute;
+            z-index: 5;
+            left: 50%;
+            bottom: 6px;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            max-width: calc(100% - 16px);
+            padding: 4px;
+            border: 1px solid rgba(232,189,102,.74);
+            border-radius: 10px;
+            background: rgba(24,15,11,.91);
+            box-shadow: 0 5px 18px rgba(0,0,0,.56);
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .hub-dock button {
+            flex: 0 0 auto;
+            min-height: 33px;
+            padding: 5px 9px;
+            border: 1px solid #74552c;
+            border-radius: 7px;
+            background: #3a2617;
+            color: #ffe1a4;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 750;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .hub-dock button:active { background: #724524; }
+
+        @media (max-width: 900px), (max-width: 1100px) and (orientation: landscape) and (max-height: 600px) {
+            .hub-menu-button {
+                display: block;
+                min-height: 38px;
+                padding: 6px 10px;
+                border: 1px solid #e2b561;
+                border-radius: 8px;
+                background: rgba(28,17,11,.94);
+                color: #ffe2a1;
+                font: inherit;
+                font-size: 11px;
+                font-weight: 800;
+                pointer-events: auto;
+            }
+        }
+        @media (max-width: 1100px) and (orientation: landscape) and (max-height: 600px) {
+            body.hub-open .main-wrapper { height: calc(100dvh - 42px); padding: 0; }
+            body.hub-open .content-panel { padding: 0; border: 0; border-radius: 0; overflow: hidden; }
+            body.hub-open .panel-title, body.hub-open .mobile-bottom-nav, body.hub-open .mobile-topbar { display: none; }
+            body.hub-open #panelContentBody { height: 100%; }
+            body.hub-open .kingdom-hub { height: 100%; min-height: 0; aspect-ratio: auto; border: 0; border-radius: 0; }
+            .hub-spot-label { font-size: clamp(10px,1.1vw,13px); padding: 4px 7px; }
+        }
+        @media (max-width: 700px) and (orientation: landscape) and (max-height: 600px) {
+            .hub-spot-label { font-size: 9px; padding: 3px 5px; }
+            .hub-heading-title { font-size: 10px; }
+            .hub-dock button { font-size: 10px; padding: 4px 6px; }
+        }
+        @media (max-width: 700px) and (orientation: portrait) {
+            body.hub-open .content-panel { overflow-x: auto; }
+            .kingdom-hub { min-width: 740px; min-height: 420px; }
+        }
 </style>
 </head>
 <body class="auth-open" data-world-theme="overview">
@@ -4879,7 +5045,8 @@
         <nav class="sidebar-menu" id="primaryGameMenu" aria-label="Oyun bölümleri">
             <button class="mobile-menu-close" type="button" onclick="toggleMobileMenu(false)">✕ Kapat</button>
             <div class="menu-category-title">İmparatorluk</div>
-            <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
+            <button class="menu-btn" onclick="switchTab('home')">🗺️ Şehir</button>
+            <button class="menu-btn" onclick="switchTab('overview')">🏛️ Karakter & Envanter</button>
             <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
             <button class="menu-btn" onclick="switchTab('market')">🛒 Market</button>
             <button class="menu-btn" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
@@ -4911,7 +5078,7 @@
             <div id="panelContentBody"></div>
         </main>
         <nav class="mobile-bottom-nav" aria-label="Mobil ana menü">
-            <button type="button" data-mobile-tab="overview" onclick="switchTab('overview')"><span class="mobile-nav-icon" aria-hidden="true">🏛️</span><span>Durum</span></button>
+            <button type="button" data-mobile-tab="home" onclick="switchTab('home')"><span class="mobile-nav-icon" aria-hidden="true">🗺️</span><span>Şehir</span></button>
             <button type="button" data-mobile-tab="work" onclick="switchTab('work')"><span class="mobile-nav-icon" aria-hidden="true">⚔️</span><span>Görev</span></button>
             <button type="button" data-mobile-tab="barracks" onclick="switchTab('barracks')"><span class="mobile-nav-icon" aria-hidden="true">🏰</span><span>Savaş</span></button>
             <button type="button" data-mobile-tab="market" onclick="switchTab('market')"><span class="mobile-nav-icon" aria-hidden="true">🛒</span><span>Market</span></button>
@@ -4923,7 +5090,7 @@
     <script>
         const socket = io();
         let currentUserData = null;
-        let activeTab = 'overview';
+        let activeTab = 'home';
 
         function usesMobileShell() {
             return window.matchMedia('(max-width: 900px), (max-width: 1100px) and (orientation: landscape) and (max-height: 600px)').matches;
@@ -4937,13 +5104,18 @@
             document.body.classList.toggle('mobile-menu-open', open);
             document.getElementById('mobileMenuToggle').setAttribute('aria-expanded', String(open));
             document.getElementById('mobileMoreButton').setAttribute('aria-expanded', String(open));
+            document.getElementById('hubMenuButton')?.setAttribute('aria-expanded', String(open));
             if (open) document.querySelector('.mobile-menu-close').focus();
             else if (document.activeElement?.closest('.sidebar-menu')) {
                 const topButton = document.getElementById('mobileMenuToggle');
-                const focusTarget = getComputedStyle(topButton).display === 'none'
-                    ? document.getElementById('mobileMoreButton')
-                    : topButton;
-                focusTarget.focus();
+                const hubButton = document.getElementById('hubMenuButton');
+                const focusTarget = hubButton && getComputedStyle(hubButton).display !== 'none'
+                    ? hubButton
+                    : getComputedStyle(topButton).display === 'none'
+                        ? document.getElementById('mobileMoreButton')
+                        : topButton;
+                if (getComputedStyle(focusTarget).display !== 'none') focusTarget.focus();
+                else requestAnimationFrame(() => document.getElementById('hubMenuButton')?.focus());
             }
         }
 
@@ -7192,7 +7364,7 @@
 
             currentUserData = data;
             updateHeader(data);
-            switchTab('overview');
+            switchTab('home');
 
             // Müzik yalnızca başarılı girişten sonra başlar.
             setTimeout(
@@ -8138,6 +8310,7 @@
 
         function switchTab(tab) {
             activeTab = tab;
+            document.body.classList.toggle('hub-open', tab === 'home');
             updateMobileNavigation(tab);
             if (usesMobileShell()) {
                 document.querySelector('.content-panel').scrollTop = 0;
@@ -8145,6 +8318,7 @@
             }
             applyWorldTheme(tab);
             const titles = {
+                'home': 'Taht Şehri',
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
                 'market': 'Market ve Sandıklar',
@@ -8226,6 +8400,36 @@
             const body = document.getElementById('panelContentBody');
             const u = currentUserData;
             if(!u) return;
+
+            if(activeTab === 'home') {
+                body.innerHTML = `
+                    <section class="kingdom-hub" aria-label="Taht Şehri: binalara dokunarak bölümlere gir">
+                        <div class="hub-heading">
+                            <div class="hub-heading-title">♛ TAHT ŞEHRİ <span>• ${escapeHTML(u.username || 'Hükümdar')}</span></div>
+                            <button type="button" id="hubMenuButton" class="hub-menu-button" onclick="toggleMobileMenu()" aria-label="Tüm bölümleri aç" aria-controls="primaryGameMenu" aria-expanded="false">☰ Bölümler</button>
+                        </div>
+                        <button type="button" class="hub-spot hub-forge" onclick="switchTab('blacksmith')" aria-label="Demirhane bölümünü aç"><span class="hub-spot-label">⚒️ Demirhane</span></button>
+                        <button type="button" class="hub-spot hub-guild" onclick="switchTab('work')" aria-label="Görevler bölümünü aç"><span class="hub-spot-label">📜 Görevler</span></button>
+                        <button type="button" class="hub-spot hub-arena" onclick="switchTab('arena')" aria-label="Arena bölümünü aç"><span class="hub-spot-label">⚔️ Arena</span></button>
+                        <button type="button" class="hub-spot hub-castle" onclick="switchTab('overview')" aria-label="Karakter ve envanter bölümünü aç"><span class="hub-spot-label">🏰 Karakter</span></button>
+                        <button type="button" class="hub-spot hub-market" onclick="switchTab('market')" aria-label="Pazar bölümünü aç"><span class="hub-spot-label">🛒 Pazar</span></button>
+                        <button type="button" class="hub-spot hub-barracks" onclick="switchTab('barracks')" aria-label="Kışla ve taht savaşı bölümünü aç"><span class="hub-spot-label">🛡️ Kışla & Savaş</span></button>
+                        <button type="button" class="hub-spot hub-dungeon hub-lower" onclick="switchTab('dungeon')" aria-label="Zindan bölümünü aç"><span class="hub-spot-label">🌋 Zindan</span></button>
+                        <button type="button" class="hub-spot hub-clan hub-lower" onclick="switchTab('clan')" aria-label="Klan merkezi bölümünü aç"><span class="hub-spot-label">🏳️ Klan</span></button>
+                        <button type="button" class="hub-spot hub-tower hub-lower" onclick="switchTab('adventure')" aria-label="Macera merkezi bölümünü aç"><span class="hub-spot-label">✨ Macera</span></button>
+                        <button type="button" class="hub-spot hub-metin hub-lower" onclick="switchTab('metin')" aria-label="Metin taşı bölümünü aç"><span class="hub-spot-label">💎 Metin Taşı</span></button>
+                        <nav class="hub-dock" aria-label="Diğer şehir bölümleri">
+                            <button type="button" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
+                            <button type="button" onclick="switchTab('suluhan')">🏛️ Suluhan</button>
+                            <button type="button" onclick="switchTab('timar')">🏡 Tımarlar</button>
+                            <button type="button" onclick="switchTab('worldBoss')">🐉 Dünya Bossu</button>
+                            <button type="button" onclick="switchTab('clanWar')">🏯 Klan Savaşı</button>
+                            <button type="button" onclick="switchTab('chat')">💬 Sohbet</button>
+                        </nav>
+                    </section>
+                `;
+                return;
+            }
 
             if(activeTab === 'overview') {
                 const localStats = getClientTotalStats(u);

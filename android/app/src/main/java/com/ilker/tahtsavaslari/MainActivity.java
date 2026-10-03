@@ -94,10 +94,20 @@ public class MainActivity extends Activity {
         gameView.evaluateJavascript("document.body.classList.contains('mobile-menu-open')", result -> {
             if ("true".equals(result)) {
                 gameView.evaluateJavascript("toggleMobileMenu(false)", null);
-            } else if (gameView.canGoBack()) {
-                gameView.goBack();
             } else {
-                MainActivity.super.onBackPressed();
+                gameView.evaluateJavascript(
+                    "typeof activeTab !== 'undefined' && activeTab !== 'home' && " +
+                    "document.getElementById('mainApp') && " +
+                    "document.getElementById('mainApp').style.display !== 'none'",
+                    isInsideSection -> {
+                        if ("true".equals(isInsideSection)) {
+                            gameView.evaluateJavascript("switchTab('home')", null);
+                        } else if (gameView.canGoBack()) {
+                            gameView.goBack();
+                        } else {
+                            MainActivity.super.onBackPressed();
+                        }
+                    });
             }
         });
     }
