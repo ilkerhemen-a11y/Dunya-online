@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260" role="img" aria-labelledby="title">
+  <title id="title">Zırhlı hükümdar</title>
+  <defs>
+    <radialGradient id="glow"><stop stop-color="#b78a39" stop-opacity=".42"/><stop offset="1" stop-color="#100c0a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="steel" x2="1" y2="1"><stop stop-color="#c6d4cf"/><stop offset=".48" stop-color="#62757d"/><stop offset="1" stop-color="#25323a"/></linearGradient>
+    <linearGradient id="gold" x2="1" y2="1"><stop stop-color="#ffe3a0"/><stop offset=".55" stop-color="#b78332"/><stop offset="1" stop-color="#6c4218"/></linearGradient>
+    <linearGradient id="cape" x2="1" y2="1"><stop stop-color="#862b21"/><stop offset="1" stop-color="#2a1011"/></linearGradient>
+  </defs>
+  <rect width="200" height="260" fill="#0b0b0c"/>
+  <circle cx="100" cy="108" r="111" fill="url(#glow)"/>
+  <path d="M23 260 40 153 69 130 100 143 132 130 160 153 178 260Z" fill="url(#cape)" stroke="#ae5731" stroke-width="3"/>
+  <path d="M56 153 79 139 100 162 121 139 144 153 158 260H42Z" fill="url(#steel)" stroke="#bf943e" stroke-width="3"/>
+  <path d="M51 161 36 185 48 228 76 201 76 159ZM149 161l15 24-12 43-28-27v-42Z" fill="#35434a" stroke="#bd9146" stroke-width="3"/>
+  <path d="M78 140v-26h44v26l-22 24Z" fill="#303a40" stroke="#d0a456" stroke-width="3"/>
+  <path d="M65 75Q69 35 100 33q31 2 35 42l-5 41-30 26-30-26Z" fill="url(#steel)" stroke="#d2a34b" stroke-width="4"/>
+  <path d="M67 82q33-18 66 0l-5 12q-28-10-56 0Z" fill="#18242a"/>
+  <path d="M75 103h50l-8 23-17 13-17-13Z" fill="#26343a" stroke="#b5883b" stroke-width="2"/>
+  <path d="M91 55 100 16l9 39-9 21Z" fill="url(#gold)" stroke="#653e17" stroke-width="2"/>
+  <path d="M70 58q30-13 60 0l7 17q-37-12-74 0Z" fill="url(#gold)" stroke="#6d451e" stroke-width="2"/>
+  <path d="M100 168 118 192 100 214 82 192Z" fill="url(#gold)" stroke="#5c391b" stroke-width="2"/>
+  <path d="M100 178 110 192 100 204 90 192Z" fill="#793426"/>
+  <path d="M74 224h52M66 240h68" stroke="#d9a64f" stroke-width="3" opacity=".7"/>
+</svg>
