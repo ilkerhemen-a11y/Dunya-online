@@ -2,7 +2,11 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#17100c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.webmanifest">
     <title>Taht Savaşı — İmparatorluk Sistemi & Beypazarı</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -4258,6 +4262,278 @@
                 grid-column: 1 / -1;
             }
         }
+        /* Mobile shell: the existing game panels and socket events stay shared. */
+        .mobile-topbar,
+        .mobile-bottom-nav,
+        .mobile-menu-backdrop,
+        .mobile-menu-close,
+        .mobile-dashboard,
+        .mobile-battle-summary { display: none; }
+
+        @media (max-width: 900px) {
+            html { scroll-padding-top: 12px; }
+            body {
+                width: 100%;
+                padding: 0;
+                padding-bottom: calc(78px + env(safe-area-inset-bottom));
+                -webkit-tap-highlight-color: transparent;
+            }
+            body.auth-open { padding-bottom: 0; }
+            body.mobile-menu-open { overflow: hidden; }
+            button, a, select { touch-action: manipulation; }
+            input, textarea, select { font-size: 16px; max-width: 100%; }
+
+            .game-header {
+                max-width: none;
+                margin: 0;
+                padding: calc(7px + env(safe-area-inset-top)) 10px 8px;
+                flex-direction: column;
+                border-radius: 0;
+                border-left: 0;
+                border-right: 0;
+                gap: 7px;
+                position: relative;
+                z-index: 50;
+            }
+            .game-header .header-section:first-child {
+                width: 100%;
+                max-width: 100%;
+                gap: 12px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+            }
+            .game-header .header-section:first-child::-webkit-scrollbar { display: none; }
+            .game-header .header-section:first-child .resource-item { white-space: nowrap; flex: 0 0 auto; }
+            .game-header .header-section:last-child {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 8px;
+            }
+            .game-header .bar-container { min-width: 0; }
+            .game-header .bar-container > span {
+                max-width: 100%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .game-header .stat-bar-mini { width: 100%; }
+
+            .main-wrapper {
+                width: 100%;
+                max-width: none;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 0;
+                padding: 0 8px;
+            }
+            .mobile-topbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                min-width: 0;
+                padding: 10px 4px;
+            }
+            .mobile-dashboard { display: none; }
+            .mobile-dashboard.is-visible {
+                display: block;
+                margin: 0 0 10px;
+                padding: 17px;
+                border: 1px solid #86602b;
+                border-radius: 16px;
+                background:
+                    radial-gradient(circle at 95% 5%, rgba(230,177,67,.24), transparent 42%),
+                    linear-gradient(135deg,#342413,#140e0b 72%);
+                box-shadow: 0 8px 24px rgba(0,0,0,.32);
+            }
+            .mobile-dashboard-eyebrow { color: #c7a66b; font-size: 10px; font-weight: 800; letter-spacing: 1.3px; }
+            .mobile-dashboard h2 { margin-top: 5px; color: #ffdfa0; font-size: clamp(19px, 5vw, 24px); line-height: 1.2; }
+            .mobile-dashboard-level { margin-top: 4px; color: #d8c7ad; font-size: 13px; }
+            .mobile-dashboard-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin-top: 15px; }
+            .mobile-dashboard-actions button {
+                min-height: 54px;
+                border: 1px solid #88642e;
+                border-radius: 11px;
+                background: #24170d;
+                color: #f8dba3;
+                font: inherit;
+                font-size: 13px;
+                font-weight: 750;
+                cursor: pointer;
+            }
+            .mobile-dashboard-actions button:first-child { background: linear-gradient(135deg,#a23422,#692014); border-color: #d46b44; color: #fff3df; }
+            .mobile-dashboard-actions button:active,
+            .mobile-bottom-nav button:active { transform: scale(.97); }
+            .mobile-brand {
+                color: #f3cf7a;
+                font-weight: 800;
+                font-size: 14px;
+                letter-spacing: .5px;
+                white-space: nowrap;
+            }
+            .mobile-menu-toggle,
+            .mobile-menu-close {
+                min-height: 44px;
+                border: 1px solid #72552d;
+                border-radius: 10px;
+                background: #20170f;
+                color: #f3cf7a;
+                font: inherit;
+                font-size: 13px;
+                font-weight: 700;
+                padding: 0 14px;
+                cursor: pointer;
+            }
+            .mobile-menu-close { display: block; margin: 0 0 6px auto; }
+            .sidebar-menu {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 210;
+                width: min(84vw, 320px);
+                max-height: 100dvh;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                border-radius: 0 12px 12px 0;
+                padding: calc(12px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom));
+                transform: translateX(-105%);
+                visibility: hidden;
+                transition: transform .22s ease, visibility .22s;
+            }
+            body.mobile-menu-open .sidebar-menu { transform: translateX(0); visibility: visible; }
+            .sidebar-menu .menu-btn { min-height: 46px; font-size: 14px; }
+            .sidebar-menu .menu-btn.mobile-active { color: #f8d776; border-color: #b88a32; background: #342513; }
+            .mobile-menu-backdrop {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 200;
+                width: 100%;
+                border: 0;
+                background: rgba(0,0,0,.68);
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                transition: opacity .22s ease, visibility .22s;
+            }
+            body.mobile-menu-open .mobile-menu-backdrop {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+            }
+            .content-panel { min-width: 0; min-height: 0; padding: 14px 11px; border-radius: 10px; }
+            .panel-title { gap: 10px; font-size: 14px; line-height: 1.3; }
+            .panel-title > span { min-width: 0; }
+            #myUsernameDisplay { flex: 0 0 auto; white-space: nowrap; }
+            #panelContentBody { min-width: 0; overflow-wrap: anywhere; }
+            #panelContentBody img,
+            #panelContentBody video,
+            #panelContentBody canvas { max-width: 100%; }
+            #panelContentBody table { display: block; max-width: 100%; overflow-x: auto; }
+            #panelContentBody .btn-quest,
+            #panelContentBody .btn-primary { min-height: 46px; border-radius: 9px; font-size: 14px; }
+            #panelContentBody .market-card,
+            #panelContentBody .char-stats-box,
+            #panelContentBody .inventory-container { border-radius: 12px; }
+            #panelContentBody .stat-row { min-height: 40px; font-size: 13px; gap: 10px; }
+            #panelContentBody .stat-row span:last-child { text-align: right; }
+            #panelContentBody .castle-siege-stage { border-radius: 13px; }
+            #panelContentBody .castle-siege-grid { grid-template-columns: minmax(0,1fr) 32px minmax(0,1fr); gap: 5px; }
+            #panelContentBody .castle-side { padding: 8px 5px; }
+            #panelContentBody .castle-army-icons { font-size: 11px; }
+            #panelContentBody .castle-power-line { font-size: 10px; }
+            #panelContentBody .castle-siege-feed { font-size: 12px; }
+            #panelContentBody .mobile-battle-summary {
+                display: block;
+                margin-bottom: 12px;
+                padding: 16px;
+                border: 1px solid #9a6231;
+                border-radius: 15px;
+                background: linear-gradient(135deg,#3a1b13,#1d120e 70%);
+            }
+            .mobile-battle-summary h3 { color: #ffdc9a; font-size: 17px; }
+            .mobile-battle-summary p { color: #e5d4bf; margin-top: 7px; font-size: 13px; line-height: 1.45; }
+            .mobile-battle-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 12px; }
+            .mobile-battle-metrics span { padding: 9px; border: 1px solid #61412c; border-radius: 9px; background: rgba(0,0,0,.2); font-size: 12px; }
+            .mobile-battle-metrics strong { display: block; color: #ffde94; font-size: 17px; }
+            .mobile-battle-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 13px; }
+            .mobile-battle-actions button {
+                min-height: 46px;
+                border: 1px solid #ac7435;
+                border-radius: 10px;
+                background: #25170f;
+                color: #ffdc9a;
+                font: inherit;
+                font-size: 13px;
+                font-weight: 750;
+            }
+            .mobile-battle-actions button:last-child { background: #992d1d; border-color: #d15a3b; color: white; }
+            #panelContentBody .mobile-troop-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+            #panelContentBody .mobile-troop-grid .market-card { min-width: 0; padding: 10px 7px; }
+            #panelContentBody .mobile-troop-grid select { min-height: 42px; }
+            #panelContentBody .mobile-troop-grid [style*="font-size:10px"],
+            #panelContentBody .mobile-troop-grid [style*="font-size:11px"],
+            #panelContentBody .mobile-castle-card [style*="font-size:10px"],
+            #panelContentBody .mobile-siege-action [style*="font-size:10px"] { font-size: 12px !important; line-height: 1.45; }
+            .market-tabs,
+            .howto-nav { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+            .mobile-bottom-nav {
+                display: grid;
+                position: fixed;
+                z-index: 100;
+                inset: auto 0 0;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                padding: 5px 4px calc(5px + env(safe-area-inset-bottom));
+                background: rgba(18, 13, 9, .98);
+                border-top: 1px solid #68502b;
+                box-shadow: 0 -6px 20px rgba(0,0,0,.55);
+            }
+            .mobile-bottom-nav button {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                min-width: 0;
+                min-height: 58px;
+                border: 0;
+                border-radius: 9px;
+                background: transparent;
+                color: #bba994;
+                font: inherit;
+                font-size: 10px;
+                cursor: pointer;
+            }
+            .mobile-bottom-nav button .mobile-nav-icon { font-size: 21px; line-height: 1.1; }
+            .mobile-bottom-nav button[aria-current="page"] { background: #302214; color: #f3cf7a; }
+            .mobile-bottom-nav button:focus-visible,
+            .mobile-menu-toggle:focus-visible,
+            .mobile-menu-close:focus-visible { outline: 2px solid #ffdf73; outline-offset: 2px; }
+        }
+
+        @media (max-width: 440px) {
+            #panelContentBody [style*="minmax(270px"],
+            #panelContentBody [style*="minmax(280px"],
+            #panelContentBody [style*="minmax(260px"],
+            #panelContentBody [style*="minmax(220px"],
+            #panelContentBody [style*="minmax(230px"] { grid-template-columns: minmax(0, 1fr) !important; }
+            .inventory-grid { grid-template-columns: minmax(0, 1fr); }
+            #panelContentBody .mobile-troop-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+        }
+
+        @media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+            .mobile-bottom-nav button { min-height: 44px; }
+            .mobile-bottom-nav button .mobile-nav-icon { font-size: 17px; }
+            body { padding-bottom: calc(63px + env(safe-area-inset-bottom)); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar-menu, .mobile-menu-backdrop { transition: none; }
+        }
 </style>
 </head>
 <body class="auth-open" data-world-theme="overview">
@@ -4456,8 +4732,26 @@
         </div>
     </header>
 
+    <button class="mobile-menu-backdrop" type="button" aria-label="Bölüm menüsünü kapat" onclick="toggleMobileMenu(false)"></button>
+
     <div class="main-wrapper" id="mainApp" style="display: none;">
-        <nav class="sidebar-menu">
+        <div class="mobile-topbar">
+            <span class="mobile-brand">♛ TAHT SAVAŞLARI</span>
+            <button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="primaryGameMenu" aria-expanded="false" onclick="toggleMobileMenu()">☰ Bölümler</button>
+        </div>
+        <section class="mobile-dashboard" id="mobileDashboard" aria-label="Mobil hızlı erişim">
+            <div class="mobile-dashboard-eyebrow">İMPARATORLUĞUN</div>
+            <h2 id="mobileHeroName">Hoş geldin, hükümdar</h2>
+            <div class="mobile-dashboard-level" id="mobileHeroLevel">Seviye 1 • Bir sonraki hamleni seç</div>
+            <div class="mobile-dashboard-actions">
+                <button type="button" onclick="switchTab('barracks')">⚔️ Taht Savaşı</button>
+                <button type="button" onclick="switchTab('work')">📜 Görevlere Git</button>
+                <button type="button" onclick="switchTab('market')">🛒 Market</button>
+                <button type="button" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
+            </div>
+        </section>
+        <nav class="sidebar-menu" id="primaryGameMenu" aria-label="Oyun bölümleri">
+            <button class="mobile-menu-close" type="button" onclick="toggleMobileMenu(false)">✕ Kapat</button>
             <div class="menu-category-title">İmparatorluk</div>
             <button class="menu-btn" onclick="switchTab('overview')">🏛️ Genel Durum</button>
             <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
@@ -4490,6 +4784,13 @@
             </div>
             <div id="panelContentBody"></div>
         </main>
+        <nav class="mobile-bottom-nav" aria-label="Mobil ana menü">
+            <button type="button" data-mobile-tab="overview" onclick="switchTab('overview')"><span class="mobile-nav-icon" aria-hidden="true">🏛️</span><span>Durum</span></button>
+            <button type="button" data-mobile-tab="work" onclick="switchTab('work')"><span class="mobile-nav-icon" aria-hidden="true">⚔️</span><span>Görev</span></button>
+            <button type="button" data-mobile-tab="barracks" onclick="switchTab('barracks')"><span class="mobile-nav-icon" aria-hidden="true">🏰</span><span>Savaş</span></button>
+            <button type="button" data-mobile-tab="market" onclick="switchTab('market')"><span class="mobile-nav-icon" aria-hidden="true">🛒</span><span>Market</span></button>
+            <button type="button" id="mobileMoreButton" onclick="toggleMobileMenu()" aria-expanded="false" aria-controls="primaryGameMenu"><span class="mobile-nav-icon" aria-hidden="true">☰</span><span>Diğer</span></button>
+        </nav>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -4497,6 +4798,48 @@
         const socket = io();
         let currentUserData = null;
         let activeTab = 'overview';
+
+        function toggleMobileMenu(force) {
+            const open = typeof force === 'boolean'
+                ? force
+                : !document.body.classList.contains('mobile-menu-open');
+            if (open && (!currentUserData || window.innerWidth > 900)) return;
+            document.body.classList.toggle('mobile-menu-open', open);
+            document.getElementById('mobileMenuToggle').setAttribute('aria-expanded', String(open));
+            document.getElementById('mobileMoreButton').setAttribute('aria-expanded', String(open));
+            if (open) document.querySelector('.mobile-menu-close').focus();
+            else if (document.activeElement?.closest('.sidebar-menu'))
+                document.getElementById('mobileMenuToggle').focus();
+        }
+
+        function updateMobileNavigation(tab) {
+            let hasPrimaryTab = false;
+            document.getElementById('mobileDashboard').classList.toggle('is-visible', tab === 'overview');
+            document.querySelectorAll('[data-mobile-tab]').forEach(button => {
+                if (button.dataset.mobileTab === tab) {
+                    button.setAttribute('aria-current', 'page');
+                    hasPrimaryTab = true;
+                }
+                else button.removeAttribute('aria-current');
+            });
+            if (hasPrimaryTab) document.getElementById('mobileMoreButton').removeAttribute('aria-current');
+            else document.getElementById('mobileMoreButton').setAttribute('aria-current', 'page');
+            document.querySelectorAll('.sidebar-menu .menu-btn').forEach(button => {
+                button.classList.toggle('mobile-active', button.getAttribute('onclick') === `switchTab('${tab}')`);
+            });
+            toggleMobileMenu(false);
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') toggleMobileMenu(false);
+        });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 900) toggleMobileMenu(false);
+        });
+
+        function scrollMobileBattleTarget(id) {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
 
         // Klan istemci durumu
         let currentClanData = null;
@@ -6728,6 +7071,9 @@
         function updateHeader(data) {
             if(!data) return;
 
+            document.getElementById('mobileHeroName').textContent = `Hoş geldin, ${data.username || 'hükümdar'}`;
+            document.getElementById('mobileHeroLevel').textContent = `Seviye ${Number(data.level) || 1} • Bir sonraki hamleni seç`;
+
             const previousUser =
                 currentUserData
                     ? {
@@ -7643,6 +7989,8 @@
 
         function switchTab(tab) {
             activeTab = tab;
+            updateMobileNavigation(tab);
+            if (window.innerWidth <= 900) window.scrollTo(0, 0);
             applyWorldTheme(tab);
             const titles = {
                 'overview': 'Genel Durum & Karakter',
@@ -9360,6 +9708,30 @@
                 const castle = barracksState.castle;
                 const isCastleOwner = !!castle.isOwner;
 
+                const castleDailyAttackLimit =
+                    Math.max(
+                        1,
+                        Number(
+                            castle.dailyAttackLimit
+                        ) || 5
+                    );
+
+                const castleDailyAttacksUsed =
+                    Math.max(
+                        0,
+                        Number(
+                            castle.dailyAttacksUsed
+                        ) || 0
+                    );
+
+                const castleDailyAttacksRemaining =
+                    Math.max(
+                        0,
+                        Number(
+                            castle.dailyAttacksRemaining
+                        ) || 0
+                    );
+
                 const conqueredDate = castle.conqueredAt
                     ? new Date(
                         castle.conqueredAt
@@ -9370,8 +9742,28 @@
                     ? escapeHTML(castle.ownerName)
                     : 'Saray Muhafızları';
 
+                const mobileBattleHint = isCastleOwner
+                    ? 'Taht sende. Savunmanı güçlendirmek için yeni birlikler yetiştir.'
+                    : myArmyCount <= 0
+                        ? 'Kuşatmaya çıkmak için önce en az bir birlik yetiştir.'
+                        : castleDailyAttacksRemaining <= 0
+                            ? 'Bugünkü saldırı hakların bitti. Yeni hakların gece yarısı yenilenir.'
+                            : 'Ordun hazır. Savunmayı inceleyip kuşatmayı başlatabilirsin.';
+
                 body.innerHTML = `
-                    <div style="
+                    <section class="mobile-battle-summary" aria-label="Taht Savaşı hazırlığı">
+                        <h3>⚔️ Taht Savaşına Hazırlık</h3>
+                        <p>${mobileBattleHint}</p>
+                        <div class="mobile-battle-metrics">
+                            <span>Kalan saldırı<strong>${castleDailyAttacksRemaining}/${castleDailyAttackLimit}</strong></span>
+                            <span>Ordu gücü<strong>${myArmyPower.toLocaleString('tr-TR')}</strong></span>
+                        </div>
+                        <div class="mobile-battle-actions">
+                            <button type="button" onclick="scrollMobileBattleTarget('mobileTroopGrid')">🛡️ Birlik Yetiştir</button>
+                            <button type="button" onclick="scrollMobileBattleTarget('mobileSiegeAction')">🏰 Kuşatmayı İncele</button>
+                        </div>
+                    </section>
+                    <div class="mobile-castle-card" style="
                         background:linear-gradient(135deg,#24160d,#0d0907);
                         border:1px solid #d4af37;
                         border-radius:8px;
@@ -9404,6 +9796,37 @@
                             ${castle.battleCount || 0}
                         </div>
 
+                        <div style="
+                            display:inline-flex;
+                            align-items:center;
+                            gap:7px;
+                            margin-top:8px;
+                            padding:6px 10px;
+                            border-radius:999px;
+                            border:1px solid ${
+                                castleDailyAttacksRemaining > 0
+                                    ? 'rgba(96,165,250,.45)'
+                                    : 'rgba(239,68,68,.55)'
+                            };
+                            background:${
+                                castleDailyAttacksRemaining > 0
+                                    ? 'rgba(59,130,246,.08)'
+                                    : 'rgba(127,29,29,.12)'
+                            };
+                            color:${
+                                castleDailyAttacksRemaining > 0
+                                    ? '#bfdbfe'
+                                    : '#fca5a5'
+                            };
+                            font-size:10px;
+                            font-weight:bold;
+                        ">
+                            ⚔️ Günlük Taht Savaşı:
+                            ${castleDailyAttacksUsed}/${castleDailyAttackLimit}
+                            •
+                            Kalan ${castleDailyAttacksRemaining}
+                        </div>
+
                         ${
                             isCastleOwner
                                 ? `
@@ -9428,7 +9851,7 @@
                         }
                     </div>
 
-                    <div style="
+                    <div id="mobileTroopGrid" class="mobile-troop-grid" style="
                         display:grid;
                         grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
                         gap:10px;
@@ -9766,7 +10189,7 @@
                         ></div>
                     </div>
 
-                    <div style="
+                    <div id="mobileSiegeAction" class="mobile-siege-action" style="
                         background:#120e0c;
                         border:1px solid ${
                             isCastleOwner
@@ -9908,20 +10331,29 @@
                                         id="attackCastleBtn"
                                         class="btn-quest"
                                         ${
-                                            myArmyCount <= 0
+                                            myArmyCount <= 0 ||
+                                            castleDailyAttacksRemaining <= 0
                                                 ? 'disabled'
                                                 : ''
                                         }
                                         style="
                                             width:100%;
                                             margin-top:10px;
-                                            background:#991b1b;
+                                            background:${
+                                                castleDailyAttacksRemaining <= 0
+                                                    ? '#4b1d1d'
+                                                    : '#991b1b'
+                                            };
                                             color:white;
                                             border-color:#ef4444;
                                         "
                                         onclick="attackCastleNow()"
                                     >
-                                        ⚔️ KALEYİ KUŞAT
+                                        ${
+                                            castleDailyAttacksRemaining <= 0
+                                                ? '⛔ GÜNLÜK 5/5 SALDIRI HAKKI DOLDU'
+                                                : `⚔️ KALEYİ KUŞAT • Kalan ${castleDailyAttacksRemaining}/${castleDailyAttackLimit}`
+                                        }
                                     </button>
                                 `
                         }
@@ -13149,6 +13581,12 @@
 
                         <div class="howto-content">
                             <p>
+                                Bireysel Taht Savaşında her oyuncu Türkiye saatine göre
+                                <strong>günde en fazla 5 gerçek kale saldırısı</strong> yapabilir.
+                                Kazanılan veya kaybedilen her gerçek kuşatma 1 hak tüketir;
+                                asker yokluğu, kendi kalene saldırma veya sistem kilidi gibi reddedilen işlemler hak tüketmez.
+                                Haklar her gece 00:00'da yenilenir.<br><br>
+
                                 Klan Kale Savaşı bireysel Taht Savaşından ayrı bir sistemdir.
                                 Kale saldırıları görsel olarak Taht Savaşı kuşatmalarındaki gibi
                                 okçu yaylımı, mancınık bombardımanı, piyade ve süvari hücumu aşamalarını gösterir.
@@ -14745,6 +15183,21 @@
 
         function attackCastleNow() {
             if (castleSiegeAnimating) return;
+
+            const remaining =
+                Number(
+                    barracksState?.castle
+                        ?.dailyAttacksRemaining
+                );
+
+            if (
+                Number.isFinite(remaining) &&
+                remaining <= 0
+            ) {
+                return alert(
+                    '⛔ Günlük 5 Taht Savaşı saldırı hakkın doldu. Hakların Türkiye saatine göre gece 00:00’da yenilenir.'
+                );
+            }
 
             const btn =
                 document.getElementById('attackCastleBtn');
@@ -16983,8 +17436,28 @@
                 );
 
             if (btn) {
-                btn.disabled = false;
-                btn.innerText = '⚔️ KALEYİ KUŞAT';
+                const remaining =
+                    Number(
+                        res?.castle
+                            ?.dailyAttacksRemaining ??
+                        barracksState?.castle
+                            ?.dailyAttacksRemaining
+                    );
+
+                const limitReached =
+                    res?.dailyLimitReached ||
+                    (
+                        Number.isFinite(remaining) &&
+                        remaining <= 0
+                    );
+
+                btn.disabled =
+                    Boolean(limitReached);
+
+                btn.innerText =
+                    limitReached
+                        ? '⛔ GÜNLÜK 5/5 SALDIRI HAKKI DOLDU'
+                        : '⚔️ KALEYİ KUŞAT';
             }
 
             const logEl =
@@ -17403,6 +17876,7 @@
         }
 
         socket.on('logoutSuccess', () => {
+            toggleMobileMenu(false);
             destroyGameBackgroundMusic();
 
             document.getElementById('mainApp').style.display = 'none'; 
