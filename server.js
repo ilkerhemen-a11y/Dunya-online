@@ -1552,14 +1552,26 @@ async function calculateOfflineGold(user) {
 }
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/throne_war';
+let availableArenaBots = 0;
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB bağlantısı başarılı!'))
+    .then(async () => {
+        console.log('MongoDB bağlantısı başarılı!');
+        try {
+            availableArenaBots = await seedArenaBots();
+            broadcastOnlinePlayerCount();
+            console.log(`Arena botları hazır: ${availableArenaBots}/${ARENA_BOTS.length}`);
+        } catch (err) {
+            console.error('Arena botları oluşturulamadı:', err);
+        }
+    })
     .catch(err => console.error('MongoDB bağlantı hatası:', err));
 
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     token: { type: String, default: null },
+    isBot: { type: Boolean, default: false },
+    botKey: { type: String, default: null },
     lastCollected: { type: Number, default: Date.now },
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
@@ -1714,6 +1726,50 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
+
+// Bu hesaplar sadece arenada rakiptir; gerçek oyuncu olarak oturum açmazlar.
+const ARENA_BOTS = [
+    ['alaz', 'Bot_01_Alaz', 1, 6, 7],
+    ['boran', 'Bot_02_Boran', 16, 36, 31],
+    ['ceren', 'Bot_03_Ceren', 24, 62, 54],
+    ['doruk', 'Bot_04_Doruk', 32, 92, 78],
+    ['eylul', 'Bot_05_Eylul', 40, 125, 110],
+    ['firat', 'Bot_06_Firat', 48, 165, 140],
+    ['gokce', 'Bot_07_Gokce', 56, 205, 175],
+    ['hakan', 'Bot_08_Hakan', 64, 260, 210],
+    ['irmak', 'Bot_09_Irmak', 76, 345, 275],
+    ['kaya', 'Bot_10_Kaya', 90, 465, 355]
+].map(([key, username, level, str, vit]) => ({
+    botKey: `arena_v1_${key}`,
+    username,
+    level,
+    str,
+    vit
+}));
+const ARENA_BOT_KEYS = ARENA_BOTS.map(bot => bot.botKey);
+
+async function seedArenaBots() {
+    // Yalnızca eksik botları ekle: tekrar başlayan sunucu hesapları çoğaltmaz
+    // ve savaş sonuçlarından sonra verilerini sıfırlamaz.
+    await User.init();
+    for (const bot of ARENA_BOTS) {
+        await User.updateOne(
+            { username: bot.username },
+            {
+                $setOnInsert: {
+                    ...bot,
+                    isBot: true,
+                    password: crypto.randomBytes(32).toString('hex'),
+                    token: null,
+                    hp: bot.vit * 20,
+                    arenaResetDate: new Date().toDateString()
+                }
+            },
+            { upsert: true }
+        );
+    }
+    return User.countDocuments({ isBot: true, botKey: { $in: ARENA_BOT_KEYS } });
+}
 
 // Beypazarı Karakter Tezgahları Şeması
 const stallSchema = new mongoose.Schema({
@@ -2053,7 +2109,8 @@ function getOnlinePlayerCount() {
 
 function broadcastOnlinePlayerCount() {
     io.emit('onlinePlayerCount', {
-        count: getOnlinePlayerCount()
+        count: getOnlinePlayerCount(),
+        bots: availableArenaBots
     });
 }
 
@@ -4688,12 +4745,14 @@ io.on('connection', (socket) => {
 
     // Giriş yapmamış istemci dahil herkese mevcut online oyuncu sayısını göster.
     socket.emit('onlinePlayerCount', {
-        count: getOnlinePlayerCount()
+        count: getOnlinePlayerCount(),
+        bots: availableArenaBots
     });
 
     socket.on('userRegister', async (data) => {
         const { username, password } = data;
         if (!username || !password) return socket.emit('authResult', { success: false, message: "Eksik bilgi!" });
+        if (/^bot_/i.test(username)) return socket.emit('authResult', { success: false, message: "Bot isimleri kullanılamaz." });
         try {
             const existing = await User.findOne({ username });
             if (existing) return socket.emit('authResult', { success: false, message: "Bu isimde gladyatör var!" });
@@ -4717,7 +4776,7 @@ io.on('connection', (socket) => {
     socket.on('userLogin', async (data) => {
         const { username, password } = data;
         try {
-            const dbUser = await User.findOne({ username });
+            const dbUser = await User.findOne({ username, isBot: { $ne: true } });
             if (!dbUser || !(await bcrypt.compare(password, dbUser.password))) {
                 return socket.emit('authResult', { success: false, message: "Hatalı kullanıcı adı veya şifre!" });
             }
@@ -4764,7 +4823,7 @@ io.on('connection', (socket) => {
         const { token } = data;
         if (!token) return;
         try {
-            const dbUser = await User.findOne({ token });
+            const dbUser = await User.findOne({ token, isBot: { $ne: true } });
             if (!dbUser) {
                 return socket.emit('authResult', { success: false, message: "Oturum süresi doldu.", clearToken: true });
             }
@@ -7489,12 +7548,16 @@ io.on('connection', (socket) => {
         await user.save();
 
         try {
-            // Her yenilemede rastgele 5 farklı rakip getir.
-            // find().limit(5) sürekli aynı kayıtları döndürebildiği için $sample kullanıyoruz.
-            const opponents = await User.aggregate([
+            // Botların tamamı her zaman seçilebilir; gerçek oyunculardan 5'i rastgele gelir.
+            const [bots, players] = await Promise.all([
+                User.find({ isBot: true, botKey: { $in: ARENA_BOT_KEYS } })
+                    .select('username level str vit equipped honor isBot botKey')
+                    .lean(),
+                User.aggregate([
                 {
                     $match: {
-                        _id: { $ne: user._id }
+                        _id: { $ne: user._id },
+                        isBot: { $ne: true }
                     }
                 },
                 {
@@ -7509,10 +7572,15 @@ io.on('connection', (socket) => {
                         str: 1,
                         vit: 1,
                         equipped: 1,
-                        honor: 1
+                        honor: 1,
+                        isBot: 1
                     }
                 }
+                ])
             ]);
+
+            bots.sort((a, b) => ARENA_BOT_KEYS.indexOf(a.botKey) - ARENA_BOT_KEYS.indexOf(b.botKey));
+            const opponents = [...bots.map(({ botKey, ...bot }) => bot), ...players];
 
             socket.emit('arenaOpponentsList', opponents);
         } catch (err) {
@@ -7792,6 +7860,7 @@ io.on('connection', (socket) => {
                     defender: {
                         id: String(defender._id),
                         username: defender.username,
+                        isBot: defender.isBot === true,
                         level: Math.min(MAX_LEVEL, Number(defender.level) || 1),
                         title: getTitleByLevel(defender.level),
                         honor: defender.honor || 0,

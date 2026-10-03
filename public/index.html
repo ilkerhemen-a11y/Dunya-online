@@ -558,6 +558,7 @@
         .btn-equip:hover { background: linear-gradient(to bottom, #d4af37, #997415); border-color: #ffdf73; color: #0b0908; }
 
         .quest-list, .market-list, .forge-list { display: flex; flex-direction: column; gap: 10px; }
+        #arenaOpponentsList { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 8px; }
         .quest-card, .market-card, .forge-card { background: #120e0c; border: 1px solid #33241b; border-radius: 6px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
         .quest-info h4, .market-info h4, .forge-info h4 { color: #f3cf7a; font-size: 13px; margin-bottom: 3px; }
         .quest-info p, .market-info p, .forge-info p { color: #9c8e7b; font-size: 11px; margin-bottom: 6px; }
@@ -4994,7 +4995,7 @@
 
     <header class="game-header">
         <div class="header-section">
-            <div class="resource-item" style="color:#4ade80;">🟢 Online: <span id="headerOnlineCount">0</span></div>
+            <div class="resource-item" style="color:#4ade80;">🟢 Oyuncu: <span id="headerOnlineCount">0</span> <span style="color:#c4b5fd;">· 🤖 Bot: <span id="headerBotCount">0</span></span></div>
             <div class="resource-item">🪙 <span id="headerGold">0</span> Altın</div>
             <div class="resource-item" style="color: #ef4444;">💎 <span id="headerRubies">0</span> Yakut</div>
             <div class="resource-item" style="color: #f3cf7a;">🔑 <span id="headerKeys">0</span> Altın Anahtar</div>
@@ -5165,6 +5166,8 @@
 
         let barracksState = null;
         let arenaOpponentCache = {};
+        let arenaOpponents = [];
+        let arenaOpponentFilter = 'bots';
         let arenaAnimationToken = 0;
 
         let castleSiegeAnimating = false;
@@ -7152,8 +7155,11 @@
 
         socket.on('onlinePlayerCount', (data) => {
             const count = Math.max(0, Number(data?.count) || 0);
+            const bots = Math.max(0, Number(data?.bots) || 0);
             const el = document.getElementById('headerOnlineCount');
             if (el) el.innerText = count.toLocaleString('tr-TR');
+            const botEl = document.getElementById('headerBotCount');
+            if (botEl) botEl.innerText = bots.toLocaleString('tr-TR');
         });
 
         socket.on('gameBuildInfo', (data) => {
@@ -11106,7 +11112,7 @@
                         margin-bottom:10px;
                     ">
                         <div style="color:#9c8e7b; font-size:11px;">
-                            Rakipler • Savaş sonucu sunucu tarafından belirlenir.
+                            Botlar arenada savaşır. Savaş sonucu sunucu tarafından belirlenir.
                         </div>
 
                         <button
@@ -11114,6 +11120,11 @@
                             class="btn-quest"
                             onclick="refreshArenaOpponents()"
                         >🔄 Rakipleri Yenile</button>
+                    </div>
+
+                    <div id="arenaOpponentFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button type="button" class="btn-quest" data-arena-filter="bots" onclick="filterArenaOpponents('bots')">🤖 Botlar</button>
+                        <button type="button" class="btn-quest" data-arena-filter="players" onclick="filterArenaOpponents('players')">👤 Oyuncular</button>
                     </div>
 
                     <div id="arenaOpponentsList" class="quest-list">
@@ -16429,6 +16440,56 @@
             socket.emit('getArenaOpponents');
         }
 
+        function filterArenaOpponents(type) {
+            arenaOpponentFilter = type === 'players' ? 'players' : 'bots';
+            renderArenaOpponents();
+        }
+
+        function renderArenaOpponents() {
+            const listEl = document.getElementById('arenaOpponentsList');
+            if (!listEl) return;
+
+            document.querySelectorAll('[data-arena-filter]').forEach(button => {
+                const active = button.dataset.arenaFilter === arenaOpponentFilter;
+                const count = arenaOpponents.filter(op => !!op.isBot === (button.dataset.arenaFilter === 'bots')).length;
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+                button.style.borderColor = active ? '#f3cf7a' : '#6b4f35';
+                button.style.color = active ? '#f3cf7a' : '#c9baa4';
+                button.innerText = `${button.dataset.arenaFilter === 'bots' ? '🤖 Botlar' : '👤 Oyuncular'} (${count})`;
+            });
+
+            const opponents = arenaOpponents.filter(op => !!op.isBot === (arenaOpponentFilter === 'bots'));
+            if (opponents.length === 0) {
+                listEl.innerHTML = `<p style="color:#9c8e7b;font-size:12px;text-align:center;">${arenaOpponentFilter === 'bots' ? 'Bot rakipler henüz hazır değil. Biraz sonra yenile.' : 'Şu an başka oyuncu rakip bulunamadı.'}</p>`;
+                return;
+            }
+
+            listEl.innerHTML = opponents.map(op => {
+                const stats = calculateClientArenaStats(op);
+                const canFight = (Number(currentUserData?.arenaLimit) || 0) > 0;
+
+                return `
+                    <div class="quest-card" style="border-left:3px solid ${op.isBot ? '#a855f7' : '#991b1b'};gap:7px;padding:8px;">
+                        <div style="font-size:24px;width:30px;text-align:center;">${op.isBot ? '🤖' : '⚔️'}</div>
+
+                        <div class="quest-info" style="flex:1;min-width:0;">
+                            <h4>${escapeHTML(op.username)} <span style="color:#9c8e7b;font-size:10px;">Sv ${Math.min(MAX_LEVEL, op.level || 1)}</span></h4>
+                            <p><span class="title-badge">${op.isBot ? '🤖 Bot rakip' : '🏅 ' + getTitleByLevel(op.level || 1)}</span> &nbsp; 🌟 ${op.honor || 0}</p>
+                            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;font-size:9px;">
+                                <span style="color:#f97316;">⚔️ STR ${stats.str}</span>
+                                <span style="color:#60a5fa;">🛡️ VIT ${stats.vit}</span>
+                                <span style="color:#facc15;">🔥 ${stats.power}</span>
+                            </div>
+                        </div>
+
+                        <button id="atkBtn_${op._id}" class="btn-quest" ${canFight ? '' : 'disabled'}
+                            style="background:#991b1b;color:white;border-color:#ef4444;"
+                            onclick="startArenaChallenge('${op._id}', 'atkBtn_${op._id}')">⚔️ SAVAŞ</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function startArenaChallenge(defenderId, btnId) {
             if (!defenderId || !currentUserData) return;
 
@@ -17959,7 +18020,6 @@
         });
         
         socket.on('arenaOpponentsList', (opponents) => {
-            const listEl = document.getElementById('arenaOpponentsList');
             const refreshBtn = document.getElementById('arenaRefreshBtn');
 
             if (refreshBtn) {
@@ -17967,73 +18027,12 @@
                 refreshBtn.innerText = '🔄 Rakipleri Yenile';
             }
 
-            if (!listEl) return;
-
             arenaOpponentCache = {};
-
-            if (!opponents || opponents.length === 0) {
-                listEl.innerHTML = `
-                    <p style="color:#9c8e7b; font-size:12px; text-align:center;">
-                        Şu an başka rakip bulunamadı.
-                    </p>
-                `;
-                return;
-            }
-
-            opponents.forEach(op => {
+            arenaOpponents = Array.isArray(opponents) ? opponents : [];
+            arenaOpponents.forEach(op => {
                 arenaOpponentCache[String(op._id)] = op;
             });
-
-            listEl.innerHTML = opponents.map(op => {
-                const stats = calculateClientArenaStats(op);
-                const canFight = (Number(currentUserData?.arenaLimit) || 0) > 0;
-
-                return `
-                    <div class="quest-card" style="border-left:3px solid #991b1b;">
-                        <div style="font-size:27px; width:36px; text-align:center;">⚔️</div>
-
-                        <div class="quest-info" style="flex:1;">
-                            <h4>
-                                ${escapeHTML(op.username)}
-                                <span style="color:#9c8e7b; font-size:10px;">
-                                    Lv ${Math.min(MAX_LEVEL, op.level || 1)}
-                                </span>
-                            </h4>
-
-                            <p>
-                                <span class="title-badge">
-                                    🏅 ${getTitleByLevel(op.level || 1)}
-                                </span>
-                                &nbsp; 🌟 Onur: ${op.honor || 0}
-                            </p>
-
-                            <div style="
-                                display:flex;
-                                gap:9px;
-                                flex-wrap:wrap;
-                                margin-top:4px;
-                                font-size:9px;
-                            ">
-                                <span style="color:#f97316;">⚔️ STR ${stats.str}</span>
-                                <span style="color:#60a5fa;">🛡️ VIT ${stats.vit}</span>
-                                <span style="color:#facc15;">🔥 Savaş Gücü ${stats.power}</span>
-                            </div>
-                        </div>
-
-                        <button
-                            id="atkBtn_${op._id}"
-                            class="btn-quest"
-                            ${canFight ? '' : 'disabled'}
-                            style="
-                                background:#991b1b;
-                                color:white;
-                                border-color:#ef4444;
-                            "
-                            onclick="startArenaChallenge('${op._id}', 'atkBtn_${op._id}')"
-                        >⚔️ SAVAŞ</button>
-                    </div>
-                `;
-            }).join('');
+            renderArenaOpponents();
         });
 
         socket.on('arenaResult', (res) => {
