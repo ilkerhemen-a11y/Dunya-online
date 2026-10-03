@@ -4270,7 +4270,7 @@
         .mobile-dashboard,
         .mobile-battle-summary { display: none; }
 
-        @media (max-width: 900px) {
+        @media (max-width: 900px), (max-width: 1100px) and (orientation: landscape) and (max-height: 600px) {
             html { scroll-padding-top: 12px; }
             body {
                 width: 100%;
@@ -4525,7 +4525,57 @@
             #panelContentBody .mobile-troop-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
         }
 
-        @media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+        @media (max-width: 1100px) and (orientation: landscape) and (max-height: 600px) {
+            .modal-overlay {
+                align-items: flex-start;
+                padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+            }
+            .login-stage {
+                width: min(100%, 920px);
+                min-height: 0;
+                margin: auto 0;
+                padding: 0;
+                display: grid;
+                grid-template-columns: minmax(120px, .55fr) minmax(260px, 1fr);
+                gap: clamp(8px, 2vw, 24px);
+            }
+            .login-brand { padding: 0 4px; }
+            .login-emblem { width: 62px; height: 62px; margin-bottom: 8px; }
+            .login-emblem::before, .login-emblem::after { width: 80px; }
+            .login-crown { top: 2px; font-size: 23px; }
+            .login-swords { top: 6px; font-size: 31px; }
+            .login-brand h1 { font-size: clamp(22px, 3.5vw, 36px); letter-spacing: 1px; }
+            .brand-subtitle { margin-top: 7px; font-size: 9px; letter-spacing: 1px; }
+            .brand-divider, .brand-copy { display: none; }
+            .box { max-width: 460px; padding: 10px 16px; }
+            .login-panel-title { margin-bottom: 4px; }
+            .auth-tabs { margin-bottom: 5px; padding: 2px; }
+            .auth-tab { padding: 5px; }
+            #authMessage { min-height: 0; margin-bottom: 3px; }
+            #authMessage:empty { display: none; }
+            .auth-form p { margin-bottom: 6px; }
+            .auth-field { margin-bottom: 6px; }
+            .auth-field-label { margin-bottom: 2px; }
+            .box input { min-height: 38px; padding: 7px 10px; }
+            .box .btn-primary { min-height: 39px; padding: 7px; }
+            .login-security-note { display: none; }
+
+            .game-header {
+                min-height: 48px;
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+                padding: 4px max(10px, env(safe-area-inset-right)) 4px max(10px, env(safe-area-inset-left));
+                margin-bottom: 0;
+            }
+            .game-header .header-section:first-child { flex: 1 1 52%; width: auto; gap: 10px; }
+            .game-header .header-section:last-child { flex: 1 1 42%; width: auto; gap: 4px; }
+            .game-header .bar-container > span { font-size: 9px !important; }
+            .mobile-topbar { padding: 4px; }
+            .mobile-menu-toggle { min-height: 40px; }
+            .mobile-dashboard.is-visible { padding: 10px 12px; }
+            .mobile-dashboard-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
+            .mobile-dashboard-actions button { min-height: 44px; padding: 5px; }
             .mobile-bottom-nav button { min-height: 44px; }
             .mobile-bottom-nav button .mobile-nav-icon { font-size: 17px; }
             body { padding-bottom: calc(63px + env(safe-area-inset-bottom)); }
