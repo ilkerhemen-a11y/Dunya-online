@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-09-06-blessing-stack-v1';
+const GAME_BUILD_ID = '2026-10-03-throne-mobile-apk-v1';
 
 const app = express();
 const server = http.createServer(app);
@@ -1626,6 +1626,10 @@ const userSchema = new mongoose.Schema({
     },
     castleVictories: { type: Number, default: 0 },
 
+    // Bireysel Taht Savaşı günlük saldırı limiti
+    castleDailyAttacks: { type: Number, default: 0 },
+    castleAttackResetDate: { type: String, default: "" },
+
     siegePreparations: {
         armyRations: { type: Boolean, default: false },
         warDrum: { type: Boolean, default: false },
@@ -1850,6 +1854,86 @@ async function getOrCreateCastle() {
     );
 }
 
+const CASTLE_DAILY_ATTACK_LIMIT = 5;
+
+function normalizeCastleDailyAttackLimit(user) {
+    if (!user) return false;
+
+    const today =
+        getTurkeyDayKey();
+
+    let changed = false;
+
+    if (
+        user.castleAttackResetDate !==
+        today
+    ) {
+        user.castleAttackResetDate =
+            today;
+
+        user.castleDailyAttacks =
+            0;
+
+        changed = true;
+    }
+
+    const safeUsed =
+        Math.max(
+            0,
+            Math.min(
+                CASTLE_DAILY_ATTACK_LIMIT,
+                Number.parseInt(
+                    user.castleDailyAttacks,
+                    10
+                ) || 0
+            )
+        );
+
+    if (
+        Number(user.castleDailyAttacks) !==
+        safeUsed
+    ) {
+        user.castleDailyAttacks =
+            safeUsed;
+
+        changed = true;
+    }
+
+    return changed;
+}
+
+function getCastleDailyAttackState(user) {
+    normalizeCastleDailyAttackLimit(
+        user
+    );
+
+    const used =
+        Math.max(
+            0,
+            Math.min(
+                CASTLE_DAILY_ATTACK_LIMIT,
+                Number(
+                    user?.castleDailyAttacks
+                ) || 0
+            )
+        );
+
+    return {
+        limit:
+            CASTLE_DAILY_ATTACK_LIMIT,
+        used,
+        remaining:
+            Math.max(
+                0,
+                CASTLE_DAILY_ATTACK_LIMIT -
+                used
+            ),
+        resetDate:
+            user?.castleAttackResetDate ||
+            getTurkeyDayKey()
+    };
+}
+
 async function getCastleStatusForUser(user) {
     let castle = await getOrCreateCastle();
     let defenderArmy = cloneArmy(NPC_CASTLE_ARMY);
@@ -1885,6 +1969,11 @@ async function getCastleStatusForUser(user) {
         (combinedArmyPower + CASTLE_WALL_POWER) * CASTLE_DEFENSE_BONUS
     );
 
+    const dailyAttack =
+        getCastleDailyAttackState(
+            user
+        );
+
     return {
         key: castle.key,
         ownerId: castle.ownerId ? String(castle.ownerId) : null,
@@ -1903,6 +1992,16 @@ async function getCastleStatusForUser(user) {
 
         conqueredAt: castle.conqueredAt || 0,
         battleCount: castle.battleCount || 0,
+
+        dailyAttackLimit:
+            dailyAttack.limit,
+        dailyAttacksUsed:
+            dailyAttack.used,
+        dailyAttacksRemaining:
+            dailyAttack.remaining,
+        dailyAttackResetDate:
+            dailyAttack.resetDate,
+
         isOwner: !!(
             castle.ownerId &&
             user &&
@@ -6222,6 +6321,7 @@ io.on('connection', (socket) => {
     async function getBarracksStatusPayload(user) {
         normalizeArmy(user);
         normalizeTimarState(user);
+        normalizeCastleDailyAttackLimit(user);
 
         const castle = await getCastleStatusForUser(user);
         const troopPower = getArmyPower(user.army);
@@ -6398,6 +6498,36 @@ io.on('connection', (socket) => {
         try {
             normalizeArmy(user);
             normalizeSiegeMarketState(user);
+            normalizeCastleDailyAttackLimit(user);
+
+            const dailyAttack =
+                getCastleDailyAttackState(
+                    user
+                );
+
+            if (
+                dailyAttack.remaining <= 0
+            ) {
+                const castle =
+                    await getCastleStatusForUser(
+                        user
+                    );
+
+                return socket.emit(
+                    'castleBattleResult',
+                    {
+                        success: false,
+                        dailyLimitReached: true,
+                        userData: user,
+                        castle,
+                        message:
+                            `⛔ Günlük Taht Savaşı saldırı limitin doldu. ` +
+                            `Her oyuncu Türkiye saatine göre günde en fazla ` +
+                            `${CASTLE_DAILY_ATTACK_LIMIT} kez kaleye saldırabilir. ` +
+                            `Yeni hakların gece 00:00'da yenilenir.`
+                    }
+                );
+            }
 
             const attackerArmy = cloneArmy(user.army);
             const attackerTroopPower = getArmyPower(attackerArmy);
@@ -6452,9 +6582,22 @@ io.on('connection', (socket) => {
                 return socket.emit('castleBattleResult', {
                     success: false,
                     userData: user,
+                    castle:
+                        await getCastleStatusForUser(
+                            user
+                        ),
                     message: '👑 Bu kale zaten senin. Kendi tahtına saldıramazsın.'
                 });
             }
+
+            // Buradan sonrası gerçek bir saldırı girişimidir.
+            // Savaş kazanılsa da kaybedilse de günlük hak 1 azalır.
+            user.castleDailyAttacks =
+                Math.min(
+                    CASTLE_DAILY_ATTACK_LIMIT,
+                    (Number(user.castleDailyAttacks) || 0) +
+                    1
+                );
 
             let defenderUser = null;
             let defenderArmy = cloneArmy(NPC_CASTLE_ARMY);
@@ -6738,6 +6881,16 @@ io.on('connection', (socket) => {
                 defenderBattlePower,
                 attackerLosses: attackerLossResult.lost,
                 defenderLosses: defenderLossResult.lost,
+                dailyAttackLimit:
+                    CASTLE_DAILY_ATTACK_LIMIT,
+                dailyAttacksUsed:
+                    Number(user.castleDailyAttacks) || 0,
+                dailyAttacksRemaining:
+                    Math.max(
+                        0,
+                        CASTLE_DAILY_ATTACK_LIMIT -
+                        (Number(user.castleDailyAttacks) || 0)
+                    ),
                 message,
 
                 battle: {
