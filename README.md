@@ -1,6 +1,6 @@
 # Taht Savaşları Mobil
 
-Taht Savaşları'nın mobil arayüzü ve Android uygulaması. APK yatay açılır; giriş ve oyun ekranı kısa yatay telefon ekranlarına uyarlanır. Mevcut Socket.IO olayları ve oyun kuralları korunur. Beş ana sekmeli alt menü ve diğer ekranlar için açılır bölüm menüsü kullanılır.
+Taht Savaşları'nın mobil arayüzü ve Android uygulaması. APK yatay açılır; giriş ve oyun ekranı kısa yatay telefon ekranlarına uyarlanır. Mevcut Socket.IO olayları ve oyun kuralları korunur. Oyuncu bölümlere şehir haritasından girer ve alan ekranlarından şehre döner.
 
 ## Çalıştırma
 
@@ -31,7 +31,7 @@ Tarayıcıdan `http://localhost:3000` adresini açın. Telefonda denemek için t
 ## Kapsam
 
 - Android APK yatay açılır. Kurulu web uygulamasının manifesti de yatay yön ister; sıradan tarayıcı sekmesinde yönü işletim sistemi belirler.
-- Alt menü: Durum, Görev, Savaş, Market, Diğer. Bütün eski bölümler açılır menüde bulunur. Ana ekranda dört hızlı erişim kartı; savaş ekranında birlik yetiştirme ve kuşatma adımlarına götüren özet bulunur.
+- Şehir haritası bölümlerin ana girişidir. Sandıklar sağ üst köşededir. Pazar içinde solda Erzak, Davul, Ferman ve Tedavi kısayolları görünür; diğer alanların solunda genel bölüm menüsü yoktur. Savaş ekranında birlik yetiştirme ve kuşatma adımlarına götüren özet bulunur.
 - Oyun çevrim içidir. MongoDB ve Node sunucusu olmadan giriş, savaş veya envanter çalışmaz.
 - Yerel test ayrı ve geçici bir MongoDB kullanır; canlı kullanıcı verileriyle karışmaz.
 

@@ -340,7 +340,17 @@
         .stat-bar-fill.exp { background: linear-gradient(to right, #eab308, #a16207); width: 0%; }
         .stat-bar-fill.sefer { background: linear-gradient(to right, #3b82f6, #1e40af); width: 100%; }
 
-        .main-wrapper { width: 100%; max-width: 1000px; display: grid; grid-template-columns: 210px 1fr; gap: 15px; }
+        .main-wrapper { width: 100%; max-width: 1200px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        body[data-area="market"] .main-wrapper { grid-template-columns: minmax(120px, 175px) minmax(0, 1fr); }
+        .area-menu { display: none; min-width: 0; padding: 10px; gap: 8px; flex-direction: column; align-self: start; border: 1px solid #72552d; border-radius: 10px; background: #17120e; }
+        body[data-area="market"] .area-menu { display: flex; }
+        .area-menu-title { color: #f3cf7a; font-size: 13px; font-weight: 800; text-align: center; }
+        .area-menu button { min-height: 44px; padding: 7px 9px; border: 1px solid #61462a; border-radius: 8px; background: #291a10; color: #f8dba3; font: inherit; font-size: 12px; font-weight: 700; text-align: left; cursor: pointer; }
+        .area-menu button[aria-current="true"] { border-color: #e2b561; background: #513017; color: #fff0c9; }
+        .area-back { min-height: 38px; padding: 6px 11px; border: 1px solid #8e6b32; border-radius: 8px; background: #2a1c10; color: #ffe0a1; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+        body.hub-open .area-back { display: none; }
+        body.hub-open .content-panel { padding: 0; border: 0; background: transparent; box-shadow: none; }
+        body.hub-open .panel-title { display: none; }
 
         .sidebar-menu { background: linear-gradient(to bottom, #17120e, #0a0705); border: 1px solid #433222; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; height: fit-content; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
         .menu-category-title { text-align: center; background: #231b14; color: #f3cf7a; font-size: 11px; font-weight: bold; padding: 5px; border: 1px solid #3d2f23; border-radius: 4px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -4276,7 +4286,7 @@
             body {
                 width: 100%;
                 padding: 0;
-                padding-bottom: calc(78px + env(safe-area-inset-bottom));
+                padding-bottom: env(safe-area-inset-bottom);
                 -webkit-tap-highlight-color: transparent;
             }
             body.auth-open { padding-bottom: 0; }
@@ -4329,6 +4339,10 @@
                 gap: 0;
                 padding: 0 8px;
             }
+            body[data-area="market"] .main-wrapper { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+            body[data-area="market"] .area-menu { flex-direction: row; align-items: center; overflow-x: auto; padding: 5px; }
+            .area-menu-title { flex: 0 0 auto; padding: 0 5px; }
+            .area-menu button { flex: 0 0 auto; text-align: center; }
             .mobile-topbar {
                 display: flex;
                 justify-content: space-between;
@@ -4582,8 +4596,14 @@
             .main-wrapper {
                 height: calc(100dvh - 42px);
                 min-height: 0;
-                padding: 6px max(8px, env(safe-area-inset-right)) 6px calc(72px + env(safe-area-inset-left));
+                padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left));
             }
+            body[data-area="market"] .main-wrapper {
+                grid-template-columns: clamp(106px, 15vw, 150px) minmax(0, 1fr);
+                gap: 6px;
+            }
+            body[data-area="market"] .area-menu { flex-direction: column; align-self: stretch; overflow-y: auto; overflow-x: hidden; }
+            body[data-area="market"] .area-menu button { width: 100%; min-height: 42px; text-align: left; white-space: normal; }
             .mobile-topbar, .mobile-dashboard.is-visible { display: none; }
             .content-panel {
                 height: 100%;
@@ -4703,6 +4723,19 @@
         }
         .hub-heading-title span { color: #e9d7ba; font-weight: 600; }
         .hub-menu-button { display: none; }
+        .hub-chests-button {
+            min-height: 38px;
+            padding: 6px 12px;
+            border: 1px solid #e2b561;
+            border-radius: 9px;
+            background: rgba(35,22,11,.95);
+            color: #ffe2a1;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            pointer-events: auto;
+        }
         .hub-spot {
             position: absolute;
             z-index: 2;
@@ -4729,7 +4762,7 @@
             transition: opacity .16s ease;
         }
         .hub-spot:hover::after, .hub-spot:focus-visible::after, .hub-spot:active::after { opacity: 1; }
-        .hub-spot:focus-visible, .hub-dock button:focus-visible, .hub-menu-button:focus-visible { outline: 3px solid #fff3b3; outline-offset: 2px; }
+        .hub-spot:focus-visible, .hub-dock button:focus-visible, .hub-chests-button:focus-visible, .area-menu button:focus-visible, .area-back:focus-visible { outline: 3px solid #fff3b3; outline-offset: 2px; }
         .hub-spot-label {
             position: absolute;
             z-index: 1;
@@ -4816,6 +4849,9 @@
             body.hub-open .panel-title, body.hub-open .mobile-bottom-nav, body.hub-open .mobile-topbar { display: none; }
             body.hub-open #panelContentBody { height: 100%; }
             body.hub-open .kingdom-hub { height: 100%; min-height: 0; aspect-ratio: auto; border: 0; border-radius: 0; }
+            .panel-title { justify-content: flex-start; }
+            .area-back { flex: 0 0 auto; }
+            #panelHeaderTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .hub-spot-label { font-size: clamp(10px,1.1vw,13px); padding: 4px 7px; }
         }
         @media (max-width: 700px) and (orientation: landscape) and (max-height: 600px) {
@@ -5025,13 +5061,7 @@
         </div>
     </header>
 
-    <button class="mobile-menu-backdrop" type="button" aria-label="Bölüm menüsünü kapat" onclick="toggleMobileMenu(false)"></button>
-
     <div class="main-wrapper" id="mainApp" style="display: none;">
-        <div class="mobile-topbar">
-            <span class="mobile-brand">♛ TAHT SAVAŞLARI</span>
-            <button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-controls="primaryGameMenu" aria-expanded="false" onclick="toggleMobileMenu()">☰ Bölümler</button>
-        </div>
         <section class="mobile-dashboard" id="mobileDashboard" aria-label="Mobil hızlı erişim">
             <div class="mobile-dashboard-eyebrow">İMPARATORLUĞUN</div>
             <h2 id="mobileHeroName">Hoş geldin, hükümdar</h2>
@@ -5043,48 +5073,22 @@
                 <button type="button" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
             </div>
         </section>
-        <nav class="sidebar-menu" id="primaryGameMenu" aria-label="Oyun bölümleri">
-            <button class="mobile-menu-close" type="button" onclick="toggleMobileMenu(false)">✕ Kapat</button>
-            <div class="menu-category-title">İmparatorluk</div>
-            <button class="menu-btn" onclick="switchTab('home')">🗺️ Şehir</button>
-            <button class="menu-btn" onclick="switchTab('overview')">🏛️ Karakter & Envanter</button>
-            <button class="menu-btn" onclick="switchTab('work')">⚔️ İş / Görevler</button>
-            <button class="menu-btn" onclick="switchTab('market')">🛒 Market</button>
-            <button class="menu-btn" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
-            <button class="menu-btn" onclick="switchTab('suluhan')">🏛️ Suluhan Çarşısı</button>
-            <button class="menu-btn" onclick="switchTab('timar')">🏰 Tımarlar</button>
-            <button class="menu-btn" onclick="switchTab('barracks')">🛡️ Kışla & Taht Savaşı</button>
-            <button class="menu-btn" onclick="switchTab('blacksmith')">⚒️ Demirhane</button>
-            <button class="menu-btn" onclick="switchTab('arena')">🏟️ PvP Arena</button>
-            <button class="menu-btn" onclick="switchTab('dungeon')">🌋 Zindan Adası</button>
-            <button class="menu-btn" onclick="switchTab('metin')">🪨 Metin Taşı Kes</button>
-            <button class="menu-btn" onclick="switchTab('clanWar')">🏰 Klan Kale Savaşı</button>
-
-            <div class="menu-category-title" style="margin-top: 8px;">Macera</div>
-            <button class="menu-btn" onclick="switchTab('adventure')">🎯 Macera Merkezi</button>
-            <button class="menu-btn" onclick="switchTab('worldBoss')">👹 Dünya Bossu</button>
-
-            <div class="menu-category-title" style="margin-top: 8px;">Topluluk</div>
-            <button class="menu-btn" onclick="switchTab('clan')">🛡️ Klan</button>
-            <button class="menu-btn" onclick="switchTab('chat')">📜 Diyar Meclisi</button>
-            <button class="menu-btn" onclick="switchTab('howto')">📖 Nasıl Oynanır?</button>
-            <button class="menu-btn logout-btn" onclick="logout()">🚪 Çıkış Yap</button>
+        <nav class="area-menu" id="marketAreaMenu" aria-label="Pazar işlemleri">
+            <span class="area-menu-title">🛒 Pazar</span>
+            <button type="button" data-market-shortcut="rations" onclick="openMarketShortcut('rations')">🍖 Erzak</button>
+            <button type="button" data-market-shortcut="drum" onclick="openMarketShortcut('drum')">🥁 Davul</button>
+            <button type="button" data-market-shortcut="edict" onclick="openMarketShortcut('edict')">📜 Ferman</button>
+            <button type="button" data-market-shortcut="doctor" onclick="openMarketShortcut('doctor')">🩹 Tedavi</button>
         </nav>
 
         <main class="content-panel">
             <div class="panel-title">
+                <button type="button" class="area-back" onclick="switchTab('home')">← Şehre Dön</button>
                 <span id="panelHeaderTitle">Genel Durum & Karakter</span>
                 <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
             </div>
             <div id="panelContentBody"></div>
         </main>
-        <nav class="mobile-bottom-nav" aria-label="Mobil ana menü">
-            <button type="button" data-mobile-tab="home" onclick="switchTab('home')"><span class="mobile-nav-icon" aria-hidden="true">🗺️</span><span>Şehir</span></button>
-            <button type="button" data-mobile-tab="work" onclick="switchTab('work')"><span class="mobile-nav-icon" aria-hidden="true">⚔️</span><span>Görev</span></button>
-            <button type="button" data-mobile-tab="barracks" onclick="switchTab('barracks')"><span class="mobile-nav-icon" aria-hidden="true">🏰</span><span>Savaş</span></button>
-            <button type="button" data-mobile-tab="market" onclick="switchTab('market')"><span class="mobile-nav-icon" aria-hidden="true">🛒</span><span>Market</span></button>
-            <button type="button" id="mobileMoreButton" onclick="toggleMobileMenu()" aria-expanded="false" aria-controls="primaryGameMenu"><span class="mobile-nav-icon" aria-hidden="true">☰</span><span>Diğer</span></button>
-        </nav>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -5097,52 +5101,18 @@
             return window.matchMedia('(max-width: 900px), (max-width: 1100px) and (orientation: landscape) and (max-height: 600px)').matches;
         }
 
-        function toggleMobileMenu(force) {
-            const open = typeof force === 'boolean'
-                ? force
-                : !document.body.classList.contains('mobile-menu-open');
-            if (open && (!currentUserData || !usesMobileShell())) return;
-            document.body.classList.toggle('mobile-menu-open', open);
-            document.getElementById('mobileMenuToggle').setAttribute('aria-expanded', String(open));
-            document.getElementById('mobileMoreButton').setAttribute('aria-expanded', String(open));
-            document.getElementById('hubMenuButton')?.setAttribute('aria-expanded', String(open));
-            if (open) document.querySelector('.mobile-menu-close').focus();
-            else if (document.activeElement?.closest('.sidebar-menu')) {
-                const topButton = document.getElementById('mobileMenuToggle');
-                const hubButton = document.getElementById('hubMenuButton');
-                const focusTarget = hubButton && getComputedStyle(hubButton).display !== 'none'
-                    ? hubButton
-                    : getComputedStyle(topButton).display === 'none'
-                        ? document.getElementById('mobileMoreButton')
-                        : topButton;
-                if (getComputedStyle(focusTarget).display !== 'none') focusTarget.focus();
-                else requestAnimationFrame(() => document.getElementById('hubMenuButton')?.focus());
-            }
-        }
-
-        function updateMobileNavigation(tab) {
-            let hasPrimaryTab = false;
-            document.getElementById('mobileDashboard').classList.toggle('is-visible', tab === 'overview');
-            document.querySelectorAll('[data-mobile-tab]').forEach(button => {
-                if (button.dataset.mobileTab === tab) {
-                    button.setAttribute('aria-current', 'page');
-                    hasPrimaryTab = true;
+        function updateAreaMenu() {
+            document.querySelectorAll('[data-market-shortcut]').forEach(button => {
+                if (activeTab === 'market' && button.dataset.marketShortcut === activeMarketShortcut) {
+                    button.setAttribute('aria-current', 'true');
+                } else {
+                    button.removeAttribute('aria-current');
                 }
-                else button.removeAttribute('aria-current');
             });
-            if (hasPrimaryTab) document.getElementById('mobileMoreButton').removeAttribute('aria-current');
-            else document.getElementById('mobileMoreButton').setAttribute('aria-current', 'page');
-            document.querySelectorAll('.sidebar-menu .menu-btn').forEach(button => {
-                button.classList.toggle('mobile-active', button.getAttribute('onclick') === `switchTab('${tab}')`);
-            });
-            toggleMobileMenu(false);
         }
 
         document.addEventListener('keydown', event => {
-            if (event.key === 'Escape') toggleMobileMenu(false);
-        });
-        window.addEventListener('resize', () => {
-            if (!usesMobileShell()) toggleMobileMenu(false);
+            if (event.key === 'Escape' && currentUserData && activeTab !== 'home') switchTab('home');
         });
 
         function scrollMobileBattleTarget(id) {
@@ -5174,6 +5144,7 @@
         let castleSiegeAnimationToken = 0;
         let castleRefreshPending = false;
         let activeMarketCategory = 'potions';
+        let activeMarketShortcut = null;
         let timarState = null;
         let timarAnimationToken = 0;
         let overviewState = null;
@@ -8315,9 +8286,15 @@
         }
 
         function switchTab(tab) {
+            if (tab === 'chests') activeMarketCategory = 'chests';
+            if (tab === 'market' && activeTab !== 'market') {
+                activeMarketCategory = 'army';
+                activeMarketShortcut = 'rations';
+            }
             activeTab = tab;
             document.body.classList.toggle('hub-open', tab === 'home');
-            updateMobileNavigation(tab);
+            document.body.dataset.area = tab;
+            updateAreaMenu();
             if (usesMobileShell()) {
                 document.querySelector('.content-panel').scrollTop = 0;
                 window.scrollTo(0, 0);
@@ -8327,7 +8304,8 @@
                 'home': 'Taht Şehri',
                 'overview': 'Genel Durum & Karakter',
                 'work': 'İş / Sefer Görevleri',
-                'market': 'Market ve Sandıklar',
+                'market': 'İmparatorluk Pazarı',
+                'chests': 'Sandıklar',
                 'playerMarket': 'Beypazarı (Oyuncu Tezgahları)',
                 'suluhan': 'Suluhan Antik Çarşısı',
                 'timar': 'İmparatorluk Tımarları',
@@ -8412,7 +8390,7 @@
                     <section class="kingdom-hub" aria-label="Taht Şehri: binalara dokunarak bölümlere gir">
                         <div class="hub-heading">
                             <div class="hub-heading-title">♛ TAHT ŞEHRİ <span>• ${escapeHTML(u.username || 'Hükümdar')}</span></div>
-                            <button type="button" id="hubMenuButton" class="hub-menu-button" onclick="toggleMobileMenu()" aria-label="Tüm bölümleri aç" aria-controls="primaryGameMenu" aria-expanded="false">☰ Bölümler</button>
+                            <button type="button" class="hub-chests-button" onclick="switchTab('chests')">🎁 Sandıklar</button>
                         </div>
                         <button type="button" class="hub-spot hub-forge" onclick="switchTab('blacksmith')" aria-label="Demirhane bölümünü aç"><span class="hub-spot-label">⚒️ Demirhane</span></button>
                         <button type="button" class="hub-spot hub-guild" onclick="switchTab('work')" aria-label="Görevler bölümünü aç"><span class="hub-spot-label">📜 Görevler</span></button>
@@ -8431,6 +8409,8 @@
                             <button type="button" onclick="switchTab('worldBoss')">🐉 Dünya Bossu</button>
                             <button type="button" onclick="switchTab('clanWar')">🏯 Klan Savaşı</button>
                             <button type="button" onclick="switchTab('chat')">💬 Sohbet</button>
+                            <button type="button" onclick="switchTab('howto')">📖 Rehber</button>
+                            <button type="button" onclick="logout()">🚪 Çıkış</button>
                         </nav>
                     </section>
                 `;
@@ -8888,7 +8868,7 @@
                         Sefer sonuçları burada görünecektir...
                     </div>
                 `;
-            } else if(activeTab === 'market') {
+            } else if(activeTab === 'market' || activeTab === 'chests') {
                 const siegePrep = u.siegePreparations || {};
                 const lastLosses = u.lastCastleLosses || {};
 
@@ -8908,7 +8888,7 @@
                         padding:12px;
                     ">
                         <h3 style="color:#f3cf7a; font-size:15px;">
-                            🛒 İmparatorluk Marketi
+                            ${activeTab === 'chests' ? '🎁 Sandıklar' : '🛒 İmparatorluk Marketi'}
                         </h3>
 
                         <p style="
@@ -8917,12 +8897,13 @@
                             margin-top:5px;
                             line-height:1.5;
                         ">
-                            Karakterini ve ordunu savaşa hazırla.
-                            Kutsama Kağıdı ve özel Epik eşyalar burada satılmaz;
-                            Metin, Zindan ve Suluhan değerini korur.
+                            ${activeTab === 'chests'
+                                ? 'Anahtarlarınla sandık aç veya hazine sandığını satın al.'
+                                : 'Karakterini ve ordunu savaşa hazırla. Kutsama Kağıdı ve özel Epik eşyalar burada satılmaz; Metin, Zindan ve Suluhan değerini korur.'}
                         </p>
                     </div>
 
+                    ${activeTab === 'market' ? `
                     <div class="market-prep-strip">
                         <div class="market-prep-chip ${siegePrep.armyRations ? 'ready' : ''}">
                             🍖 Erzak:
@@ -8963,11 +8944,6 @@
                         >🛡️ Ordu</button>
 
                         <button
-                            class="market-tab-btn ${activeMarketCategory === 'chests' ? 'active' : ''}"
-                            onclick="setMarketCategory('chests')"
-                        >🎁 Sandıklar</button>
-
-                        <button
                             class="market-tab-btn ${activeMarketCategory === 'special' ? 'active' : ''}"
                             onclick="setMarketCategory('special')"
                         >👑 Özel</button>
@@ -8982,6 +8958,7 @@
                             onclick="setMarketCategory('bank')"
                         >🏦 Banka</button>
                     </div>
+                    ` : ''}
 
                     <div class="market-list">
                         ${
@@ -9029,7 +9006,7 @@
                         ${
                             activeMarketCategory === 'army'
                             ? `
-                                <div class="market-card">
+                                <div class="market-card" data-market-item="rations">
                                     <div class="market-info">
                                         <h4>🍖 Ordu Erzağı</h4>
                                         <p>
@@ -9051,7 +9028,7 @@
                                     </button>
                                 </div>
 
-                                <div class="market-card">
+                                <div class="market-card" data-market-item="doctor">
                                     <div class="market-info">
                                         <h4>🩹 Ordu Hekimi</h4>
                                         <p>
@@ -9162,7 +9139,7 @@
                         ${
                             activeMarketCategory === 'special'
                             ? `
-                                <div class="market-card market-special">
+                                <div class="market-card market-special" data-market-item="drum">
                                     <div class="market-info">
                                         <h4 style="color:#c4b5fd;">
                                             🥁 Savaş Davulu
@@ -9188,7 +9165,7 @@
                                     </button>
                                 </div>
 
-                                <div class="market-card market-special">
+                                <div class="market-card market-special" data-market-item="edict">
                                     <div class="market-info">
                                         <h4 style="color:#c4b5fd;">
                                             📜 Komutan Fermanı
@@ -15522,15 +15499,30 @@
         }
 
         function setMarketCategory(category) {
-            const allowed = ['potions', 'army', 'chests', 'special', 'exchange', 'bank'];
+            const allowed = ['potions', 'army', 'special', 'exchange', 'bank'];
 
             if (!allowed.includes(category)) return;
 
             activeMarketCategory = category;
+            activeMarketShortcut = null;
+            updateAreaMenu();
 
             if (activeTab === 'market') {
                 renderPanelContent();
             }
+        }
+
+        function openMarketShortcut(item) {
+            const categories = { rations: 'army', doctor: 'army', drum: 'special', edict: 'special' };
+            if (activeTab !== 'market' || !categories[item]) return;
+            activeMarketShortcut = item;
+            activeMarketCategory = categories[item];
+            updateAreaMenu();
+            renderPanelContent();
+            requestAnimationFrame(() => {
+                document.querySelector(`[data-market-item="${item}"]`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
         }
 
         function doAction(event, payload, btnId) {
@@ -17701,7 +17693,7 @@
                 updateHeader(res.userData);
             }
 
-            if (activeTab === 'market') {
+            if (activeTab === 'market' || activeTab === 'chests') {
                 renderPanelContent();
             }
 
@@ -18253,7 +18245,6 @@
         }
 
         socket.on('logoutSuccess', () => {
-            toggleMobileMenu(false);
             destroyGameBackgroundMusic();
 
             document.getElementById('mainApp').style.display = 'none'; 
