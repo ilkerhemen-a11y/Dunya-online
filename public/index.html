@@ -2596,6 +2596,43 @@
 
         /* === GENEL DURUM 2.0 / KARAKTER VİTRİNİ === */
         .overview-v2 { position: relative; }
+        .character-stage { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(330px,.9fr); min-height:410px; margin-bottom:12px; overflow:hidden; border:1px solid #a5783b; border-radius:13px; background:#16101b; box-shadow:0 12px 30px rgba(0,0,0,.4); }
+        .character-art-side { position:relative; display:flex; align-items:flex-end; justify-content:center; min-width:0; overflow:hidden; background:radial-gradient(circle at 62% 55%,rgba(94,163,190,.45),transparent 42%),radial-gradient(circle at 12% 12%,rgba(131,91,180,.28),transparent 50%),linear-gradient(135deg,#24213f,#111723 68%,#0e0e17); }
+        .character-art-side::after { content:""; position:absolute; inset:auto 0 0; height:24%; pointer-events:none; background:linear-gradient(transparent,rgba(9,9,15,.7)); }
+        .character-art-side img { display:block; width:100%; max-width:610px; height:100%; max-height:480px; object-fit:contain; object-position:center bottom; filter:drop-shadow(0 14px 18px rgba(0,0,0,.55)); }
+        .character-art-caption { position:absolute; z-index:2; left:12px; top:10px; padding:6px 10px; border:1px solid rgba(245,202,111,.7); border-radius:8px; background:rgba(18,11,13,.83); color:#ffdfa1; font-size:11px; font-weight:800; }
+        .character-summary { position:relative; min-width:0; display:flex; flex-direction:column; gap:9px; padding:20px; border-left:2px solid #bf8741; background:radial-gradient(circle at 85% 10%,rgba(207,104,47,.28),transparent 50%),linear-gradient(155deg,#4b1720,#2d1018 62%,#180e16); color:#f8e7d0; }
+        .character-summary::before { content:""; position:absolute; inset:7px; border:1px solid rgba(243,207,122,.33); border-radius:7px; pointer-events:none; }
+        .character-summary > * { position:relative; z-index:1; }
+        .character-summary-eyebrow { color:#e5b963; font-size:10px; font-weight:900; letter-spacing:1.2px; }
+        .character-summary h2 { color:#ffe0a0; margin:0; font-size:clamp(19px,2vw,27px); line-height:1.1; }
+        .character-summary-title { color:#d9c0af; font-size:11px; }
+        .character-rank-line { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:#ffdda1; font-weight:800; }
+        .character-rank-line span:last-child { color:#d9c0af; font-size:10px; text-align:right; }
+        .character-meter { font-size:10px; font-weight:750; }
+        .character-meter-label { display:flex; justify-content:space-between; gap:8px; margin-bottom:4px; color:#f7dfc1; }
+        .character-meter-track { height:11px; overflow:hidden; border:1px solid #98714f; border-radius:999px; background:#120e16; box-shadow:inset 0 2px 4px rgba(0,0,0,.6); }
+        .character-meter-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#b7393f,#fb6663); }
+        .character-meter-fill.exp { background:linear-gradient(90deg,#9e6f1b,#f4c34f); }
+        .character-quick-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+        .character-stat-tile { min-width:0; padding:7px 6px; border:1px solid rgba(232,182,101,.35); border-radius:7px; background:rgba(9,7,11,.38); color:#d5bcad; font-size:10px; text-align:center; }
+        .character-stat-tile strong { display:block; color:#ffde99; font-size:15px; margin-top:2px; }
+        .character-summary-actions { display:flex; gap:7px; margin-top:auto; }
+        .character-summary-actions button, .inventory-screen-header button { min-height:38px; padding:7px 13px; border:1px solid #ecc079; border-radius:8px; background:linear-gradient(135deg,#a96827,#6d311b); color:#fff2d1; font:inherit; font-size:11px; font-weight:900; cursor:pointer; }
+        .character-summary-actions button:focus-visible, .inventory-screen-header button:focus-visible { outline:3px solid #fff1bd; outline-offset:2px; }
+        .character-summary-actions .secondary { border-color:#9b7041; background:#281b19; }
+        .character-equipment-panel { margin-bottom:12px; padding:12px; border:1px solid #6b4f35; border-radius:10px; background:#120c0b; }
+        .character-equipment-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; color:#f3cf7a; font-size:13px; font-weight:900; }
+        .character-equipment-heading button { border:1px solid #7b5b35; border-radius:7px; background:#2b1a12; color:#f3cf7a; padding:7px 10px; font:inherit; font-size:11px; cursor:pointer; }
+        .character-equipment-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+        .character-equipment-grid .showcase-eq-slot { min-width:0; }
+        .character-equipment-grid .showcase-eq-slot:nth-child(4n) .showcase-tooltip { left:auto; right:calc(100% + 8px); }
+        .character-honor-note { margin-bottom:12px; padding:10px 12px; border:1px solid #664d2b; border-radius:8px; background:#241a11; color:#bba996; font-size:11px; line-height:1.5; text-align:center; }
+        .character-honor-note strong { color:#f3cf7a; }
+        .inventory-screen-header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:13px; border:1px solid #7a5830; border-radius:10px; background:linear-gradient(135deg,#2b1c13,#120d0a); }
+        .inventory-screen-header h2 { margin:0; color:#ffe0a0; font-size:17px; }
+        .inventory-screen-header p { margin:4px 0 0; color:#bba996; font-size:11px; }
+        .inventory-screen .inventory-container { margin-top:10px; }
         .overview-identity-bar { position:relative; display:flex; align-items:center; min-height:54px; padding:10px 14px; margin-bottom:8px; border:1px solid #6b4f35; border-radius:10px; background:linear-gradient(120deg,#21170e,#0d0a08); }
         .overview-identity-bar.throne-active { border-color:#d4af37; box-shadow:inset 0 0 24px rgba(212,175,55,.07); }
         .overview-identity-bar .overview-title-row { width:100%; }
@@ -4638,6 +4675,18 @@
             .mobile-bottom-nav button { min-height: 0; height: 100%; font-size: 11px; }
             .mobile-bottom-nav button .mobile-nav-icon { font-size: 20px; }
 
+            .character-stage { grid-template-columns:minmax(0,1fr) minmax(300px,.9fr); min-height:286px; margin-bottom:7px; }
+            .character-art-side img { max-height:315px; }
+            .character-art-caption { top:6px; left:7px; padding:4px 7px; font-size:9px; }
+            .character-summary { gap:5px; padding:10px 12px; }
+            .character-summary h2 { font-size:17px; }
+            .character-summary-title, .character-rank-line { font-size:10px; }
+            .character-meter { font-size:9px; }
+            .character-meter-track { height:8px; }
+            .character-stat-tile { padding:4px 3px; font-size:9px; }
+            .character-stat-tile strong { font-size:12px; margin-top:1px; }
+            .character-summary-actions button { min-height:32px; padding:5px 9px; }
+            .character-equipment-grid .showcase-eq-slot { min-height:51px; }
             .overview-identity-bar { min-height:40px; padding:5px 9px; margin-bottom:5px; }
             .overview-identity-bar .overview-title-row { flex-wrap:nowrap; align-items:center; }
             .overview-throne-badge { padding:4px 7px; font-size:9px; white-space:nowrap; }
@@ -4683,6 +4732,9 @@
         }
 
         @media (max-width: 700px) and (orientation: landscape) and (max-height: 600px) {
+            .character-stage { grid-template-columns:minmax(0,1fr) minmax(248px,1fr); }
+            .character-quick-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .character-equipment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
             .overview-power-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .character-showcase-v2 { grid-template-columns:minmax(0,1fr) minmax(105px,132px) minmax(0,1fr); gap:4px; }
             .showcase-character-center { min-height:186px; }
@@ -4696,6 +4748,11 @@
         }
 
         @media (max-width: 900px) and (orientation: portrait) {
+            .character-stage { grid-template-columns:minmax(0,1fr); }
+            .character-art-side { min-height:245px; }
+            .character-art-side img { max-height:310px; }
+            .character-summary { border-left:0; border-top:2px solid #bf8741; }
+            .character-equipment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
             .character-showcase-v2 { grid-template-columns:minmax(0,1fr); }
             .showcase-character-center { order:-1; min-height:220px; }
             .showcase-slot-column { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -5108,7 +5165,7 @@
         <main class="content-panel">
             <div class="panel-title">
                 <button type="button" class="area-back" onclick="switchTab('home')">← Şehre Dön</button>
-                <span id="panelHeaderTitle">Genel Durum & Karakter</span>
+                <span id="panelHeaderTitle">Karakter</span>
                 <span id="myUsernameDisplay" style="font-size: 12px; color: #9c8e7b;">Seviye 1</span>
             </div>
             <div id="panelContentBody"></div>
@@ -7799,6 +7856,7 @@
         function applyWorldTheme(tab) {
             const themeMap = {
                 overview: 'overview',
+                inventory: 'overview',
                 work: 'barracks',
                 market: 'market',
                 playerMarket: 'market',
@@ -8326,7 +8384,8 @@
             applyWorldTheme(tab);
             const titles = {
                 'home': 'Taht Şehri',
-                'overview': 'Genel Durum & Karakter',
+                'overview': 'Karakter',
+                'inventory': 'Envanter',
                 'work': 'İş / Sefer Görevleri',
                 'market': 'İmparatorluk Pazarı',
                 'chests': 'Sandıklar',
@@ -8419,7 +8478,7 @@
                         <button type="button" class="hub-spot hub-forge" onclick="switchTab('blacksmith')" aria-label="Demirhane bölümünü aç"><span class="hub-spot-label">⚒️ Demirhane</span></button>
                         <button type="button" class="hub-spot hub-guild" onclick="switchTab('work')" aria-label="Görevler bölümünü aç"><span class="hub-spot-label">📜 Görevler</span></button>
                         <button type="button" class="hub-spot hub-arena" onclick="switchTab('arena')" aria-label="Arena bölümünü aç"><span class="hub-spot-label">⚔️ Arena</span></button>
-                        <button type="button" class="hub-spot hub-castle" onclick="switchTab('overview')" aria-label="Karakter ve envanter bölümünü aç"><span class="hub-spot-label">🏰 Karakter</span></button>
+                        <button type="button" class="hub-spot hub-castle" onclick="switchTab('overview')" aria-label="Karakter bölümünü aç"><span class="hub-spot-label">🏰 Karakter</span></button>
                         <button type="button" class="hub-spot hub-market" onclick="switchTab('market')" aria-label="Pazar bölümünü aç"><span class="hub-spot-label">🛒 Pazar</span></button>
                         <button type="button" class="hub-spot hub-barracks" onclick="switchTab('barracks')" aria-label="Kışla ve taht savaşı bölümünü aç"><span class="hub-spot-label">🛡️ Kışla & Savaş</span></button>
                         <button type="button" class="hub-spot hub-dungeon hub-lower" onclick="switchTab('dungeon')" aria-label="Zindan bölümünü aç"><span class="hub-spot-label">🌋 Zindan</span></button>
@@ -8427,6 +8486,7 @@
                         <button type="button" class="hub-spot hub-tower hub-lower" onclick="switchTab('adventure')" aria-label="Macera merkezi bölümünü aç"><span class="hub-spot-label">✨ Macera</span></button>
                         <button type="button" class="hub-spot hub-metin hub-lower" onclick="switchTab('metin')" aria-label="Metin taşı bölümünü aç"><span class="hub-spot-label">💎 Metin Taşı</span></button>
                         <nav class="hub-dock" aria-label="Diğer şehir bölümleri">
+                            <button type="button" onclick="switchTab('inventory')">🎒 Envanter</button>
                             <button type="button" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
                             <button type="button" onclick="switchTab('suluhan')">🏛️ Suluhan</button>
                             <button type="button" onclick="switchTab('timar')">🏡 Tımarlar</button>
@@ -8480,6 +8540,11 @@
                 const currentTitle = getTitleByLevel(currentLevel);
                 const nextTitle = getNextTitle(currentLevel);
                 const maxExp = currentLevel * 100;
+                const maxCharacterHp = Math.max(20, Number(combat.maxHp) || 0);
+                const currentCharacterHp = Math.max(0, Math.min(maxCharacterHp, Number(u.hp) || 0));
+                const characterHpPercent = Math.min(100, (currentCharacterHp / maxCharacterHp) * 100);
+                const characterExp = Math.max(0, Number(u.exp) || 0);
+                const characterExpPercent = currentLevel >= MAX_LEVEL ? 100 : Math.min(100, (characterExp / maxExp) * 100);
 
                 const slotMeta = {
                     helmet:{label:'Miğfer',placeholder:'🪖'},
@@ -8503,54 +8568,52 @@
 
                 body.innerHTML = `
                     <div class="overview-v2">
-                        <div class="overview-identity-bar ${isThroneOwner ? 'throne-active' : ''}">
-                            <div class="overview-title-row">
-                                <div>
-                                    <div class="overview-player-name">${escapeHTML((u.username || 'Savaşçı').toUpperCase())}</div>
-                                    <div style="color:#c4b5fd;font-size:10px;margin-top:3px;">🏅 ${currentTitle} • Seviye ${currentLevel}/${MAX_LEVEL}</div>
+                        <div class="character-stage">
+                            <div class="character-art-side">
+                                <div class="character-art-caption">${isThroneOwner ? '👑 TAHT SAHİBİ' : `⚔️ ${escapeHTML(currentTitle)}`}</div>
+                                <img src="/icons/hero-rider-v1.png" alt="Kızıl pelerinli atlı hükümdar" decoding="async">
+                            </div>
+                            <section class="character-summary" aria-label="Karakter gücü ve ilerlemesi">
+                                <div class="character-summary-eyebrow">✦ TAHT SAVAŞLARI • KARAKTER</div>
+                                <h2>${escapeHTML((u.username || 'Savaşçı').toUpperCase())}</h2>
+                                <div class="character-summary-title">🏅 ${escapeHTML(currentTitle)} ${isThroneOwner ? '• 👑 Hükümdar' : ''}</div>
+                                <div class="character-rank-line">
+                                    <span>SEVİYE ${currentLevel}/${MAX_LEVEL}</span>
+                                    <span>${nextTitle ? `Sonraki: ${escapeHTML(nextTitle.title)} (${nextTitle.level})` : 'En yüksek ünvan'}</span>
                                 </div>
-                                ${isThroneOwner
-                                    ? `<div class="overview-throne-badge">👑 HÜKÜMDAR • TAHT SAHİBİ</div>`
-                                    : `<div style="color:#7c6f61;font-size:9px;text-align:right;">👑 Taht: ${escapeHTML(overviewState?.throneOwnerName || 'Saray Muhafızları')}</div>`}
+                                <div class="character-meter" role="img" aria-label="Can ${currentCharacterHp} / ${maxCharacterHp}">
+                                    <div class="character-meter-label"><span>❤️ Can</span><span>${currentCharacterHp.toLocaleString('tr-TR')} / ${maxCharacterHp.toLocaleString('tr-TR')}</span></div>
+                                    <div class="character-meter-track"><div class="character-meter-fill" style="width:${characterHpPercent}%;"></div></div>
+                                </div>
+                                <div class="character-meter" role="img" aria-label="Tecrübe ${currentLevel >= MAX_LEVEL ? 'en yüksek seviyede' : `${characterExp} / ${maxExp}`}">
+                                    <div class="character-meter-label"><span>✨ Tecrübe</span><span>${currentLevel >= MAX_LEVEL ? 'MAX' : `${characterExp.toLocaleString('tr-TR')} / ${maxExp.toLocaleString('tr-TR')}`}</span></div>
+                                    <div class="character-meter-track"><div class="character-meter-fill exp" style="width:${characterExpPercent}%;"></div></div>
+                                </div>
+                                <div class="character-quick-stats">
+                                    <div class="character-stat-tile">🔥 Savaş Gücü<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
+                                    <div class="character-stat-tile">⚔️ STR<strong>${Number(combat.totalStr || 0).toLocaleString('tr-TR')}</strong></div>
+                                    <div class="character-stat-tile">🛡️ VIT<strong>${Number(combat.totalVit || 0).toLocaleString('tr-TR')}</strong></div>
+                                    <div class="character-stat-tile">🪖 Ordu<strong>${Number(combat.armyPower || 0).toLocaleString('tr-TR')}</strong></div>
+                                    <div class="character-stat-tile">🌟 Onur<strong>${currentHonor.toLocaleString('tr-TR')}</strong></div>
+                                    <div class="character-stat-tile">🏰 Fetih<strong>${Number(prestige.castleVictories || 0).toLocaleString('tr-TR')}</strong></div>
+                                </div>
+                                <div class="character-summary-actions">
+                                    <button type="button" onclick="switchTab('inventory')">🎒 Envanteri Aç</button>
+                                    ${Number(u.statPoints) > 0 ? `<button type="button" class="secondary" onclick="document.getElementById('characterProgression')?.scrollIntoView({behavior:'smooth',block:'start'})">+${Number(u.statPoints)} Stat Puanı</button>` : ''}
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="character-equipment-panel">
+                            <div class="character-equipment-heading"><span>🛡️ Kuşanılan Ekipman</span><button type="button" onclick="switchTab('inventory')">🎒 Çantaya Git</button></div>
+                            <div class="character-equipment-grid">
+                                ${[...leftSlots,...rightSlots].map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
                             </div>
                         </div>
 
-                        <div class="character-showcase-v2 ${isThroneOwner ? 'is-ruler' : ''}">
-                            <div class="showcase-slot-column left">
-                                ${leftSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
-                            </div>
-
-                            <div class="showcase-character-center ${(equippedSetCount >= 8 || isThroneOwner) ? 'legendary-aura' : ''}">
-                                ${isThroneOwner ? `<div class="showcase-crown">👑</div>` : ''}
-                                <div class="showcase-portrait"><img src="/icons/hero.svg" alt="Zırhlı hükümdar"></div>
-                                <div class="showcase-combat-power">SAVAŞ GÜCÜ<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div class="showcase-breakdown" style="color:#9c8e7b;font-size:9px;text-align:center;margin-top:4px;line-height:1.45;">
-                                    Base STR ${Number(combat.baseStr || 0)} + Ekipman ${Number(combat.equipmentStr || 0)}<br>
-                                    Base VIT ${Number(combat.baseVit || 0)} + Ekipman ${Number(combat.equipmentVit || 0)}
-                                </div>
-                                ${equippedSetCount >= 8 ? `<div class="showcase-set-active" style="margin-top:8px;color:#facc15;font-size:10px;font-weight:bold;text-align:center;">✨ HÜKÜMDARIN KUDRETİ AKTİF</div>` : ''}
-                            </div>
-
-                            <div class="showcase-slot-column right">
-                                ${rightSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
-                            </div>
-                        </div>
-
-                        <div class="overview-hero ${isThroneOwner ? 'throne-active' : ''}">
-                            <div class="overview-power-grid">
-                                <div class="overview-power-card">🔥 Savaş Gücü<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div class="overview-power-card">⚔️ Toplam STR<strong>${Number(combat.totalStr || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div class="overview-power-card">🛡️ Toplam VIT<strong>${Number(combat.totalVit || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div class="overview-power-card">🪖 Ordu Gücü<strong>${Number(combat.armyPower || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div class="overview-power-card">🌟 Onur<strong>${Number(prestige.honor || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div class="overview-power-card">🏰 Fetih<strong>${Number(prestige.castleVictories || 0).toLocaleString('tr-TR')}</strong></div>
-                            </div>
-
-                            <div style="margin-top:9px;padding:7px 9px;border:1px solid #5b4720;border-radius:5px;background:rgba(212,175,55,.05);font-size:9px;color:#9c8e7b;text-align:center;">
-                                🎁 <strong style="color:#f3cf7a;">Onur Ödülü:</strong>
-                                Her 100 Onur puanında <strong style="color:#c4b5fd;">10 Yakut 💎</strong>.
-                                Şu an: <strong>${currentHonor}</strong> • Sonraki ödül: <strong>${nextHonorRubyTarget} Onur</strong> • İlerleme: <strong>${honorRubyProgress}/100</strong>
-                            </div>
+                        <div class="character-honor-note">
+                            🎁 <strong>Onur Ödülü:</strong> Her 100 Onur puanında <strong>10 Yakut 💎</strong>.
+                            Şu an: ${currentHonor} • Sonraki: ${nextHonorRubyTarget} Onur • İlerleme: ${honorRubyProgress}/100
                         </div>
 
                         <div class="hukumdar-set-panel">
@@ -8581,7 +8644,7 @@
                         </div>
 
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:12px;">
-                            <div style="border:1px solid #433222;border-radius:8px;padding:11px;background:#0d0a08;">
+                            <div id="characterProgression" style="border:1px solid #433222;border-radius:8px;padding:11px;background:#0d0a08;">
                                 <h3 style="color:#f3cf7a;font-size:12px;margin-bottom:6px;">📊 Karakter İlerlemesi</h3>
                                 <div class="stat-row"><span>Seviye:</span><span>${currentLevel}/${MAX_LEVEL}</span></div>
                                 <div class="stat-row"><span>Sonraki Ünvan:</span><span>${nextTitle ? `${nextTitle.title} (Lv ${nextTitle.level})` : '👑 En yüksek ünvan'}</span></div>
@@ -8612,7 +8675,15 @@
                                 </div>
                             `).join('') : `<div style="color:#7c6f61;font-size:10px;">Başarı verileri yükleniyor...</div>`}
                         </div>
-
+                    </div>
+                `;
+            } else if(activeTab === 'inventory') {
+                body.innerHTML = `
+                    <div class="inventory-screen">
+                        <div class="inventory-screen-header">
+                            <div><h2>🎒 Envanter</h2><p>Eşyalarını incele, kuşan veya çantandan çıkar.</p></div>
+                            <button type="button" onclick="switchTab('overview')">← Karakter</button>
+                        </div>
                         <div class="inventory-container">
                             <h3 style="color:#f3cf7a;font-size:13px;margin-bottom:8px;">🎒 Envanter / Çanta</h3>
                             <div class="inventory-grid">
