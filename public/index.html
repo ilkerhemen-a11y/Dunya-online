@@ -2596,13 +2596,16 @@
 
         /* === GENEL DURUM 2.0 / KARAKTER VİTRİNİ === */
         .overview-v2 { position: relative; }
+        .overview-identity-bar { position:relative; display:flex; align-items:center; min-height:54px; padding:10px 14px; margin-bottom:8px; border:1px solid #6b4f35; border-radius:10px; background:linear-gradient(120deg,#21170e,#0d0a08); }
+        .overview-identity-bar.throne-active { border-color:#d4af37; box-shadow:inset 0 0 24px rgba(212,175,55,.07); }
+        .overview-identity-bar .overview-title-row { width:100%; }
         .overview-hero { position:relative; overflow:hidden; border:1px solid #6b4f35; border-radius:10px; padding:15px; margin-bottom:12px; background:radial-gradient(circle at 50% 5%,rgba(212,175,55,.12),transparent 34%),linear-gradient(135deg,#1b130d,#0b0806 72%); box-shadow:inset 0 0 35px rgba(212,175,55,.025),0 7px 20px rgba(0,0,0,.35); }
         .overview-hero.throne-active { border-color:#d4af37; box-shadow:inset 0 0 42px rgba(212,175,55,.08),0 0 25px rgba(212,175,55,.14); }
         .overview-hero.throne-active::before { content:""; position:absolute; inset:-50%; pointer-events:none; background:conic-gradient(transparent,rgba(250,204,21,.08),transparent,rgba(249,115,22,.06),transparent); animation:throneAuraRotate 8s linear infinite; }
         .overview-title-row { position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
         .overview-player-name { color:#f3cf7a; font-size:18px; font-weight:900; letter-spacing:.4px; }
         .overview-throne-badge { display:inline-flex; align-items:center; gap:5px; padding:6px 10px; border:1px solid #d4af37; border-radius:999px; background:rgba(212,175,55,.10); color:#facc15; font-size:10px; font-weight:900; animation:throneBadgePulse 1.8s ease-in-out infinite; }
-        .overview-power-grid { position:relative; z-index:2; display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:11px; }
+        .overview-power-grid { position:relative; z-index:2; display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; }
         .overview-power-card { border:1px solid #433222; border-radius:7px; padding:8px; background:rgba(8,6,5,.74); text-align:center; color:#9c8e7b; font-size:9px; }
         .overview-power-card strong { display:block; margin-top:3px; color:#f3cf7a; font-size:13px; }
         .character-showcase-v2 { display:grid; grid-template-columns:minmax(140px,1fr) minmax(190px,260px) minmax(140px,1fr); gap:10px; align-items:center; margin-bottom:12px; padding:13px; border:1px solid #433222; border-radius:10px; background:radial-gradient(circle at 50% 45%,rgba(59,130,246,.08),transparent 30%),linear-gradient(180deg,#100c09,#080605); }
@@ -2628,7 +2631,7 @@
         .showcase-character-center.legendary-aura::after { right:18%; bottom:22%; animation-delay:1.2s; }
         .showcase-crown { position:absolute; top:9px; font-size:31px; filter:drop-shadow(0 0 9px rgba(250,204,21,.45)); animation:crownFloat 2s ease-in-out infinite; }
         .showcase-portrait { width:145px; height:185px; overflow:hidden; border:2px solid #6b4f35; border-radius:11px; background:#000; box-shadow:0 10px 25px rgba(0,0,0,.55); }
-        .showcase-portrait img { width:100%; height:100%; object-fit:cover; }
+        .showcase-portrait img { width:100%; height:100%; object-fit:cover; filter:brightness(1.14) contrast(1.07); }
         .showcase-combat-power { margin-top:10px; text-align:center; color:#f3cf7a; font-size:11px; }
         .showcase-combat-power strong { display:block; font-size:21px; color:#facc15; text-shadow:0 0 10px rgba(250,204,21,.28); }
         .hukumdar-set-panel { border:1px solid #8a6b3a; border-radius:9px; padding:12px; margin-bottom:12px; background:radial-gradient(circle at 50% 0%,rgba(250,204,21,.09),transparent 30%),#0d0a07; }
@@ -4635,20 +4638,28 @@
             .mobile-bottom-nav button { min-height: 0; height: 100%; font-size: 11px; }
             .mobile-bottom-nav button .mobile-nav-icon { font-size: 20px; }
 
-            .overview-hero { padding: 9px; margin-bottom: 7px; }
+            .overview-identity-bar { min-height:40px; padding:5px 9px; margin-bottom:5px; }
+            .overview-identity-bar .overview-title-row { flex-wrap:nowrap; align-items:center; }
+            .overview-throne-badge { padding:4px 7px; font-size:9px; white-space:nowrap; }
+            .overview-hero { padding:9px; margin-bottom:7px; }
             .overview-player-name { font-size: 16px; }
-            .overview-power-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 7px; }
+            .overview-power-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap:5px; }
             .overview-power-card { padding: 5px 3px; font-size: 11px; color: #c4b5a4; }
             .overview-power-card strong { font-size: 14px; }
-            .character-showcase-v2 { grid-template-columns: 1fr; gap: 5px; padding: 7px; margin-bottom: 8px; }
-            .showcase-character-center { display: none; }
-            .showcase-slot-column { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-            .showcase-eq-slot { min-width: 0; min-height: 48px; grid-template-columns: 32px minmax(0, 1fr); gap: 5px; padding: 4px; }
+            .character-showcase-v2 { grid-template-columns:minmax(0,1fr) minmax(145px,185px) minmax(0,1fr); gap:7px; padding:6px; margin-bottom:7px; }
+            .showcase-character-center { display:flex; min-height:212px; padding:5px; }
+            .showcase-portrait { width:136px; height:176px; box-shadow:0 0 22px rgba(212,175,55,.18),0 8px 20px rgba(0,0,0,.6); }
+            .showcase-combat-power { margin-top:5px; font-size:10px; line-height:1.1; }
+            .showcase-combat-power strong { font-size:17px; }
+            .showcase-breakdown, .showcase-set-active { display:none; }
+            .showcase-crown { display:none; }
+            .showcase-slot-column { grid-template-columns:minmax(0,1fr); gap:4px; }
+            .showcase-eq-slot { min-width:0; min-height:47px; grid-template-columns:32px minmax(0,1fr); gap:5px; padding:4px; }
             .showcase-eq-slot > div:nth-child(3), .showcase-eq-slot > div:nth-child(2) { min-width: 0; }
             .showcase-eq-slot .rarity-orbit { display: none; }
             .showcase-slot-icon { height: 32px; font-size: 20px; }
-            .showcase-slot-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .showcase-slot-label { font-size: 10px; color: #ad9a87; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .showcase-slot-name { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .showcase-slot-label { font-size:10px; color:#ad9a87; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
             #panelContentBody .mobile-battle-summary {
                 display: grid;
@@ -4673,9 +4684,22 @@
 
         @media (max-width: 700px) and (orientation: landscape) and (max-height: 600px) {
             .overview-power-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .showcase-slot-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .character-showcase-v2 { grid-template-columns:minmax(0,1fr) minmax(105px,132px) minmax(0,1fr); gap:4px; }
+            .showcase-character-center { min-height:186px; }
+            .showcase-portrait { width:99px; height:129px; }
+            .showcase-eq-slot { grid-template-columns:26px minmax(0,1fr); min-height:41px; padding:3px; gap:3px; }
+            .showcase-slot-icon { height:26px; font-size:17px; }
+            .showcase-slot-name { font-size:10px; }
+            .showcase-slot-label { font-size:9px; }
             #panelContentBody .mobile-troop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
             #panelContentBody .mobile-battle-summary { grid-template-columns: 1fr; grid-template-areas: "title" "hint" "metrics" "actions"; }
+        }
+
+        @media (max-width: 900px) and (orientation: portrait) {
+            .character-showcase-v2 { grid-template-columns:minmax(0,1fr); }
+            .showcase-character-center { order:-1; min-height:220px; }
+            .showcase-slot-column { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .overview-identity-bar .overview-title-row { flex-wrap:wrap; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -8479,7 +8503,7 @@
 
                 body.innerHTML = `
                     <div class="overview-v2">
-                        <div class="overview-hero ${isThroneOwner ? 'throne-active' : ''}">
+                        <div class="overview-identity-bar ${isThroneOwner ? 'throne-active' : ''}">
                             <div class="overview-title-row">
                                 <div>
                                     <div class="overview-player-name">${escapeHTML((u.username || 'Savaşçı').toUpperCase())}</div>
@@ -8489,7 +8513,30 @@
                                     ? `<div class="overview-throne-badge">👑 HÜKÜMDAR • TAHT SAHİBİ</div>`
                                     : `<div style="color:#7c6f61;font-size:9px;text-align:right;">👑 Taht: ${escapeHTML(overviewState?.throneOwnerName || 'Saray Muhafızları')}</div>`}
                             </div>
+                        </div>
 
+                        <div class="character-showcase-v2 ${isThroneOwner ? 'is-ruler' : ''}">
+                            <div class="showcase-slot-column left">
+                                ${leftSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
+                            </div>
+
+                            <div class="showcase-character-center ${(equippedSetCount >= 8 || isThroneOwner) ? 'legendary-aura' : ''}">
+                                ${isThroneOwner ? `<div class="showcase-crown">👑</div>` : ''}
+                                <div class="showcase-portrait"><img src="/icons/hero.svg" alt="Zırhlı hükümdar"></div>
+                                <div class="showcase-combat-power">SAVAŞ GÜCÜ<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
+                                <div class="showcase-breakdown" style="color:#9c8e7b;font-size:9px;text-align:center;margin-top:4px;line-height:1.45;">
+                                    Base STR ${Number(combat.baseStr || 0)} + Ekipman ${Number(combat.equipmentStr || 0)}<br>
+                                    Base VIT ${Number(combat.baseVit || 0)} + Ekipman ${Number(combat.equipmentVit || 0)}
+                                </div>
+                                ${equippedSetCount >= 8 ? `<div class="showcase-set-active" style="margin-top:8px;color:#facc15;font-size:10px;font-weight:bold;text-align:center;">✨ HÜKÜMDARIN KUDRETİ AKTİF</div>` : ''}
+                            </div>
+
+                            <div class="showcase-slot-column right">
+                                ${rightSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
+                            </div>
+                        </div>
+
+                        <div class="overview-hero ${isThroneOwner ? 'throne-active' : ''}">
                             <div class="overview-power-grid">
                                 <div class="overview-power-card">🔥 Savaş Gücü<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
                                 <div class="overview-power-card">⚔️ Toplam STR<strong>${Number(combat.totalStr || 0).toLocaleString('tr-TR')}</strong></div>
@@ -8503,27 +8550,6 @@
                                 🎁 <strong style="color:#f3cf7a;">Onur Ödülü:</strong>
                                 Her 100 Onur puanında <strong style="color:#c4b5fd;">10 Yakut 💎</strong>.
                                 Şu an: <strong>${currentHonor}</strong> • Sonraki ödül: <strong>${nextHonorRubyTarget} Onur</strong> • İlerleme: <strong>${honorRubyProgress}/100</strong>
-                            </div>
-                        </div>
-
-                        <div class="character-showcase-v2 ${isThroneOwner ? 'is-ruler' : ''}">
-                            <div class="showcase-slot-column left">
-                                ${leftSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
-                            </div>
-
-                            <div class="showcase-character-center ${(equippedSetCount >= 8 || isThroneOwner) ? 'legendary-aura' : ''}">
-                                ${isThroneOwner ? `<div class="showcase-crown">👑</div>` : ''}
-                                <div class="showcase-portrait"><img src="/icons/hero.svg" alt="Zırhlı hükümdar"></div>
-                                <div class="showcase-combat-power">SAVAŞ GÜCÜ<strong>${Number(combat.combatPower || 0).toLocaleString('tr-TR')}</strong></div>
-                                <div style="color:#9c8e7b;font-size:9px;text-align:center;margin-top:4px;line-height:1.45;">
-                                    Base STR ${Number(combat.baseStr || 0)} + Ekipman ${Number(combat.equipmentStr || 0)}<br>
-                                    Base VIT ${Number(combat.baseVit || 0)} + Ekipman ${Number(combat.equipmentVit || 0)}
-                                </div>
-                                ${equippedSetCount >= 8 ? `<div style="margin-top:8px;color:#facc15;font-size:10px;font-weight:bold;text-align:center;">✨ HÜKÜMDARIN KUDRETİ AKTİF</div>` : ''}
-                            </div>
-
-                            <div class="showcase-slot-column right">
-                                ${rightSlots.map(slot => renderOverviewEquipmentSlot(slot,u.equipped?.[slot],slotMeta[slot].label,slotMeta[slot].placeholder)).join('')}
                             </div>
                         </div>
 
