@@ -11122,6 +11122,10 @@
                         >🔄 Rakipleri Yenile</button>
                     </div>
 
+                    <div id="arenaBotFeed" style="margin-bottom:10px;color:#c4b5fd;font-size:11px;">
+                        🤖 Bot hareketleri yükleniyor...
+                    </div>
+
                     <div id="arenaOpponentFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
                         <button type="button" class="btn-quest" data-arena-filter="bots" onclick="filterArenaOpponents('bots')">🤖 Botlar</button>
                         <button type="button" class="btn-quest" data-arena-filter="players" onclick="filterArenaOpponents('players')">👤 Oyuncular</button>
@@ -16449,6 +16453,15 @@
             const listEl = document.getElementById('arenaOpponentsList');
             if (!listEl) return;
 
+            const botFeed = document.getElementById('arenaBotFeed');
+            const latestBot = arenaOpponents.filter(op => op.isBot && op.botLastActionAt)
+                .sort((a, b) => b.botLastActionAt - a.botLastActionAt)[0];
+            if (botFeed) {
+                botFeed.innerHTML = latestBot
+                    ? `🤖 Son hareket: <strong>${escapeHTML(latestBot.username)}</strong> · ${escapeHTML(latestBot.botLastAction || '')} <span style="color:#9c8e7b;">(${new Date(latestBot.botLastActionAt).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' })})</span>`
+                    : '🤖 Botlar ilk seferlerine hazırlanıyor...';
+            }
+
             document.querySelectorAll('[data-arena-filter]').forEach(button => {
                 const active = button.dataset.arenaFilter === arenaOpponentFilter;
                 const count = arenaOpponents.filter(op => !!op.isBot === (button.dataset.arenaFilter === 'bots')).length;
@@ -16480,6 +16493,8 @@
                                 <span style="color:#60a5fa;">🛡️ VIT ${stats.vit}</span>
                                 <span style="color:#facc15;">🔥 ${stats.power}</span>
                             </div>
+                            ${op.isBot ? `<div style="color:#c4b5fd;font-size:10px;margin-top:5px;overflow-wrap:anywhere;">${escapeHTML(op.botLastAction || 'İlk seferini bekliyor')}</div>
+                                <div style="color:#9c8e7b;font-size:9px;margin-top:3px;">🧭 ${Number(op.botQuestsCompleted) || 0} görev · ⚔️ ${Number(op.botArenaBattles) || 0} maç · ✨ ${Number(op.exp) || 0}/${Math.min(MAX_LEVEL, op.level || 1) * 100} TP</div>` : ''}
                         </div>
 
                         <button id="atkBtn_${op._id}" class="btn-quest" ${canFight ? '' : 'disabled'}
@@ -18033,6 +18048,13 @@
                 arenaOpponentCache[String(op._id)] = op;
             });
             renderArenaOpponents();
+        });
+
+        socket.on('arenaBotActivity', (activity) => {
+            const bot = arenaOpponentCache[String(activity?._id)];
+            if (!bot || !bot.isBot) return;
+            Object.assign(bot, activity);
+            if (activeTab === 'arena') renderArenaOpponents();
         });
 
         socket.on('arenaResult', (res) => {

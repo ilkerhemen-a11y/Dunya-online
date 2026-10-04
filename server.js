@@ -16,6 +16,18 @@ app.use(express.static(__dirname + '/public'));
 const MAX_SEFER_LIMITI = 20;
 const REFILL_INTERVAL = 3 * 60 * 1000;
 const MAX_LEVEL = 99;
+const QUESTS = {
+    1: { name: 'Köy Devriyesi', requiredLevel: 1, gold: 45, exp: 20, hpCost: 10 },
+    2: { name: 'Haydut Avı', requiredLevel: 5, gold: 80, exp: 35, hpCost: 15 },
+    3: { name: 'Kervan Muhafızlığı', requiredLevel: 10, gold: 140, exp: 55, hpCost: 20 },
+    4: { name: 'Sınır Karakolu', requiredLevel: 20, gold: 220, exp: 80, hpCost: 30 },
+    5: { name: 'Asi Beyliği Baskını', requiredLevel: 30, gold: 320, exp: 115, hpCost: 40 },
+    6: { name: 'Düşman Casusları', requiredLevel: 40, gold: 450, exp: 160, hpCost: 50 },
+    7: { name: 'Şehzade Konvoyu', requiredLevel: 50, gold: 600, exp: 220, hpCost: 65 },
+    8: { name: 'Düşman Erzak Hattı', requiredLevel: 60, gold: 800, exp: 300, hpCost: 80 },
+    9: { name: 'Han Ordusu Seferi', requiredLevel: 75, gold: 1100, exp: 420, hpCost: 100 },
+    10: { name: 'Taht Yolu Muharebesi', requiredLevel: 90, gold: 1500, exp: 600, hpCost: 125 }
+};
 
 // --- ONUR ÖDÜL SİSTEMİ ---
 const HONOR_RUBY_STEP = 100;
@@ -1559,6 +1571,7 @@ mongoose.connect(MONGO_URI)
         try {
             availableArenaBots = await seedArenaBots();
             broadcastOnlinePlayerCount();
+            startArenaBotWorker();
             console.log(`Arena botları hazır: ${availableArenaBots}/${ARENA_BOTS.length}`);
         } catch (err) {
             console.error('Arena botları oluşturulamadı:', err);
@@ -1572,6 +1585,11 @@ const userSchema = new mongoose.Schema({
     token: { type: String, default: null },
     isBot: { type: Boolean, default: false },
     botKey: { type: String, default: null },
+    botNextActionAt: { type: Number, default: 0 },
+    botLastActionAt: { type: Number, default: 0 },
+    botLastAction: { type: String, default: '' },
+    botQuestsCompleted: { type: Number, default: 0 },
+    botArenaBattles: { type: Number, default: 0 },
     lastCollected: { type: Number, default: Date.now },
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
@@ -1727,7 +1745,12 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Bu hesaplar sadece arenada rakiptir; gerçek oyuncu olarak oturum açmazlar.
+// Botlar kendi oturumlarını açmaz; karakterleri normal oyun kurallarıyla ilerler.
+const BOT_ACTION_INTERVAL_MS = Math.max(1000, Number(process.env.BOT_ACTION_INTERVAL_MS) || 60 * 60 * 1000);
+const BOT_ACTION_JITTER_MS = Math.max(0, Number(process.env.BOT_ACTION_JITTER_MS ?? 12 * 60 * 1000) || 0);
+const BOT_START_SPACING_MS = Math.max(100, Number(process.env.BOT_START_SPACING_MS) || 6 * 60 * 1000);
+const BOT_FIRST_ACTION_DELAY_MS = Math.max(1000, Number(process.env.BOT_FIRST_ACTION_DELAY_MS) || 1000);
+const BOT_TICK_MS = Math.max(100, Number(process.env.BOT_TICK_MS) || 15 * 1000);
 const ARENA_BOTS = [
     ['alaz', 'Bot_01_Alaz', 1, 6, 7],
     ['boran', 'Bot_02_Boran', 16, 36, 31],
@@ -1752,7 +1775,8 @@ async function seedArenaBots() {
     // Yalnızca eksik botları ekle: tekrar başlayan sunucu hesapları çoğaltmaz
     // ve savaş sonuçlarından sonra verilerini sıfırlamaz.
     await User.init();
-    for (const bot of ARENA_BOTS) {
+    const now = Date.now();
+    for (const [index, bot] of ARENA_BOTS.entries()) {
         await User.updateOne(
             { username: bot.username },
             {
@@ -1762,13 +1786,141 @@ async function seedArenaBots() {
                     password: crypto.randomBytes(32).toString('hex'),
                     token: null,
                     hp: bot.vit * 20,
-                    arenaResetDate: new Date().toDateString()
+                    arenaResetDate: new Date().toDateString(),
+                    botNextActionAt: now + (index * BOT_START_SPACING_MS) + BOT_FIRST_ACTION_DELAY_MS
                 }
             },
             { upsert: true }
         );
+        // Önceden açılmış 10 hesabın ilk hareketini bir saate yay.
+        await User.updateOne(
+            { username: bot.username, isBot: true, botNextActionAt: { $exists: false } },
+            { $set: { botNextActionAt: now + (index * BOT_START_SPACING_MS) + BOT_FIRST_ACTION_DELAY_MS } }
+        );
     }
     return User.countDocuments({ isBot: true, botKey: { $in: ARENA_BOT_KEYS } });
+}
+
+let arenaBotWorkerTimer = null;
+let arenaBotWorkerBusy = false;
+
+function startArenaBotWorker() {
+    if (arenaBotWorkerTimer || !availableArenaBots) return;
+    arenaBotWorkerTimer = setInterval(runArenaBotWorker, BOT_TICK_MS);
+    runArenaBotWorker();
+}
+
+async function progressArenaBot(bot) {
+    checkSeferRefill(bot);
+    checkArenaReset(bot);
+
+    if (bot.arenaLimit > 0 && Math.random() < 0.25) {
+        const rivals = await User.find({
+            isBot: true,
+            botKey: { $in: ARENA_BOT_KEYS },
+            _id: { $ne: bot._id }
+        }).select('username level str vit equipped').lean();
+
+        if (rivals.length) {
+            const rival = rivals[Math.floor(Math.random() * rivals.length)];
+            const { attackerWon } = simulateArenaBattle(bot, rival);
+            bot.arenaLimit -= 1;
+            bot.botArenaBattles = (bot.botArenaBattles || 0) + 1;
+
+            if (attackerWon) {
+                bot.balance += Math.floor(Math.random() * 50) + 30;
+                bot.arenaWins = (bot.arenaWins || 0) + 1;
+                applyHonorChange(bot, 15);
+            } else {
+                applyHonorChange(bot, -5);
+            }
+
+            return `⚔️ ${rival.username} ile Arena: ${attackerWon ? 'zafer' : 'mağlubiyet'}`;
+        }
+    }
+
+    const availableQuests = Object.values(QUESTS).filter(quest => bot.level >= quest.requiredLevel);
+    const offset = availableQuests.length > 1 && Math.random() < 0.2 ? 2 : 1;
+    const quest = availableQuests[availableQuests.length - offset];
+
+    if (bot.seferLimiti <= 0) return '🧭 Sefer hakkı yenilenmesini bekliyor';
+
+    if (bot.hp < quest.hpCost) {
+        bot.hp = Math.min(calculateMaxHpForProgression(bot), bot.hp + Math.ceil(calculateMaxHpForProgression(bot) / 3));
+        return '❤️ Şifahanede dinleniyor';
+    }
+
+    bot.seferLimiti -= 1;
+    if (bot.seferLimiti < MAX_SEFER_LIMITI && !bot.seferNextRefill) {
+        bot.seferNextRefill = Date.now() + REFILL_INTERVAL;
+    }
+    bot.balance += quest.gold;
+    if (bot.level < MAX_LEVEL) bot.exp += quest.exp;
+    bot.hp = Math.max(0, bot.hp - quest.hpCost);
+    const progression = processLevelUps(bot);
+    const pointGroups = Math.floor((Number(bot.statPoints) || 0) / 3);
+    if (pointGroups > 0) {
+        bot.str += pointGroups * 2;
+        bot.vit += pointGroups;
+        bot.statPoints -= pointGroups * 3;
+        bot.hp = Math.min(calculateMaxHpForProgression(bot), bot.hp + pointGroups * 20);
+    }
+    bot.botQuestsCompleted = (bot.botQuestsCompleted || 0) + 1;
+
+    return `🧭 ${quest.name}: +${quest.exp} TP${progression.levelUps ? `, seviye ${bot.level}` : ''}`;
+}
+
+async function runArenaBotWorker() {
+    if (arenaBotWorkerBusy || !availableArenaBots || mongoose.connection.readyState !== 1) return;
+    arenaBotWorkerBusy = true;
+    try {
+        const now = Date.now();
+        const dueBots = await User.find({
+            isBot: true,
+            botKey: { $in: ARENA_BOT_KEYS },
+            botNextActionAt: { $lte: now }
+        }).sort({ botNextActionAt: 1 }).limit(2).select('_id botNextActionAt').lean();
+
+        for (const due of dueBots) {
+            // Veritabanı kilidi: birden fazla sunucu çalışsa bile aynı bot tek hamle yapar.
+            const bot = await User.findOneAndUpdate(
+                { _id: due._id, isBot: true, botNextActionAt: { $lte: now } },
+                { $set: { botNextActionAt: now + BOT_ACTION_INTERVAL_MS + Math.floor(Math.random() * BOT_ACTION_JITTER_MS) } },
+                { new: true }
+            );
+            if (!bot) continue;
+
+            try {
+                // Uyuyan sunucunun kaçırdığı hareketlerin en fazla dördünü telafi et.
+                const missed = Math.max(0, Math.floor((now - due.botNextActionAt) / BOT_ACTION_INTERVAL_MS));
+                const turns = Math.min(4, 1 + missed);
+                for (let turn = 0; turn < turns; turn++) {
+                    bot.botLastAction = await progressArenaBot(bot);
+                }
+                bot.botLastActionAt = Date.now();
+                await bot.save();
+                io.emit('arenaBotActivity', {
+                    _id: String(bot._id),
+                    level: bot.level,
+                    exp: bot.exp,
+                    str: bot.str,
+                    vit: bot.vit,
+                    honor: bot.honor,
+                    botQuestsCompleted: bot.botQuestsCompleted,
+                    botArenaBattles: bot.botArenaBattles,
+                    arenaWins: bot.arenaWins,
+                    botLastAction: bot.botLastAction,
+                    botLastActionAt: bot.botLastActionAt
+                });
+            } catch (err) {
+                console.error(`Bot hamlesi başarısız (${bot.botKey}):`, err);
+            }
+        }
+    } catch (err) {
+        console.error('Bot çalışma döngüsü hatası:', err);
+    } finally {
+        arenaBotWorkerBusy = false;
+    }
 }
 
 // Beypazarı Karakter Tezgahları Şeması
@@ -4319,7 +4471,8 @@ async function getSeasonLeaderboard(user) {
     const leaders =
         await User.find({
             seasonKey:
-                user.seasonKey
+                user.seasonKey,
+            isBot: { $ne: true }
         })
         .sort({
             seasonPoints: -1,
@@ -4727,6 +4880,160 @@ async function rewardWorldBossKill(
 // ============================================================================
 // MACERA PAKETİ V1 SONU
 // ============================================================================
+
+function simulateArenaBattle(attacker, defender) {
+    const getArenaStats = (u) => {
+        const totalStr = getTotalStr(u);
+        const totalVit = getTotalVit(u);
+
+        return {
+            str: totalStr,
+            vit: totalVit,
+            maxHp: Math.max(100, totalVit * 20),
+            power: getCharacterCombatPower(u),
+            setPieces: getHukumdarSetEquippedCount(u)
+        };
+    };
+
+    const attackerStats = getArenaStats(attacker);
+    const defenderStats = getArenaStats(defender);
+
+    let attackerHp = attackerStats.maxHp;
+    let defenderHp = defenderStats.maxHp;
+
+    const battleActions = [];
+
+    const calculateArenaDamage = (sourceStats, targetStats) => {
+        const variation = 0.85 + (Math.random() * 0.30);
+        const baseDamage =
+            (sourceStats.str * 3.2) +
+            (sourceStats.power * 0.30);
+
+        const mitigation = targetStats.vit * 0.55;
+
+        let damage = Math.max(
+            5,
+            Math.floor((baseDamage * variation) - mitigation)
+        );
+
+        const critical = Math.random() < 0.15;
+
+        if (critical) {
+            damage = Math.floor(damage * 1.75);
+        }
+
+        return {
+            damage: Math.max(1, damage),
+            critical
+        };
+    };
+
+    const pushAttack = (
+        round,
+        actor,
+        sourceStats,
+        targetStats,
+        targetCurrentHp,
+        finisher = false
+    ) => {
+        const hit = calculateArenaDamage(sourceStats, targetStats);
+
+        let damage = hit.damage;
+
+        if (finisher) {
+            damage = Math.max(1, targetCurrentHp);
+        } else {
+            damage = Math.min(damage, targetCurrentHp);
+        }
+
+        const targetHp = Math.max(0, targetCurrentHp - damage);
+
+        battleActions.push({
+            round,
+            actor,
+            target: actor === 'attacker' ? 'defender' : 'attacker',
+            damage,
+            critical: finisher ? true : hit.critical,
+            finisher,
+            targetHp,
+            targetMaxHp: targetStats.maxHp
+        });
+
+        return targetHp;
+    };
+
+    // 3 ana tur: iki savaşçı da hayattaysa karşılıklı vuruşur.
+    for (let round = 1; round <= 3; round++) {
+        if (attackerHp <= 0 || defenderHp <= 0) break;
+
+        defenderHp = pushAttack(
+            round,
+            'attacker',
+            attackerStats,
+            defenderStats,
+            defenderHp
+        );
+
+        if (defenderHp <= 0) break;
+
+        attackerHp = pushAttack(
+            round,
+            'defender',
+            defenderStats,
+            attackerStats,
+            attackerHp
+        );
+    }
+
+    let attackerWon;
+
+    if (defenderHp <= 0) {
+        attackerWon = true;
+    } else if (attackerHp <= 0) {
+        attackerWon = false;
+    } else {
+        // 3 tur sonunda kim daha güçlü durumda kaldıysa bitirici darbeyi vurur.
+        const attackerHealthScore =
+            attackerHp / attackerStats.maxHp;
+
+        const defenderHealthScore =
+            defenderHp / defenderStats.maxHp;
+
+        const attackerJudgeScore =
+            (attackerHealthScore * 100) +
+            attackerStats.power +
+            (Math.random() * 10);
+
+        const defenderJudgeScore =
+            (defenderHealthScore * 100) +
+            defenderStats.power +
+            (Math.random() * 10);
+
+        attackerWon = attackerJudgeScore >= defenderJudgeScore;
+
+        if (attackerWon) {
+            defenderHp = pushAttack(
+                4,
+                'attacker',
+                attackerStats,
+                defenderStats,
+                defenderHp,
+                true
+            );
+        } else {
+            attackerHp = pushAttack(
+                4,
+                'defender',
+                defenderStats,
+                attackerStats,
+                attackerHp,
+                true
+            );
+        }
+    }
+
+    return { attackerStats, defenderStats, attackerWon, battleActions };
+}
 
 io.on('connection', (socket) => {
     socket.on('getGameBuildInfo', () => {
@@ -6025,81 +6332,8 @@ io.on('connection', (socket) => {
             });
         }
 
-        const quests = {
-            1: {
-                name: 'Köy Devriyesi',
-                requiredLevel: 1,
-                gold: 45,
-                exp: 20,
-                hpCost: 10
-            },
-            2: {
-                name: 'Haydut Avı',
-                requiredLevel: 5,
-                gold: 80,
-                exp: 35,
-                hpCost: 15
-            },
-            3: {
-                name: 'Kervan Muhafızlığı',
-                requiredLevel: 10,
-                gold: 140,
-                exp: 55,
-                hpCost: 20
-            },
-            4: {
-                name: 'Sınır Karakolu',
-                requiredLevel: 20,
-                gold: 220,
-                exp: 80,
-                hpCost: 30
-            },
-            5: {
-                name: 'Asi Beyliği Baskını',
-                requiredLevel: 30,
-                gold: 320,
-                exp: 115,
-                hpCost: 40
-            },
-            6: {
-                name: 'Düşman Casusları',
-                requiredLevel: 40,
-                gold: 450,
-                exp: 160,
-                hpCost: 50
-            },
-            7: {
-                name: 'Şehzade Konvoyu',
-                requiredLevel: 50,
-                gold: 600,
-                exp: 220,
-                hpCost: 65
-            },
-            8: {
-                name: 'Düşman Erzak Hattı',
-                requiredLevel: 60,
-                gold: 800,
-                exp: 300,
-                hpCost: 80
-            },
-            9: {
-                name: 'Han Ordusu Seferi',
-                requiredLevel: 75,
-                gold: 1100,
-                exp: 420,
-                hpCost: 100
-            },
-            10: {
-                name: 'Taht Yolu Muharebesi',
-                requiredLevel: 90,
-                gold: 1500,
-                exp: 600,
-                hpCost: 125
-            }
-        };
-
         const questId = Number.parseInt(data?.questId, 10);
-        const quest = quests[questId];
+        const quest = QUESTS[questId];
 
         if (!quest) {
             return socket.emit('questResult', {
@@ -7551,7 +7785,7 @@ io.on('connection', (socket) => {
             // Botların tamamı her zaman seçilebilir; gerçek oyunculardan 5'i rastgele gelir.
             const [bots, players] = await Promise.all([
                 User.find({ isBot: true, botKey: { $in: ARENA_BOT_KEYS } })
-                    .select('username level str vit equipped honor isBot botKey')
+                    .select('username level exp str vit equipped honor isBot botKey arenaWins botQuestsCompleted botArenaBattles botLastAction botLastActionAt')
                     .lean(),
                 User.aggregate([
                 {
@@ -7631,155 +7865,8 @@ io.on('connection', (socket) => {
                 });
             }
 
-            const getArenaStats = (u) => {
-                const totalStr = getTotalStr(u);
-                const totalVit = getTotalVit(u);
-
-                return {
-                    str: totalStr,
-                    vit: totalVit,
-                    maxHp: Math.max(100, totalVit * 20),
-                    power: getCharacterCombatPower(u),
-                    setPieces: getHukumdarSetEquippedCount(u)
-                };
-            };
-
-            const attackerStats = getArenaStats(attacker);
-            const defenderStats = getArenaStats(defender);
-
-            let attackerHp = attackerStats.maxHp;
-            let defenderHp = defenderStats.maxHp;
-
-            const battleActions = [];
-
-            const calculateArenaDamage = (sourceStats, targetStats) => {
-                const variation = 0.85 + (Math.random() * 0.30);
-                const baseDamage =
-                    (sourceStats.str * 3.2) +
-                    (sourceStats.power * 0.30);
-
-                const mitigation = targetStats.vit * 0.55;
-
-                let damage = Math.max(
-                    5,
-                    Math.floor((baseDamage * variation) - mitigation)
-                );
-
-                const critical = Math.random() < 0.15;
-
-                if (critical) {
-                    damage = Math.floor(damage * 1.75);
-                }
-
-                return {
-                    damage: Math.max(1, damage),
-                    critical
-                };
-            };
-
-            const pushAttack = (
-                round,
-                actor,
-                sourceStats,
-                targetStats,
-                targetCurrentHp,
-                finisher = false
-            ) => {
-                const hit = calculateArenaDamage(sourceStats, targetStats);
-
-                let damage = hit.damage;
-
-                if (finisher) {
-                    damage = Math.max(1, targetCurrentHp);
-                } else {
-                    damage = Math.min(damage, targetCurrentHp);
-                }
-
-                const targetHp = Math.max(0, targetCurrentHp - damage);
-
-                battleActions.push({
-                    round,
-                    actor,
-                    target: actor === 'attacker' ? 'defender' : 'attacker',
-                    damage,
-                    critical: finisher ? true : hit.critical,
-                    finisher,
-                    targetHp,
-                    targetMaxHp: targetStats.maxHp
-                });
-
-                return targetHp;
-            };
-
-            // 3 ana tur: iki savaşçı da hayattaysa karşılıklı vuruşur.
-            for (let round = 1; round <= 3; round++) {
-                if (attackerHp <= 0 || defenderHp <= 0) break;
-
-                defenderHp = pushAttack(
-                    round,
-                    'attacker',
-                    attackerStats,
-                    defenderStats,
-                    defenderHp
-                );
-
-                if (defenderHp <= 0) break;
-
-                attackerHp = pushAttack(
-                    round,
-                    'defender',
-                    defenderStats,
-                    attackerStats,
-                    attackerHp
-                );
-            }
-
-            let attackerWon;
-
-            if (defenderHp <= 0) {
-                attackerWon = true;
-            } else if (attackerHp <= 0) {
-                attackerWon = false;
-            } else {
-                // 3 tur sonunda kim daha güçlü durumda kaldıysa bitirici darbeyi vurur.
-                const attackerHealthScore =
-                    attackerHp / attackerStats.maxHp;
-
-                const defenderHealthScore =
-                    defenderHp / defenderStats.maxHp;
-
-                const attackerJudgeScore =
-                    (attackerHealthScore * 100) +
-                    attackerStats.power +
-                    (Math.random() * 10);
-
-                const defenderJudgeScore =
-                    (defenderHealthScore * 100) +
-                    defenderStats.power +
-                    (Math.random() * 10);
-
-                attackerWon = attackerJudgeScore >= defenderJudgeScore;
-
-                if (attackerWon) {
-                    defenderHp = pushAttack(
-                        4,
-                        'attacker',
-                        attackerStats,
-                        defenderStats,
-                        defenderHp,
-                        true
-                    );
-                } else {
-                    attackerHp = pushAttack(
-                        4,
-                        'defender',
-                        defenderStats,
-                        attackerStats,
-                        attackerHp,
-                        true
-                    );
-                }
-            }
+            const { attackerStats, defenderStats, attackerWon, battleActions } =
+                simulateArenaBattle(attacker, defender);
 
             // Arena hakkı gerçek savaş başladıktan sonra tüketilir.
             attacker.arenaLimit -= 1;
