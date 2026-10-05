@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-10-05-world-map-v1';
+const GAME_BUILD_ID = '2026-10-05-world-map-visual-v2';
 
 const app = express();
 const server = http.createServer(app);

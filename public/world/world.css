@@ -1,0 +1,127 @@
+.world-realm {
+  --world-gold: #dfbf78;
+  color: #f4e6c7;
+  max-width: 1220px;
+  margin: 0 auto;
+  font-family: inherit;
+}
+.world-realm * { box-sizing: border-box; }
+.world-realm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border: 1px solid #93713f;
+  border-radius: 10px;
+  background: linear-gradient(100deg, #342b1d, #151d18 72%);
+  box-shadow: 0 4px 18px #0007;
+}
+.world-realm-header h2 { margin: 0; font-size: clamp(16px, 2vw, 23px); color: #ffdf9a; }
+.world-realm-header p { margin: 3px 0 0; font-size: 11px; color: #d7c8a9; }
+.world-realm-count { flex: none; color: #f5d68d; font-size: 11px; font-weight: 800; }
+.world-map-frame { position: relative; border: 3px ridge #bd9656; border-radius: 11px; background: #24352a; box-shadow: inset 0 0 0 1px #2e2015, 0 12px 30px #0008; overflow: hidden; }
+.world-map-viewport {
+  width: 100%;
+  height: clamp(360px, 58vh, 650px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bb955b #2b382b;
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  overscroll-behavior: contain;
+}
+.world-map-viewport.dragging { cursor: grabbing; user-select: none; }
+.world-map-sizer { position: relative; width: 1200px; height: 760px; }
+.world-map-stage {
+  position: relative;
+  width: 1200px;
+  height: 760px;
+  overflow: hidden;
+  transform: scale(var(--world-zoom));
+  transform-origin: 0 0;
+  background: #678641 url('/world/terrain.svg') center / 1200px 760px no-repeat;
+  isolation: isolate;
+}
+.world-map-stage::before { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 100px #182416a0; z-index: 5; }
+.world-map-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(90deg, transparent 0 119px, #e7cb8540 120px 121px, transparent 122px 239px), repeating-linear-gradient(0deg, transparent 0 119px, #e7cb8530 120px 121px, transparent 122px 239px); opacity: .17; }
+.world-decor { position: absolute; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); pointer-events: none; filter: drop-shadow(2px 5px 2px #14230b88); z-index: 1; }
+.world-decor.forest { width: 120px; height: 80px; font-size: 35px; letter-spacing: -15px; color: #173b24; text-shadow: -5px 4px #16431f, 4px -3px #2c5d2c, 0 8px #0e291b; }
+.world-decor.farm { width: 98px; height: 52px; font-size: 26px; letter-spacing: -7px; border: 2px solid #715c2e; border-radius: 45% 20% 36% 22%; background: repeating-linear-gradient(165deg, #a88438 0 6px, #ceab52 7px 10px, #6f672d 11px 14px); transform: translate(-50%, -50%) rotate(-17deg); }
+.world-decor.farm span { filter: drop-shadow(1px 2px #584321); }
+.world-decor.rock { font-size: 32px; filter: drop-shadow(3px 5px 2px #15200e8c); }
+.world-decor.scout { font-size: 29px; }
+.world-decor.shrine { font-size: 27px; }
+.world-map-marker {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -53%);
+  width: 116px;
+  height: 114px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff4d6;
+  font: inherit;
+  cursor: pointer;
+  z-index: 3;
+  touch-action: manipulation;
+}
+.world-map-marker:hover, .world-map-marker.selected { z-index: 4; }
+.world-map-marker:hover .world-fort-art, .world-map-marker.selected .world-fort-art { transform: translateY(-4px) scale(1.07); }
+.world-map-marker:focus-visible { outline: 3px solid #fff5bd; border-radius: 9px; }
+.world-fort-art { position: relative; display: block; width: 106px; height: 80px; transition: transform .18s ease; background: url('/world/fort.svg') center bottom / contain no-repeat; filter: drop-shadow(4px 7px 3px #17201499); }
+.world-map-marker.mine .world-fort-art::before {
+  content: '';
+  position: absolute;
+  width: 116px;
+  height: 85px;
+  left: -5px;
+  bottom: -3px;
+  border: 2px solid #a5eff0aa;
+  border-bottom-color: #91dbe288;
+  border-radius: 55% 55% 48% 48%;
+  background: radial-gradient(ellipse at 50% 4%, #d9ffff93, #9cf4fc2b 60%, #95ebfa1c 73%);
+  box-shadow: inset 0 8px 15px #d5ffff42, 0 0 15px #9eeffc88;
+}
+.world-map-marker.mine::after { content: '◆'; position: absolute; top: 10px; right: 1px; color: #b9faff; font-size: 18px; text-shadow: 0 0 9px #29e7ef; }
+.world-fort-name { display: block; position: relative; max-width: 112px; padding: 4px 7px 3px; border: 1px solid #c6a46b; border-radius: 4px; background: linear-gradient(#352a1ded, #1a201be8); box-shadow: 0 3px 6px #0009; color: #fff0ca; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; font-weight: 800; line-height: 1.15; }
+.world-map-marker.mine .world-fort-name { border-color: #84d8dd; color: #d6ffff; }
+.world-map-marker.selected .world-fort-name { outline: 2px solid #ffe6a1; }
+.world-fort-level { margin-top: 2px; padding: 1px 5px; border-radius: 3px; background: #1a251ad9; color: #e9d5a3; font-size: 9px; font-weight: 700; }
+.world-map-marker.capital { width: 220px; height: 191px; left: 600px; top: 370px; transform: translate(-50%, -55%); }
+.world-map-marker.capital .world-fort-art { width: 192px; height: 142px; background-image: url('/world/ana-kale.svg'); filter: drop-shadow(7px 10px 5px #172014b5); }
+.world-map-marker.capital .world-fort-name { max-width: 195px; padding: 5px 14px; border-color: #efca77; background: linear-gradient(#5b381bf2, #261b13ee); color: #ffe19a; font-size: 14px; letter-spacing: .08em; }
+.world-map-marker.capital .world-fort-level { max-width: 192px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.world-capital-ring { position: absolute; left: 600px; top: 367px; width: 325px; height: 184px; transform: translate(-50%,-50%) rotate(-11deg); border: 2px solid #e7b75caa; border-radius: 50%; background: radial-gradient(ellipse, #e4b76b24, transparent 73%); box-shadow: 0 0 28px #e4ab4e4f, inset 0 0 24px #d7a35b65; pointer-events: none; z-index: 2; }
+.world-map-overlay { position: absolute; z-index: 6; padding: 7px 10px; border: 1px solid #b99761; border-radius: 7px; background: #1a241ddf; box-shadow: 0 3px 12px #0009; color: #f9df9f; font-size: 11px; font-weight: 800; pointer-events: none; }
+.world-map-overlay.region { top: 10px; left: 10px; }
+.world-map-overlay.compass { top: 10px; right: 10px; font-size: 14px; }
+.world-map-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px; border-top: 2px solid #927044; background: linear-gradient(#303424, #191f1a); }
+.world-map-toolbar button, .world-castle-detail button { min-height: 36px; padding: 6px 10px; border: 1px solid #c39c5c; border-radius: 6px; background: linear-gradient(#514027, #2b241a); color: #ffebba; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.world-map-toolbar button:hover, .world-castle-detail button:hover { background: linear-gradient(#725331, #3d301e); }
+.world-map-toolbar button:focus-visible, .world-castle-detail button:focus-visible { outline: 3px solid #fff3bd; outline-offset: 1px; }
+.world-map-toolbar button:disabled { opacity: .44; cursor: default; }
+.world-map-toolbar .world-coordinate { margin-left: auto; padding: 5px 8px; color: #dccfae; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.world-map-toolbar .world-zoom-label { min-width: 34px; text-align: center; font-size: 11px; }
+.world-castle-detail { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 8px; padding: 11px 13px; border: 1px solid #917347; border-radius: 9px; background: linear-gradient(115deg, #2c281f, #17211d); box-shadow: 0 5px 16px #0006; }
+.world-castle-detail h3 { margin: 0 0 3px; color: #ffe2a0; font-size: 16px; }
+.world-castle-detail p { margin: 2px 0; color: #d6c6a4; font-size: 11px; }
+.world-castle-detail .world-siege-button { background: linear-gradient(#b97736, #653415); border-color: #f3c980; }
+@media (max-width: 700px) and (orientation: landscape) {
+  .world-realm-header { padding: 6px 9px; }
+  .world-realm-header p { display: none; }
+  .world-map-viewport { height: max(300px, calc(100dvh - 182px)); }
+  .world-map-toolbar button { min-height: 32px; padding: 5px 7px; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .world-map-viewport { height: min(62dvh, 570px); min-height: 400px; }
+  .world-realm-count { font-size: 10px; }
+  .world-map-toolbar .world-coordinate { order: 2; margin-left: 0; }
+}
