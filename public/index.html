@@ -4944,6 +4944,50 @@
             body.hub-open .content-panel { overflow-x: auto; }
             .kingdom-hub { min-width: 740px; min-height: 420px; }
         }
+
+        /* Dünya: hesap kaleleri ve fethedilebilir Ana Kale */
+        .world-realm { color:#ead7b8; max-width:1100px; margin:auto; }
+        .world-realm-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 17px; margin-bottom:10px; border:1px solid #9e793f; border-radius:12px; background:linear-gradient(120deg,#352719,#151717); }
+        .world-realm-header h2 { margin:0; color:#ffe0a0; font-size:clamp(18px,2.5vw,26px); }
+        .world-realm-header p { margin:4px 0 0; color:#c6b89e; font-size:12px; }
+        .world-realm-count { padding:8px 12px; border:1px solid #a78146; border-radius:9px; background:#1d2019; color:#f5d68b; font-size:12px; font-weight:800; }
+        .world-realm-map { position:relative; min-height:clamp(340px,43vw,480px); overflow:hidden; border:2px solid #a78048; border-radius:14px; background:radial-gradient(ellipse at 50% 53%,#826e43 0%,#5b6037 15%,transparent 35%), radial-gradient(circle at 18% 80%,#4e6038,transparent 29%),radial-gradient(circle at 85% 20%,#455932,transparent 32%),linear-gradient(145deg,#42563a,#2a453b 52%,#253c35); box-shadow:inset 0 0 60px #151e19,0 13px 28px #0008; isolation:isolate; }
+        .world-realm-map::before { content:""; position:absolute; inset:7%; border:3px dashed #d6bb79aa; border-radius:46% 52% 43% 50%; transform:rotate(-8deg); opacity:.45; pointer-events:none; }
+        .world-realm-map::after { content:""; position:absolute; width:45%; height:150%; left:-29%; top:-25%; background:#5a9ca080; border:10px solid #acbba162; border-radius:48%; transform:rotate(32deg); filter:blur(1px); z-index:-1; pointer-events:none; }
+        .world-map-compass { position:absolute; right:12px; top:10px; color:#ecd19b; font-size:15px; font-weight:900; text-shadow:0 2px 4px #000; pointer-events:none; }
+        .world-map-label { position:absolute; left:14px; bottom:12px; padding:5px 9px; border-radius:7px; background:#14211cdd; font-size:11px; color:#e5ce9d; pointer-events:none; }
+        .world-map-plot, .world-map-main { position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; transform:translate(-50%,-50%); border:1px solid #d1b073; border-radius:9px; background:linear-gradient(155deg,#322d25,#171b1a); color:#f7e4b6; box-shadow:0 5px 11px #0009; font:inherit; cursor:pointer; touch-action:manipulation; }
+        .world-map-plot { left:var(--x); top:var(--y); width:clamp(66px,10vw,116px); min-height:66px; padding:5px 2px; }
+        .world-map-plot.mine { border-color:#75d2ce; background:linear-gradient(155deg,#2d5b53,#173633); }
+        .world-map-plot.selected, .world-map-main.selected { outline:3px solid #ffe19b; outline-offset:2px; }
+        .world-map-plot .fort-icon { font-size:24px; line-height:1; filter:drop-shadow(0 2px 2px #000); }
+        .world-map-plot .fort-name { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; font-weight:800; }
+        .world-map-plot .fort-level { font-size:9px; color:#d2c2a4; }
+        .world-map-main { left:50%; top:50%; z-index:2; width:clamp(118px,17vw,190px); min-height:106px; border:2px solid #f6d079; background:radial-gradient(circle at 50% 15%,#88613c,#382318 70%); }
+        .world-map-main .fort-icon { font-size:39px; line-height:1; }
+        .world-map-main strong { color:#fff0bf; font-size:14px; }
+        .world-map-main small { max-width:90%; color:#f2d99f; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .world-map-plot:focus-visible, .world-map-main:focus-visible, .world-map-controls button:focus-visible, .world-castle-detail button:focus-visible { outline:3px solid #fff1bd; outline-offset:2px; }
+        .world-map-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:10px 2px; }
+        .world-map-controls button, .world-castle-detail button { min-height:38px; padding:7px 12px; border:1px solid #c7a066; border-radius:8px; background:#3b2b1e; color:#ffe6ac; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+        .world-map-controls button:disabled { opacity:.45; cursor:default; }
+        .world-map-controls span { font-size:12px; color:#e5cb96; font-weight:750; }
+        .world-castle-detail { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:15px; border:1px solid #8f7142; border-radius:11px; background:linear-gradient(130deg,#29231c,#171916); }
+        .world-castle-detail h3 { margin:0 0 4px; color:#ffe1a1; font-size:17px; }
+        .world-castle-detail p { margin:3px 0; color:#d2c1a5; font-size:12px; }
+        .world-castle-detail .world-siege-button { background:linear-gradient(120deg,#b76b2a,#643015); border-color:#f3c980; }
+        @media (max-width:700px) and (orientation:landscape) {
+            .world-realm-header { padding:8px 11px; }
+            .world-realm-map { min-height:300px; }
+            .world-map-plot { width:70px; min-height:58px; }
+            .world-map-plot .fort-icon { font-size:20px; }
+            .world-map-main { min-height:88px; width:125px; }
+        }
+        @media (max-width:600px) and (orientation:portrait) {
+            .world-realm-map { min-height:510px; }
+            .world-map-plot { width:75px; min-height:62px; }
+            .world-map-main { min-height:100px; width:135px; }
+        }
 </style>
 </head>
 <body class="auth-open" data-world-theme="overview">
@@ -5216,6 +5260,11 @@
         let clanCastleWarAttackFallbackTimer = null;
 
         let barracksState = null;
+        let worldMapState = null;
+        let worldMapPage = 0;
+        let selectedWorldCastle = 'main';
+        let focusSiegeFromWorld = false;
+        let worldMapRefreshTimer = null;
         let arenaOpponentCache = {};
         let arenaOpponents = [];
         let arenaOpponentFilter = 'bots';
@@ -7862,6 +7911,7 @@
                 playerMarket: 'market',
                 suluhan: 'market',
                 timar: 'timar',
+                world: 'timar',
                 barracks: 'barracks',
                 blacksmith: 'blacksmith',
                 arena: 'arena',
@@ -8367,6 +8417,26 @@
             );
         }
 
+        function requestWorldMap(page = worldMapPage) {
+            socket.emit('getWorldMap', { page });
+        }
+
+        function scheduleWorldMapRefresh() {
+            if (activeTab !== 'world') return;
+            clearTimeout(worldMapRefreshTimer);
+            worldMapRefreshTimer = setTimeout(() => requestWorldMap(), 250);
+        }
+
+        function selectWorldCastle(id) {
+            selectedWorldCastle = String(id);
+            if (activeTab === 'world') renderPanelContent();
+        }
+
+        function openMainCastleSiege() {
+            focusSiegeFromWorld = true;
+            switchTab('barracks');
+        }
+
         function switchTab(tab) {
             if (tab === 'chests') activeMarketCategory = 'chests';
             if (tab === 'market' && activeTab !== 'market') {
@@ -8392,6 +8462,7 @@
                 'playerMarket': 'Beypazarı (Oyuncu Tezgahları)',
                 'suluhan': 'Suluhan Antik Çarşısı',
                 'timar': 'İmparatorluk Tımarları',
+                'world': 'Dünya Haritası',
                 'barracks': 'Kışla & Taht Savaşı',
                 'blacksmith': 'Demirhane ve Ekipman Geliştirme',
                 'arena': 'Kolosseum / PvP Arena',
@@ -8433,6 +8504,11 @@
             if (tab === 'barracks') {
                 barracksState = null;
                 socket.emit('getBarracksStatus');
+            }
+
+            if (tab === 'world') {
+                worldMapState = null;
+                requestWorldMap();
             }
 
             if (tab === 'timar') {
@@ -8486,6 +8562,7 @@
                         <button type="button" class="hub-spot hub-tower hub-lower" onclick="switchTab('adventure')" aria-label="Macera merkezi bölümünü aç"><span class="hub-spot-label">✨ Macera</span></button>
                         <button type="button" class="hub-spot hub-metin hub-lower" onclick="switchTab('metin')" aria-label="Metin taşı bölümünü aç"><span class="hub-spot-label">💎 Metin Taşı</span></button>
                         <nav class="hub-dock" aria-label="Diğer şehir bölümleri">
+                            <button type="button" onclick="switchTab('world')">🌍 Dünya Haritası</button>
                             <button type="button" onclick="switchTab('inventory')">🎒 Envanter</button>
                             <button type="button" onclick="switchTab('playerMarket')">⛺ Beypazarı</button>
                             <button type="button" onclick="switchTab('suluhan')">🏛️ Suluhan</button>
@@ -8498,6 +8575,80 @@
                         </nav>
                     </section>
                 `;
+                return;
+            }
+
+            if (activeTab === 'world') {
+                const state = worldMapState;
+                if (!state) {
+                    body.innerHTML = '<div class="world-realm-header">🌍 Dünya haritası yükleniyor...</div>';
+                    return;
+                }
+                if (!state.success) {
+                    body.innerHTML = `<div class="world-realm-header">${escapeHTML(state.message || 'Harita yüklenemedi.')} <button type="button" onclick="requestWorldMap()">Yeniden Dene</button></div>`;
+                    return;
+                }
+
+                const plots = [
+                    [13,16], [34,14], [66,14], [87,16],
+                    [13,39], [87,39], [13,63], [87,63],
+                    [13,84], [34,86], [66,86], [87,84]
+                ];
+                const main = state.mainCastle || {};
+                const castles = Array.isArray(state.castles) ? state.castles : [];
+                const mine = state.myCastle || {};
+                const selected = castles.find(castle => castle.id === selectedWorldCastle)
+                    || (mine.id === selectedWorldCastle ? mine : null);
+                const mainSelected = !selected;
+                const remaining = Math.max(0, Number(main.dailyAttacksRemaining) || 0);
+                const limit = Math.max(1, Number(main.dailyAttackLimit) || 5);
+
+                body.innerHTML = `
+                    <section class="world-realm" aria-label="Dünya alanı">
+                        <header class="world-realm-header">
+                            <div><h2>🌍 Dünya Alanı</h2><p>Her hükümdarın kendi kalesi var. Ortadaki Ana Kale'yi fethederek tahta çık.</p></div>
+                            <div class="world-realm-count">🏰 ${Number(state.total || 0).toLocaleString('tr-TR')} oyuncu kalesi</div>
+                        </header>
+                        <div class="world-realm-map" role="group" aria-label="Bölge ${state.page} kale haritası">
+                            <span class="world-map-compass" aria-hidden="true">✦ K</span>
+                            <span class="world-map-label">BÖLGE ${state.page} / ${state.pages}</span>
+                            <button type="button" class="world-map-main ${mainSelected ? 'selected' : ''}" onclick="selectWorldCastle('main')" aria-label="Ana Kale, sahibi ${escapeHTML(String(main.ownerName || 'Saray Muhafızları'))}">
+                                <span class="fort-icon" aria-hidden="true">🏯</span>
+                                <strong>ANA KALE</strong>
+                                <small>👑 ${escapeHTML(String(main.ownerName || 'Saray Muhafızları'))}</small>
+                            </button>
+                            ${castles.map((castle, index) => {
+                                const [x, y] = plots[index];
+                                const isMine = castle.id === mine.id;
+                                return `<button type="button" class="world-map-plot ${isMine ? 'mine' : ''} ${selectedWorldCastle === castle.id ? 'selected' : ''}" style="--x:${x}%;--y:${y}%" onclick="selectWorldCastle('${escapeHTML(castle.id)}')" aria-label="${escapeHTML(String(castle.username))} kalesi, seviye ${Number(castle.level) || 1}${isMine ? ', senin kalen' : ''}">
+                                    <span class="fort-icon" aria-hidden="true">${isMine ? '🏰' : '🏯'}</span>
+                                    <span class="fort-name">${escapeHTML(String(castle.username))}</span>
+                                    <span class="fort-level">${isMine ? 'SENİN KALEN · ' : ''}Sv. ${Number(castle.level) || 1}</span>
+                                </button>`;
+                            }).join('')}
+                        </div>
+                        <nav class="world-map-controls" aria-label="Dünya bölgeleri">
+                            <button type="button" onclick="requestWorldMap(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''}>← Önceki Bölge</button>
+                            <span>Bölge ${state.page} / ${state.pages}</span>
+                            <button type="button" onclick="selectedWorldCastle='${escapeHTML(String(mine.id))}';requestWorldMap(${state.myPage})">📍 Kendi Kalem</button>
+                            <button type="button" onclick="requestWorldMap(${state.page + 1})" ${state.page >= state.pages ? 'disabled' : ''}>Sonraki Bölge →</button>
+                        </nav>
+                        <aside class="world-castle-detail" aria-live="polite">
+                            ${mainSelected ? `
+                                <div><h3>👑 Ana Kale</h3>
+                                    <p>Sahibi: <strong>${escapeHTML(String(main.ownerName || 'Saray Muhafızları'))}</strong> · Savunma gücü: ${Number(main.defensePower || 0).toLocaleString('tr-TR')}</p>
+                                    <p>Bugün kalan kuşatma hakkın: ${remaining}/${limit}. Fetih Taht Savaşı kurallarıyla sonuçlanır.</p>
+                                </div>
+                                <button type="button" class="world-siege-button" onclick="openMainCastleSiege()">${main.isOwner ? '🛡️ Savunmayı Yönet' : '⚔️ Ana Kaleyi Kuşat'}</button>
+                            ` : `
+                                <div><h3>${selected.id === mine.id ? '🏰 Senin Kalen' : '🏯 Oyuncu Kalesi'} · ${escapeHTML(String(selected.username))}</h3>
+                                    <p>Seviye ${Number(selected.level) || 1} · Ana Kale fethi: ${Number(selected.victories) || 0}</p>
+                                    <p>${selected.id === mine.id ? 'Bu kale hesabına aittir; Ana Kale el değiştirse de burada kalır.' : 'Bu kale oyuncusunun dünya üzerindeki yeridir.'}</p>
+                                </div>
+                                <button type="button" onclick="selectWorldCastle('main')">👑 Ana Kaleye Bak</button>
+                            `}
+                        </aside>
+                    </section>`;
                 return;
             }
 
@@ -10210,7 +10361,7 @@
                     ">
                         <div style="font-size:28px;">🏰 👑</div>
                         <h3 style="color:#f3cf7a; margin-top:3px;">
-                            Taht Kalesi
+                            Ana Kale • Taht Kalesi
                         </h3>
 
                         <div style="
@@ -17849,6 +18000,20 @@
             }
         });
         socket.on('suluhanResult', (res) => { if(res.userData) updateHeader(res.userData); document.getElementById('suluhanLogResult').innerText = res.message; if(activeTab === 'suluhan') renderPanelContent(); });
+        socket.on('worldMapStatus', (res) => {
+            worldMapState = res;
+            if (res.success) {
+                worldMapPage = res.page;
+                const visible = (res.castles || []).some(castle => castle.id === selectedWorldCastle);
+                if (selectedWorldCastle !== 'main' && selectedWorldCastle !== res.myCastle?.id && !visible) {
+                    selectedWorldCastle = 'main';
+                }
+            }
+            if (activeTab === 'world') renderPanelContent();
+        });
+
+        socket.on('worldMapRefresh', scheduleWorldMapRefresh);
+
         socket.on('barracksStatus', (res) => {
             if (res.userData) updateHeader(res.userData);
 
@@ -17881,6 +18046,10 @@
                 !castleSiegeAnimating
             ) {
                 renderPanelContent();
+                if (focusSiegeFromWorld) {
+                    focusSiegeFromWorld = false;
+                    requestAnimationFrame(() => scrollMobileBattleTarget('mobileSiegeAction'));
+                }
             }
         });
 
@@ -18005,6 +18174,7 @@
         });
 
         socket.on('castleRefresh', () => {
+            scheduleWorldMapRefresh();
             if (castleSiegeAnimating) {
                 castleRefreshPending = true;
                 return;
@@ -18039,6 +18209,7 @@
         });
 
         socket.on('throneAnnouncement', (res) => {
+            scheduleWorldMapRefresh();
             if (
                 activeTab === 'barracks' &&
                 !castleSiegeAnimating
