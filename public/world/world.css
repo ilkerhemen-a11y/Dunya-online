@@ -58,8 +58,8 @@
   left: var(--x);
   top: var(--y);
   transform: translate(-50%, -53%);
-  width: 116px;
-  height: 114px;
+  width: 140px;
+  height: 150px;
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -76,12 +76,12 @@
 .world-map-marker:hover, .world-map-marker.selected { z-index: 4; }
 .world-map-marker:hover .world-fort-art, .world-map-marker.selected .world-fort-art { transform: translateY(-4px) scale(1.07); }
 .world-map-marker:focus-visible { outline: 3px solid #fff5bd; border-radius: 9px; }
-.world-fort-art { position: relative; display: block; width: 106px; height: 80px; transition: transform .18s ease; background: url('/world/fort.svg') center bottom / contain no-repeat; filter: drop-shadow(4px 7px 3px #17201499); }
+.world-fort-art { position: relative; display: block; width: 132px; height: 106px; transition: transform .18s ease; background: url('/world/player-castle-v2.webp') center bottom / contain no-repeat; filter: drop-shadow(4px 7px 3px #17201499); }
 .world-map-marker.mine .world-fort-art::before {
   content: '';
   position: absolute;
-  width: 116px;
-  height: 85px;
+  width: 140px;
+  height: 116px;
   left: -5px;
   bottom: -3px;
   border: 2px solid #a5eff0aa;
@@ -91,15 +91,15 @@
   box-shadow: inset 0 8px 15px #d5ffff42, 0 0 15px #9eeffc88;
 }
 .world-map-marker.mine::after { content: '◆'; position: absolute; top: 10px; right: 1px; color: #b9faff; font-size: 18px; text-shadow: 0 0 9px #29e7ef; }
-.world-fort-name { display: block; position: relative; max-width: 112px; padding: 4px 7px 3px; border: 1px solid #c6a46b; border-radius: 4px; background: linear-gradient(#352a1ded, #1a201be8); box-shadow: 0 3px 6px #0009; color: #fff0ca; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; font-weight: 800; line-height: 1.15; }
+.world-fort-name { display: block; position: relative; max-width: 135px; padding: 4px 7px 3px; border: 1px solid #c6a46b; border-radius: 4px; background: linear-gradient(#352a1ded, #1a201be8); box-shadow: 0 3px 6px #0009; color: #fff0ca; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; font-weight: 800; line-height: 1.15; }
 .world-map-marker.mine .world-fort-name { border-color: #84d8dd; color: #d6ffff; }
 .world-map-marker.selected .world-fort-name { outline: 2px solid #ffe6a1; }
 .world-fort-level { margin-top: 2px; padding: 1px 5px; border-radius: 3px; background: #1a251ad9; color: #e9d5a3; font-size: 9px; font-weight: 700; }
-.world-map-marker.capital { width: 220px; height: 191px; left: 600px; top: 370px; transform: translate(-50%, -55%); }
-.world-map-marker.capital .world-fort-art { width: 192px; height: 142px; background-image: url('/world/ana-kale.svg'); filter: drop-shadow(7px 10px 5px #172014b5); }
+.world-map-marker.capital { width: 270px; height: 237px; left: 600px; top: 370px; transform: translate(-50%, -55%); }
+.world-map-marker.capital .world-fort-art { width: 250px; height: 188px; background-image: url('/world/ana-kale-v2.webp'); filter: drop-shadow(7px 10px 5px #172014b5); }
 .world-map-marker.capital .world-fort-name { max-width: 195px; padding: 5px 14px; border-color: #efca77; background: linear-gradient(#5b381bf2, #261b13ee); color: #ffe19a; font-size: 14px; letter-spacing: .08em; }
 .world-map-marker.capital .world-fort-level { max-width: 192px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.world-capital-ring { position: absolute; left: 600px; top: 367px; width: 325px; height: 184px; transform: translate(-50%,-50%) rotate(-11deg); border: 2px solid #e7b75caa; border-radius: 50%; background: radial-gradient(ellipse, #e4b76b24, transparent 73%); box-shadow: 0 0 28px #e4ab4e4f, inset 0 0 24px #d7a35b65; pointer-events: none; z-index: 2; }
+.world-capital-ring { position: absolute; left: 600px; top: 367px; width: 370px; height: 214px; transform: translate(-50%,-50%) rotate(-11deg); border: 2px solid #e7b75caa; border-radius: 50%; background: radial-gradient(ellipse, #e4b76b24, transparent 73%); box-shadow: 0 0 28px #e4ab4e4f, inset 0 0 24px #d7a35b65; pointer-events: none; z-index: 2; }
 .world-map-overlay { position: absolute; z-index: 6; padding: 7px 10px; border: 1px solid #b99761; border-radius: 7px; background: #1a241ddf; box-shadow: 0 3px 12px #0009; color: #f9df9f; font-size: 11px; font-weight: 800; pointer-events: none; }
 .world-map-overlay.region { top: 10px; left: 10px; }
 .world-map-overlay.compass { top: 10px; right: 10px; font-size: 14px; }
