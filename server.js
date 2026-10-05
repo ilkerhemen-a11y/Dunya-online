@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const GAME_BUILD_ID = '2026-10-03-throne-mobile-apk-v1';
+const GAME_BUILD_ID = '2026-10-05-world-map-v1';
 
 const app = express();
 const server = http.createServer(app);
@@ -2063,6 +2063,7 @@ async function getOrCreateCastle() {
 }
 
 const CASTLE_DAILY_ATTACK_LIMIT = 5;
+const WORLD_CASTLES_PER_PAGE = 12;
 
 function normalizeCastleDailyAttackLimit(user) {
     if (!user) return false;
@@ -2972,6 +2973,7 @@ app.get('/api/build', (req, res) => {
         onlineCounter: true,
         adventurePackV1: true,
         worldBossV1: true,
+        worldMapV1: true,
         seasonV1: true,
         mongoReadyState: mongoose.connection.readyState
     });
@@ -5046,6 +5048,7 @@ io.on('connection', (socket) => {
             onlineCounter: true,
             adventurePackV1: true,
             worldBossV1: true,
+            worldMapV1: true,
             seasonV1: true
         });
     });
@@ -5077,6 +5080,7 @@ io.on('connection', (socket) => {
             });
             await newUser.save();
             socket.emit('authResult', { success: true, message: "Kayıt başarılı!", token: token });
+            io.emit('worldMapRefresh');
         } catch (err) { socket.emit('authResult', { success: false, message: "Hata oluştu." }); }
     });
 
@@ -6645,6 +6649,69 @@ io.on('connection', (socket) => {
             cavalryDiscountPercent: Math.round(cavalryDiscount * 100)
         };
     }
+
+    // Oyuncu kaleleri hesaplara aittir; Ana Kale mevcut global Taht Savaşıdır.
+    // Sayfalama botları hariç tutar ve sadece herkese açık profil alanlarını gönderir.
+    socket.on('getWorldMap', async (data) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        try {
+            const filter = { isBot: { $ne: true } };
+            const total = await User.countDocuments(filter);
+            const pages = Math.max(1, Math.ceil(total / WORLD_CASTLES_PER_PAGE));
+            const ownPosition = await User.countDocuments({
+                ...filter,
+                _id: { $lte: user._id }
+            });
+            const myPage = Math.max(1, Math.ceil(ownPosition / WORLD_CASTLES_PER_PAGE));
+            const requestedPage = Number(data?.page);
+            const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+                ? Math.min(pages, requestedPage)
+                : myPage;
+            const players = await User.find(filter)
+                .sort({ _id: 1 })
+                .skip((page - 1) * WORLD_CASTLES_PER_PAGE)
+                .limit(WORLD_CASTLES_PER_PAGE)
+                .select('_id username level castleVictories')
+                .lean();
+            const mainCastle = await getCastleStatusForUser(user);
+
+            socket.emit('worldMapStatus', {
+                success: true,
+                page,
+                pages,
+                myPage,
+                total,
+                myCastle: {
+                    id: String(user._id),
+                    username: user.username,
+                    level: Number(user.level) || 1,
+                    victories: Number(user.castleVictories) || 0
+                },
+                castles: players.map(player => ({
+                    id: String(player._id),
+                    username: player.username,
+                    level: Number(player.level) || 1,
+                    victories: Number(player.castleVictories) || 0
+                })),
+                mainCastle: {
+                    ownerName: mainCastle.ownerName || 'Saray Muhafızları',
+                    defensePower: mainCastle.defensePower,
+                    isOwner: mainCastle.isOwner,
+                    dailyAttacksRemaining: mainCastle.dailyAttacksRemaining,
+                    dailyAttackLimit: mainCastle.dailyAttackLimit,
+                    conqueredAt: mainCastle.conqueredAt
+                }
+            });
+        } catch (err) {
+            console.error('Dünya haritası yükleme hatası:', err);
+            socket.emit('worldMapStatus', {
+                success: false,
+                message: 'Dünya haritası yüklenemedi. Tekrar dene.'
+            });
+        }
+    });
 
     socket.on('getBarracksStatus', async () => {
         if (!checkRateLimit(socket.id)) return;
